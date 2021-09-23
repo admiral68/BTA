@@ -1,5 +1,8 @@
-
-START:
+	INCDIR ""
+	INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
+	INCLUDE "photon/Blitter-Register-List.S"
+	
+StartGame:
 
 .lmb 
           btst #6,$bfe001

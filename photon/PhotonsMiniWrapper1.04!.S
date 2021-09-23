@@ -30,10 +30,10 @@ Start:  move.l 4.w,a6           ;Exec library base address in a6
     move.l $6c(a4),-(sp)        ;and also the VB int vector for sport.
     bsr.s AllOff                ;turn off all interrupts+DMA
 
-    *--- call demo ---*
+    *--- call start game ---*
 
     movem.l a4-a6,-(sp)
-    bsr.w Demo                  ;call our demo \o/
+    bsr.w StartGame             ;call our game \o/
     movem.l (sp)+,a4-a6
 
     *--- restore all ---*
