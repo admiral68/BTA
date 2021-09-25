@@ -1,3 +1,5 @@
+	bsr DecodeOldMan
+
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"
@@ -103,6 +105,21 @@ Init:
 
     bsr DecodeOldMan
 
+;    lea DecodedGraphic,a0                   ;ptr to first bitplane of logo
+;    lea CopBplP,a1                          ;where to poke the bitplane pointer words.
+;    move #4-1,d0
+;
+;.bpl7:
+;    move.l a0,d1
+;    swap d1
+;    move.w d1,2(a1)                         ;hi word
+;    swap d1
+;    move.w d1,6(a1)                         ;lo word
+;
+;    addq #8,a1                              ;point to next bpl to poke in copper
+;    lea 4(a0),a0							;apparently every 4 bytes we'll have new bitplane data
+;    dbf d0,.bpl7
+
 
     movem.l (sp)+,d0-a6
     rts
@@ -160,144 +177,146 @@ Extract8PixelPaletteValues:
 
     move.l d1,d3
 
-    cmp.b 1,d2
-    bne .check_2
+    btst #0,d2
+    beq .check_2
 
-    or.w 3(a2),d3           ;3
+    or.b 3(a2),d3           ;3
     move.b d3,3(a2)
 
 .check_2
-    move.l 8,d3
-    cmp.b 2,d2
-    bne .check_4
+    move.l d1,d3
+	
+    btst #1,d2
+    beq .check_4
 
-    or.w 2(a2),d3           ;2
+    or.b 2(a2),d3           ;2
     move.b d3,2(a2)
 
 .check_4
-    move.l 8,d3
-    cmp.b 4,d2
-    bne .check_8
+    move.l d1,d3
+	
+    btst #2,d2
+    beq .check_8
 
-    or.w 1(a2),d3           ;1
+    or.b 1(a2),d3           ;1
     move.b d3,1(a2)
 
 .check_8
-    move.l 8,d3
-    cmp.b 8,d2
-    bne .next_byte
+    move.l d1,d3
+    btst #3,d2
+    beq .next_byte
 
-    or.w (a2),d3            ;0
+    or.b (a2),d3            ;0
     move.b d3,(a2)
 
 .next_byte
 
-    swap d2                 ;swaps source bytes
+    ;swap.b d2                 ;swaps source bytes
 
     move.l d1,d3
 
-    cmp.b 1,d2
-    bne .check_2a
+    btst #12,d2
+    beq .check_2a
 
-    or.w 7(a2),d3           ;7
+    or.b 7(a2),d3           ;7
     move.b d3,7(a2)
 
 .check_2a
-    move.l 8,d3
-    cmp.b 2,d2
-    bne .check_4a
+    move.l d1,d3
+    btst #13,d2
+    beq .check_4a
 
-    or.w 6(a2),d3           ;6
+    or.b 6(a2),d3           ;6
     move.b d3,6(a2)
 
 .check_4a
-    move.l 8,d3
-    cmp.b 4,d2
-    bne .check_8a
+    move.l d1,d3
+    btst #14,d2
+    beq .check_8a
 
-    or.w 5(a2),d3           ;5
+    or.b 5(a2),d3           ;5
     move.b d3,5(a2)
 
 .check_8a
-    move.l 8,d3
-    cmp.b 8,d2
-    bne .next_bytea
+    move.l d1,d3
+    btst #15,d2
+    beq .next_bytea
 
-    or.w 4(a2),d3           ;4
+    or.b 4(a2),d3           ;4
     move.b d3,4(a2)
 
 .next_bytea
 
-    swap d2             ;swaps source bytes
+    ;swap d2             ;swaps source bytes
 
     move.l d1,d3
     asr d3
 
-    cmp.b $10,d2
-    bne .check_2b
+    btst #0,d2
+    beq .check_2b
 
-    or.w 3(a2),d3           ;3
+    or.b 3(a2),d3           ;3
     move.b d3,3(a2)
 
 .check_2b
-    move.l 8,d3
-    cmp.b $20,d2
-    bne .check_4b
+    move.l d1,d3
+    btst #1,d2
+    beq .check_4b
 
-    or.w 2(a2),d3           ;2
+    or.b 2(a2),d3           ;2
     move.b d3,2(a2)
 
 .check_4b
-    move.l 8,d3
-    cmp.b $40,d2
-    bne .check_8b
+    move.l d1,d3
+    btst #2,d2
+    beq .check_8b
 
-    or.w 1(a2),d3           ;1
+    or.b 1(a2),d3           ;1
     move.b d3,1(a2)
 
 .check_8b
-    move.l 8,d3
-    cmp.b $80,d2
-    bne .next_byteb
+    move.l d1,d3
+    btst #3,d2
+    beq .next_byteb
 
-    or.w (a2),d3            ;0
+    or.b (a2),d3            ;0
     move.b d3,(a2)
 
 .next_byteb
 
-    swap d2             ;swaps source bytes
+    ;swap d2             ;swaps source bytes
 
     move.l d1,d3
     asr d3
 
-    cmp.b 1,d2
-    bne .check_2c
+    btst #12,d2
+    beq .check_2c
 
-    or.w 7(a2),d3           ;7
+    or.b 7(a2),d3           ;7
     move.b d3,7(a2)
 
 .check_2c
-    move.l 8,d3
-    cmp.b 2,d2
-    bne .check_4c
+    move.l d1,d3
+    btst #13,d2
+    beq .check_4c
 
-    or.w 6(a2),d3           ;6
+    or.b 6(a2),d3           ;6
     move.b d3,6(a2)
 
 .check_4c
-    move.l 8,d3
-    cmp.b 4,d2
-    bne .check_8c
+    move.l d1,d3
+    btst #14,d2
+    beq .check_8c
 
-    or.w 5(a2),d3           ;5
+    or.b 5(a2),d3           ;5
     move.b d3,5(a2)
 
 .check_8c
-    move.l 8,d3
-    cmp.b 8,d2
-    bne .end
+    move.l d1,d3
+    btst #15,d2
+    beq .end
 
-    or.w 4(a2),d3           ;4
+    or.b 4(a2),d3           ;4
     move.b d3,4(a2)
 
 .end
@@ -310,7 +329,7 @@ DecodeRowOfPixels:
     ;OUTPUT: a2 - decoded pixels (16)
 
     move.w om_bp_offset(a1),d2                      ;om_bp_offset = offset to bitplanes 0 and 1 in source
-    move.w 8,d1
+    move.w #8,d1
     lea DecodedPaletteIndexes,a2
 
 
@@ -318,7 +337,7 @@ DecodeRowOfPixels:
     bsr Extract8PixelPaletteValues                  ;returns DecodedPaletteIndexes in a2
 
     move.w (a1),d2
-    move.w 8,d1
+    move.w #8,d1
     lea DecodedPaletteIndexes+8,a2
 
 
@@ -328,6 +347,14 @@ DecodeRowOfPixels:
 
 
 DecodeOldMan:
+
+	lea DecodedGraphic,a0
+	move.l #512,d0
+.l0:	clr.l (a0)+
+	dbf d0,.l0
+	
+
+	lea DecodedGraphic,a3
     lea Oldguy,a1
 
     move #om_tile_b_offs/2,d0
@@ -476,8 +503,8 @@ CopBplP:
     dc.w $00e6,0
     dc.w $00e8,0                            ;3
     dc.w $00ea,0
-;   dc.w $00ec,0                            ;4
-;   dc.w $00ee,0
+    dc.w $00ec,0                            ;4
+    dc.w $00ee,0
 ;   dc.w $00f0,0                            ;5
 ;   dc.w $00f2,0
 ;   dc.w $00f4,0                            ;6
@@ -510,7 +537,7 @@ Logo:   INCBIN "gfx/sky3centered.raw"
 LogoE:
     dcb.b logobwid*6,0
 
-EVEN
+	EVEN
 
 *******************************************************************************
 * BUFFERS
@@ -522,8 +549,10 @@ Screen:
     ds.b bplsize*3
 ScreenE:
 
+	EVEN
+
 DecodedGraphic:
-    ds.b 384            ;Define storage for graphic
+    ds.b 512            ;Define storage for graphic
 DecodedGraphicE:
 
 
