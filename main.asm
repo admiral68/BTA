@@ -211,8 +211,6 @@ Extract8PixelPaletteValues:
 
 .next_byte
 
-    ;swap.b d2                 ;swaps source bytes
-
     move.l d1,d3
 
     btst #12,d2
@@ -246,8 +244,6 @@ Extract8PixelPaletteValues:
     move.b d3,4(a2)
 
 .next_bytea
-
-    ;swap d2             ;swaps source bytes
 
     move.l d1,d3
     asr d3
@@ -283,8 +279,6 @@ Extract8PixelPaletteValues:
     move.b d3,(a2)
 
 .next_byteb
-
-    ;swap d2             ;swaps source bytes
 
     move.l d1,d3
     asr d3
