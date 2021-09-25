@@ -23,7 +23,13 @@ logomargin      =(320-logow)/2
 logobpl         =logow/8
 logobwid        =logobpl*3
 
+    *-----------------*
+	* palettes        *
+    *-----------------*
+
 logobgcol       =$44f
+
+
 
     *-----------------*
 	* registers       *
@@ -46,6 +52,13 @@ logocolors:macro
     dc.w $068e,$0adf,$0dff
     dc.w $09bf,$056d,$044b,$033a
     endm
+	
+copper_pal_03:macro
+    dc.w $0180,$0b87,$0182,$0754,$0184,$0975,$0186,$0ca8
+    dc.w $0188,$0ed8,$018a,$0fff,$018c,$0060,$018e,$0090
+    dc.w $0190,$00e0,$0192,$0777,$0194,$0aaa,$0196,$0747
+    dc.w $0198,$0868,$019a,$0a8a,$019c,$0cac,$019e,$0111
+	endm
 
 WAITBLIT:macro
     tst DMACONR(a6)                         ;for compatibility
@@ -162,50 +175,66 @@ SkyBufferLE:
     SECTION AllData,DATA_C
 
 Copper:
-    dc.w $1fc,0         					;slow fetch mode, AGA compatibility
-    dc.w $100,$0200
+    dc.w $01fc,0         					;slow fetch mode, AGA compatibility
+    dc.w $0100,$0200
     dc.b 0,$8e,$2c,$81
     dc.b 0,$90,$2c,$c1
-    dc.w $092,$38
-    dc.w $094,$d0
+    dc.w $0092,$38
+    dc.w $0094,$d0
 
-    dc.w $108,logobwid-logobpl
-    dc.w $10a,logobwid-logobpl
+    dc.w $0108,logobwid-logobpl
+    dc.w $010a,logobwid-logobpl
 
-    dc.w $102,$20
-    dc.w $104,0
+    dc.w $0102,$20
+    dc.w $0104,0
 
-    dc.w $0180,$0fff    					;white BG
+    dc.w $0180,$044f,$0182,$068e,$0184,$0adf,$0186,$0dff
+    dc.w $0188,$09bf,$018a,$056d,$018c,$044b,$018e,$033a
 
     dc.w $19df,$fffe
 
+
+
 CopBplP:
-    dc.w $e0,0          					;1
-    dc.w $e2,0
-    dc.w $e4,0          					;2
-    dc.w $e6,0
-    dc.w $e8,0          					;3
-    dc.w $ea,0
-;   dc.w $ec,0          					;4
-;   dc.w $ee,0
-;   dc.w $f0,0          					;5
-;   dc.w $f2,0
-;   dc.w $f4,0          					;6
-;   dc.w $f6,0
+    dc.w $00e0,0          					;1
+    dc.w $00e2,0
+    dc.w $00e4,0          					;2
+    dc.w $00e6,0
+    dc.w $00e8,0          					;3
+    dc.w $00ea,0
+;   dc.w $00ec,0          					;4
+;   dc.w $00ee,0
+;   dc.w $00f0,0          					;5
+;   dc.w $00f2,0
+;   dc.w $00f4,0          					;6
+;   dc.w $00f6,0
 
-    dc.w $0180,logobgcol
-    dc.w $100,$3200
-    dc.w $2c07,$fffe
 
-LogoPal:
+    ;dc.w $0180,logobgcol
+	
+	
+    dc.w $0100,$3200
+    dc.w $4a07,$fffe
+
+    dc.w $0180,$0b87,$0182,$0754,$0184,$0975,$0186,$0ca8
+    dc.w $0188,$0ed8,$018a,$0fff,$018c,$0060,$018e,$0090
+    dc.w $0190,$00e0,$0192,$0777,$0194,$0aaa,$0196,$0747
+    dc.w $0198,$0868,$019a,$0a8a,$019c,$0cac,$019e,$0111
+
+	dc.w $9207,$fffe
+
     dc.w $0180,$044f,$0182,$068e,$0184,$0adf,$0186,$0dff
     dc.w $0188,$09bf,$018a,$056d,$018c,$044b,$018e,$033a
 
     dc.w $ffff,$fffe
 CopperE:
 
-Logo:   INCBIN "gfx/sky3centered.raw"
+Oldguy: INCBIN "gfx/testgrfx.bin"
+	dcb.b logobwid*6,0
 
+Logo:   INCBIN "gfx/sky3centered.raw"
+LogoE:
+	dcb.b logobwid*6,0
 
 EVEN
 
