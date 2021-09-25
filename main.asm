@@ -14,6 +14,15 @@ bpls            =3                      ;handy values:
 bpl             =w/16*2                 ;byte-width of 1 bitplane line
 bwid            =bpls*bpl               ;byte-width of 1 pixel line (all bpls)
 
+
+om_bp_offset	= $100
+om_src_rows		= 2
+om_src_cols		= 2
+om_tile_b_offs	= $40
+om_upr_px_b_off	= $20
+om_upr_px_offs	= 8
+
+
     *-----------------*
 	* logo dimensions *
     *-----------------*
@@ -92,6 +101,7 @@ Init:
     lea logobpl(a0),a0
     dbf d0,.bpll
 
+	bsr DecodeOldMan
 
 
     movem.l (sp)+,d0-a6
@@ -135,6 +145,267 @@ Main:
 * ROUTINES
 *******************************************************************************
 
+Extract8PixelPaletteValues:
+	;INPUT: d1 - contribution	
+	;       d2 - source word (packed bytes)
+	;       a1 - source bytes ptr
+	;       a2 - 8 decoded palette indexes ptr
+	;USES:  d3
+	;OUTPUT: a2 - decoded pixels (8)
+	
+	move.l 0,0(a2)
+	move.l 0,4(a2)
+	move.l 0,8(a2)
+	move.l 0,12(a2)
+	
+	move.l d1,d3
+	
+	cmp.b 1,d2
+	bne .check_2
+	
+	or.w 3(a2),d3			;3
+	move.b d3,3(a2)
+	
+.check_2
+	move.l 8,d3
+	cmp.b 2,d2
+	bne .check_4
+	
+	or.w 2(a2),d3           ;2
+	move.b d3,2(a2)
+
+.check_4
+	move.l 8,d3
+	cmp.b 4,d2
+	bne .check_8
+	
+	or.w 1(a2),d3           ;1
+	move.b d3,1(a2)
+	
+.check_8
+	move.l 8,d3
+	cmp.b 8,d2
+	bne .next_byte
+
+	or.w (a2),d3            ;0
+	move.b d3,(a2)
+
+.next_byte
+	
+	swap d2					;swaps source bytes
+
+	move.l d1,d3
+	
+	cmp.b 1,d2
+	bne .check_2a
+	
+	or.w 7(a2),d3           ;7
+	move.b d3,7(a2)
+	
+.check_2a
+	move.l 8,d3
+	cmp.b 2,d2
+	bne .check_4a
+	
+	or.w 6(a2),d3           ;6
+	move.b d3,6(a2)
+
+.check_4a
+	move.l 8,d3
+	cmp.b 4,d2
+	bne .check_8a
+	
+	or.w 5(a2),d3           ;5
+	move.b d3,5(a2)
+	
+.check_8a
+	move.l 8,d3
+	cmp.b 8,d2
+	bne .next_bytea
+
+	or.w 4(a2),d3           ;4
+	move.b d3,4(a2)
+
+.next_bytea
+	
+	swap d2				;swaps source bytes
+
+	move.l d1,d3
+	asr d3
+	
+	cmp.b $10,d2
+	bne .check_2b
+	
+	or.w 3(a2),d3           ;3
+	move.b d3,3(a2)
+	
+.check_2b
+	move.l 8,d3
+	cmp.b $20,d2
+	bne .check_4b
+	
+	or.w 2(a2),d3           ;2
+	move.b d3,2(a2)
+
+.check_4b
+	move.l 8,d3
+	cmp.b $40,d2
+	bne .check_8b
+	
+	or.w 1(a2),d3           ;1
+	move.b d3,1(a2)
+	
+.check_8b
+	move.l 8,d3
+	cmp.b $80,d2
+	bne .next_byteb
+
+	or.w (a2),d3            ;0
+	move.b d3,(a2)
+
+.next_byteb
+
+	swap d2				;swaps source bytes
+
+	move.l d1,d3
+	asr d3
+	
+	cmp.b 1,d2
+	bne .check_2c
+	
+	or.w 7(a2),d3           ;7
+	move.b d3,7(a2)
+	
+.check_2c
+	move.l 8,d3
+	cmp.b 2,d2
+	bne .check_4c
+	
+	or.w 6(a2),d3           ;6
+	move.b d3,6(a2)
+
+.check_4c
+	move.l 8,d3
+	cmp.b 4,d2
+	bne .check_8c
+	
+	or.w 5(a2),d3           ;5
+	move.b d3,5(a2)
+	
+.check_8c
+	move.l 8,d3
+	cmp.b 8,d2
+	bne .end
+
+	or.w 4(a2),d3           ;4
+	move.b d3,4(a2)
+
+.end
+	rts
+	
+	
+DecodeRowOfPixels:
+	;INPUT: a1 - source bytes ptr
+	;USES:  d2
+	;OUTPUT: a2 - decoded pixels (16)	
+
+	move.w om_bp_offset(a1),d2						;om_bp_offset = offset to bitplanes 0 and 1 in source
+	move.w 8,d1
+	lea DecodedPaletteIndexes,a2
+	
+
+													;Bitplane 01 - lower nybble; Bitplane 00 - upper nybble
+	bsr Extract8PixelPaletteValues					;returns DecodedPaletteIndexes in a2
+
+	move.w (a1),d2
+	move.w 8,d1
+	lea DecodedPaletteIndexes+8,a2
+	
+
+													;Bitplane 03 - lower nybble; Bitplane 02 - upper nybble
+	bsr Extract8PixelPaletteValues					;returns DecodedPaletteIndexes in a2
+	rts
+	
+	
+DecodeOldMan:
+	lea Oldguy,a1
+	
+    move #om_tile_b_offs/2,d0
+.extract_tile_01:
+
+	bsr DecodeRowOfPixels
+								;TODO: PUT RETURNED PALETTE INDEXES INTO NEW BITMAP
+								;TODO: here's where we need to check cmp.w $10,d0
+
+
+    dbf d0,.extract_tile_01
+
+	move.l $40(a1),(a1)			;a1 += om_tile_b_offs; // Advance to next raw source bytes for next tile
+	
+
+    move #om_tile_b_offs/2,d0
+.extract_tile_02:
+
+	bsr DecodeRowOfPixels
+								;TODO: PUT RETURNED PALETTE INDEXES INTO NEW BITMAP
+								;TODO: here's where we need to check cmp.w $10,d0
+
+    dbf d0,.extract_tile_02
+
+	move.l $40(a1),(a1)			;a1 += om_tile_b_offs; // Advance to next raw source bytes for next tile
+
+
+
+    move #om_tile_b_offs/2,d0
+.extract_tile_03:
+
+	bsr DecodeRowOfPixels
+								;TODO: PUT RETURNED PALETTE INDEXES INTO NEW BITMAP
+								;TODO: here's where we need to check cmp.w $10,d0
+
+    dbf d0,.extract_tile_03
+
+	move.l $40(a1),(a1)			;a1 += om_tile_b_offs; // Advance to next raw source bytes for next tile
+
+
+
+    move #om_tile_b_offs/2,d0
+.extract_tile_04:
+
+	bsr DecodeRowOfPixels
+								;TODO: PUT RETURNED PALETTE INDEXES INTO NEW BITMAP
+								;TODO: here's where we need to check cmp.w $10,d0
+
+    dbf d0,.extract_tile_04
+	
+	
+	
+	
+;om_bp_offset	= $100
+;om_src_rows		= 2
+;om_src_cols		= 2
+;om_tile_b_offs	= $40
+;om_upr_px_b_off	= $20
+;om_upr_px_offs	= 8	
+
+
+
+
+	;cmp.w $10,d0				;var pxOffset = d0 < (om_upr_px_b_off / 2) ? 0 : om_upr_px_offs; 
+	;ble	.part2					;pixel columns 0-7 are not offset; 
+	
+	;pxOffset = om_upr_px_offs;
+	
+	;pixel columns 8-F are offset by upperPixelsByteOffset
+	
+;.part2
+
+
+
+
+
+	rts
+
 ClearScreen:                    			;a1=screen destination address to clear
     WAITBLIT
     clr.w $66(a6)               			;destination modulo
@@ -167,6 +438,13 @@ SkyBufferL:
     dc.l 0
     dc.l 0
 SkyBufferLE:
+
+DecodedPaletteIndexes:
+	dc.b 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+NibbleReverseLut:
+	dc.b $00, $08, $04, $0C, $02, $0A, $06, $0E 
+	dc.b $01, $09, $05, $0D, $03, $0B, $07, $0F
 
 *******************************************************************************
 * CHIPMEM
