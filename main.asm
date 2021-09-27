@@ -545,6 +545,10 @@ DecodedBitplaneBytes:
     dc.b 0,0,0,0,0,0,0,0
 	
 	EVEN
+
+Oldguy: INCBIN "gfx/testgrfx.bin"
+
+	EVEN
 	
 EncTiles: INCBIN "gfx/tile_data.bin"
 
@@ -596,9 +600,6 @@ CopBplP:
 
     dc.w $ffff,$fffe
 CopperE:
-
-Oldguy: INCBIN "gfx/testgrfx.bin"
-    dcb.b bytewidth*6,0
 
     EVEN
 
