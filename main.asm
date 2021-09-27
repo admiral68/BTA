@@ -6,15 +6,23 @@
 * DEFINES
 *******************************************************************************
 
-w               =320
-h               =256
-bplsize         =w*h/8
+w                           = 320
+h                           = 256
+bplsize                     = w*h/8
 
-bpls            =3                      ;handy values:
-bpl             =w/16*2                 ;byte-width of 1 bitplane line
+tile_bitplanes              = 4
+tile_height                 = 16
 
-om_bp_offset    = $100
-om_upr_px_b_off = $20
+bitpl_bytes_per_raster_line = 40
+
+bpls                        = 3                             ;handy values:
+bpl                         = w/16*2                        ;byte-width of 1 bitplane line
+
+om_bp_offset                = $100
+om_upr_px_b_off             = $20
+
+
+test_vlines_per_graphic     = 32
 
     *-----------------*
     * logo dimensions *
@@ -52,7 +60,7 @@ copper_pal_03:macro
     endm
 
 WAITBLIT:macro
-    tst DMACONR(a6)                         ;for compatibility
+    tst DMACONR(a6)                                         ;for compatibility
     btst #6,DMACONR(a6)
     bne.s *-6
     endm
@@ -70,19 +78,19 @@ Init:
 
     bsr DecodeOldMan
 
-    lea DecodedGraphic,a0                   ;ptr to first bitplane of logo
-    lea CopBplP,a1                          ;where to poke the bitplane pointer words.
+    lea DecodedGraphic,a0                                   ;ptr to first bitplane of logo
+    lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
     move #4-1,d0
 
 .bpl7:
     move.l a0,d1
     swap d1
-    move.w d1,2(a1)                         ;hi word
+    move.w d1,2(a1)                                         ;hi word
     swap d1
-    move.w d1,6(a1)                         ;lo word
+    move.w d1,6(a1)                                         ;lo word
 
-    addq #8,a1                              ;point to next bpl to poke in copper
-    lea 40(a0),a0                           ;apparently every 40 bytes we'll have new bitplane data
+    addq #8,a1                                              ;point to next bpl to poke in copper
+    lea bitpl_bytes_per_raster_line(a0),a0                  ;apparently every 40 bytes we'll have new bitplane data
     dbf d0,.bpl7
 
 
@@ -98,12 +106,12 @@ StartGame:
     bsr.w Init
 
     lea $DFF000,a6
-    move.w #$87C0,DMACON(a6)                ;SET+BLTPRI+DMAEN+BPLEN+COPEN+BLTEN
+    move.w #$87C0,DMACON(a6)                                ;SET+BLTPRI+DMAEN+BPLEN+COPEN+BLTEN
 
     move.l #Copper,COP1LCH(a6)
-    move.l #VBint,$6c(a4)                   ;set vertb interrupt vector compatibly.
-    move.w #$c020,INTENA(a6)                ;enable interrupts generally
-                                            ;and vertb specifically.
+    move.l #VBint,$6c(a4)                                   ;set vertb interrupt vector compatibly.
+    move.w #$c020,INTENA(a6)                                ;enable interrupts generally
+                                                            ;and vertb specifically.
 
     bsr.s Main
 
@@ -238,7 +246,7 @@ Extract8BitplaneBytesFromTwoSourceBytes:
 
 .end
     rts
-
+;-----------------------------------------------
 
 DecodeRowOf16Pixels:
     ;INPUT: a1 - source bytes ptr
@@ -246,49 +254,52 @@ DecodeRowOf16Pixels:
     ;OUTPUT: a2 - bitplane data
     ;        a3 - destination
 
-    move.l 0,0(a2)                                  ;leftmost column destinations
-    move.l 0,4(a2)                                  ;rightmost column destinations
+    move.l 0,0(a2)                                          ;leftmost column destinations
+    move.l 0,4(a2)                                          ;rightmost column destinations
 
 
-                                                    ;leftmost columns of 8 pixels
+                                                            ;leftmost columns of 8 pixels
 
-    move.w om_bp_offset(a1),d2                      ;om_bp_offset = offset to bitplanes 0 and 1 in source
-                                                    ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
-                                                    ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
-    bsr Extract8BitplaneBytesFromTwoSourceBytes     ;returns DecodedBitplaneBytes in a2
-
-    lea 2(a2),a2
-    move.w (a1),d2                                  ;d2.w = twoAndThreeByte1 & twoAndThreeByte2
-                                                    ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
-    bsr Extract8BitplaneBytesFromTwoSourceBytes     ;returns DecodedBitplaneBytes in a2
-
-
-                                                    ;rightmost columns of 8 pixels
+    move.w om_bp_offset(a1),d2                              ;om_bp_offset = offset to bitplanes 0 and 1 in source
+                                                            ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
+                                                            ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
+    bsr Extract8BitplaneBytesFromTwoSourceBytes             ;returns DecodedBitplaneBytes in a2
 
     lea 2(a2),a2
-    move.w om_bp_offset+om_upr_px_b_off(a1),d2      ;add $20 to get to the src of the rightmost 8 pixel columns
-                                                    ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
-                                                    ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
+    move.w (a1),d2                                          ;d2.w = twoAndThreeByte1 & twoAndThreeByte2
+                                                            ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
+    bsr Extract8BitplaneBytesFromTwoSourceBytes             ;returns DecodedBitplaneBytes in a2
+
+
+                                                            ;rightmost columns of 8 pixels
+
+    lea 2(a2),a2
+    move.w om_bp_offset+om_upr_px_b_off(a1),d2              ;add $20 to get to the src of the rightmost 8 pixel columns
+                                                            ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
+                                                            ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
 
     bsr Extract8BitplaneBytesFromTwoSourceBytes
 
     lea 2(a2),a2
-    move.w om_upr_px_b_off(a1),d2                   ;d2.w = twoAndThreeByte1 & twoAndThreeByte2
-                                                    ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
+    move.w om_upr_px_b_off(a1),d2                           ;d2.w = twoAndThreeByte1 & twoAndThreeByte2
+                                                            ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
 
     bsr Extract8BitplaneBytesFromTwoSourceBytes
     lea -6(a2),a2
     rts
+;-----------------------------------------------
 
 DecodeOldMan:
     ;SCREEN LO-RES
     ;W: 320
     ;8 pixels/byte
     ;40 bytes per line/20 words per line
+    ;done to show how to extract Black Tiger-encoded image data
+    ;40*32*4
 
     lea DecodedGraphic,a0
 
-    move.l #$1400,d0
+    move.l bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic,d0
 .l0:
     clr.l (a0)+
     dbf d0,.l0
@@ -298,134 +309,132 @@ DecodeOldMan:
 
     ; ******************************************************
 
-    move #$0F,d0                ;16 rasterlines at a time; rightmost byte done too
+    move #$0F,d0                                            ;16 rasterlines at a time; rightmost byte done too
 .extract_tile_01:
 
-    lea DecodedBitplaneBytes,a2
+    lea DecodedBitplaneBytes,a2                             ;stores intermediate decoded bitplane bytes
     bsr DecodeRowOf16Pixels
 
     ;    0  1  2  3   4  5  6  7
     ;a2: 3, 2, 1, 0 | 3, 2, 1, 0
 
-    move.b, 3(a2),(a3)          ;bitplane 0
-    move.b, 2(a2),40(a3)        ;bitplane 1
-    move.b, 1(a2),80(a3)        ;bitplane 2
-    move.b, (a2),120(a3)        ;bitplane 3
-    move.b, 7(a2),1(a3)         ;bitplane 0
-    move.b, 6(a2),41(a3)        ;bitplane 1
-    move.b, 5(a2),81(a3)        ;bitplane 2
-    move.b, 4(a2),121(a3)       ;bitplane 3
+    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
+    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
+    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
+    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
+    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
+    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
+    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
+    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
 
-    lea $a0(a3),a3              ;move down one rasterline (a0 = $28 * 4 bitplanes; $28 = bytes in one rasterline for one bitplane)
-    lea $02(a1),a1
+    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline (a0 = $28 * 4 bitplanes; $28 = bytes in one rasterline for one bitplane)
+    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
 
     dbf d0,.extract_tile_01
 
     ; ******************************************************
 
-    lea $20(a1),a1
+    lea $20(a1),a1                                          ;skip to next tile in the source
     lea DecodedGraphic+2,a3
-    move #$0F,d0
+    move #$0F,d0                                            ;16 rasterlines at a time
 .extract_tile_02:
 
     lea DecodedBitplaneBytes,a2
     bsr DecodeRowOf16Pixels
 
-    move.b, 3(a2),(a3)          ;bitplane 0
-    move.b, 2(a2),40(a3)        ;bitplane 1
-    move.b, 1(a2),80(a3)        ;bitplane 2
-    move.b, (a2),120(a3)        ;bitplane 3
-    move.b, 7(a2),1(a3)         ;bitplane 0
-    move.b, 6(a2),41(a3)        ;bitplane 1
-    move.b, 5(a2),81(a3)        ;bitplane 2
-    move.b, 4(a2),121(a3)       ;bitplane 3
+    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
+    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
+    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
+    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
+    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
+    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
+    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
+    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
 
-    lea $a0(a3),a3              ;move down one rasterline
-    lea $02(a1),a1
+    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline
+    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
 
     dbf d0,.extract_tile_02
 
     ; ******************************************************
 
-    lea $20(a1),a1
-    lea DecodedGraphic+(160*16),a3
-    move #$0F,d0
+    lea $20(a1),a1                                          ;skip to next tile in the source
+    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height),a3
+    move #$0F,d0                                            ;16 rasterlines at a time
 .extract_tile_03:
 
     lea DecodedBitplaneBytes,a2
     bsr DecodeRowOf16Pixels
 
-    move.b, 3(a2),(a3)          ;bitplane 0
-    move.b, 2(a2),40(a3)        ;bitplane 1
-    move.b, 1(a2),80(a3)        ;bitplane 2
-    move.b, (a2),120(a3)        ;bitplane 3
-    move.b, 7(a2),1(a3)         ;bitplane 0
-    move.b, 6(a2),41(a3)        ;bitplane 1
-    move.b, 5(a2),81(a3)        ;bitplane 2
-    move.b, 4(a2),121(a3)       ;bitplane 3
+    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
+    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
+    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
+    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
+    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
+    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
+    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
+    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
 
-    lea $a0(a3),a3              ;move down one rasterline
-    lea $02(a1),a1
+    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline
+    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
 
     dbf d0,.extract_tile_03
 
     ; ******************************************************
 
-    lea $20(a1),a1
-    lea DecodedGraphic+(160*16)+2,a3
-    move #$0F,d0
+    lea $20(a1),a1                                          ;skip to next tile in the source
+    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height)+2,a3
+    move #$0F,d0                                            ;16 rasterlines at a time
 .extract_tile_04:
 
     lea DecodedBitplaneBytes,a2
     bsr DecodeRowOf16Pixels
 
-    move.b, 3(a2),(a3)          ;bitplane 0
-    move.b, 2(a2),40(a3)        ;bitplane 1
-    move.b, 1(a2),80(a3)        ;bitplane 2
-    move.b, (a2),120(a3)        ;bitplane 3
-    move.b, 7(a2),1(a3)         ;bitplane 0
-    move.b, 6(a2),41(a3)        ;bitplane 1
-    move.b, 5(a2),81(a3)        ;bitplane 2
-    move.b, 4(a2),121(a3)       ;bitplane 3
+    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
+    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
+    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
+    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
+    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
+    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
+    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
+    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
 
-    lea $a0(a3),a3              ;move down one rasterline
-    lea $02(a1),a1
+    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline
+    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
 
     dbf d0,.extract_tile_04
     rts
+;-----------------------------------------------
 
-ClearScreen:                                ;a1=screen destination address to clear
+ClearScreen:                                                ;a1=screen destination address to clear
     WAITBLIT
-    clr.w $66(a6)                           ;destination modulo
-    move.l #$01000000,$40(a6)               ;set operation type in BLTCON0/1
-    move.l a1,$54(a6)                       ;destination address
-    move.w #h*bpls*64+bpl/2,$58(a6)         ;blitter operation size
+    clr.w $66(a6)                                           ;destination modulo
+    move.l #$01000000,$40(a6)                               ;set operation type in BLTCON0/1
+    move.l a1,$54(a6)                                       ;destination address
+    move.w #h*bpls*64+bpl/2,$58(a6)                         ;blitter operation size
     rts
+;-----------------------------------------------
 
-VBint:                                      ;Blank template VERTB interrupt
-    movem.l d0-a6,-(sp)                     ;Save used registers
+VBint:                                                      ;Blank template VERTB interrupt
+    movem.l d0-a6,-(sp)                                     ;Save used registers
     lea $DFF000,a6
-    btst #5,INTREQR(a6)                     ;INTREQR check if it's our vertb int.
+    btst #5,INTREQR(a6)                                     ;INTREQR check if it's our vertb int.
     beq.s .notvb
 
-    moveq #$20,d0                           ;poll irq bit
+    moveq #$20,d0                                           ;poll irq bit
     move.w d0,INTREQ(a6)
     move.w d0,INTREQ(a6)
 
 .notvb:
-    movem.l (sp)+,d0-a6                     ;restore
+    movem.l (sp)+,d0-a6                                     ;restore
     rte
+;-----------------------------------------------
 
     even
 
 *******************************************************************************
 * DATA (FASTMEM)
 *******************************************************************************
-
-SkyBufferL:
-    dc.l 0
-    dc.l 0
-SkyBufferLE:
 
 DecodedBitplaneBytes:
     dc.b 0,0,0,0,0,0,0,0
@@ -437,7 +446,7 @@ DecodedBitplaneBytes:
     SECTION AllData,DATA_C
 
 Copper:
-    dc.w $01fc,0                            ;slow fetch mode, AGA compatibility
+    dc.w $01fc,0                                            ;slow fetch mode, AGA compatibility
     dc.w $0100,$0200
     dc.b 0,$8e,$2c,$81
     dc.b 0,$90,$2c,$c1
@@ -453,23 +462,20 @@ Copper:
     copper_pal_03
 
 CopBplP:
-    dc.w $00e0,0                            ;1
+    dc.w $00e0,0                                            ;1
     dc.w $00e2,0
-    dc.w $00e4,0                            ;2
+    dc.w $00e4,0                                            ;2
     dc.w $00e6,0
-    dc.w $00e8,0                            ;3
+    dc.w $00e8,0                                            ;3
     dc.w $00ea,0
-    dc.w $00ec,0                            ;4
+    dc.w $00ec,0                                            ;4
     dc.w $00ee,0
-;   dc.w $00f0,0                            ;5
+;   dc.w $00f0,0                                            ;5
 ;   dc.w $00f2,0
-;   dc.w $00f4,0                            ;6
+;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
     dc.w $0100,$4200
-    dc.w $4f07,$fffe
-
-    copper_pal_03
 
     dc.w $9207,$fffe
 
@@ -480,10 +486,6 @@ CopBplP:
 CopperE:
 
 Oldguy: INCBIN "gfx/testgrfx.bin"
-    dcb.b bytewidth*6,0
-
-Logo:   INCBIN "gfx/sky3centered.raw"
-LogoE:
     dcb.b bytewidth*6,0
 
     EVEN
@@ -501,7 +503,7 @@ ScreenE:
     EVEN
 
 DecodedGraphic:
-    ds.b $1400            ;Define storage for graphic
+    ds.b bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic
 DecodedGraphicE:
 
 
