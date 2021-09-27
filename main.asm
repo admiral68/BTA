@@ -52,11 +52,116 @@ INTREQ          = $9C
 * MACROS
 *******************************************************************************
 
-copper_pal_03:macro
+tile_pal_00:macro
+    dc.w $0180,$0000,$0182,$0000,$0184,$0000,$0186,$0000
+    dc.w $0188,$0000,$018a,$0000,$018c,$0000,$018e,$0000
+    dc.w $0190,$0000,$0192,$0000,$0194,$0000,$0196,$0000
+    dc.w $0198,$0000,$019a,$0000,$019c,$0000,$019e,$0110
+    endm
+
+tile_pal_01:macro
+    dc.w $0180,$0b87,$0182,$0433,$0184,$0842,$0186,$0a53
+    dc.w $0188,$0c64,$018a,$0db8,$018c,$0974,$018e,$0754
+    dc.w $0190,$0644,$0192,$0c95,$0194,$0f85,$0196,$0ffa
+    dc.w $0198,$0cca,$019a,$0998,$019c,$0666,$019e,$0111
+    endm
+
+tile_pal_02:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_03:macro
     dc.w $0180,$0b87,$0182,$0754,$0184,$0975,$0186,$0ca8
     dc.w $0188,$0ed8,$018a,$0fff,$018c,$0060,$018e,$0090
     dc.w $0190,$00e0,$0192,$0777,$0194,$0aaa,$0196,$0747
     dc.w $0198,$0868,$019a,$0a8a,$019c,$0cac,$019e,$0111
+    endm
+
+tile_pal_04:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_05:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_06:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_07:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_08:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_09:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_0a:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_0b:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_0c:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_0d:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_0e:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    endm
+
+tile_pal_0f:macro
+    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
+    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
+    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
+    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
     endm
 
 WAITBLIT:macro
@@ -466,7 +571,7 @@ Copper:
     dc.w $0102,0
     dc.w $0104,0
 
-    copper_pal_03
+    tile_pal_03
 
 CopBplP:
     dc.w $00e0,0                                            ;1
