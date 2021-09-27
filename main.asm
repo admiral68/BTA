@@ -13,26 +13,18 @@ bplsize         =w*h/8
 bpls            =3                      ;handy values:
 bpl             =w/16*2                 ;byte-width of 1 bitplane line
 
-
 om_bp_offset    = $100
 om_upr_px_b_off = $20
-
 
     *-----------------*
     * logo dimensions *
     *-----------------*
 
-logow           =320
-;logomargin      =(320-logow)/2
-logobpl         =logow/8
-logobwid        =logobpl*3
+bytewidth       =(w/8)*3
 
     *-----------------*
     * palettes        *
     *-----------------*
-
-logobgcol       =$44f
-
 
 
     *-----------------*
@@ -51,11 +43,6 @@ INTREQ          = $9C
 *******************************************************************************
 * MACROS
 *******************************************************************************
-
-logocolors:macro
-    dc.w $068e,$0adf,$0dff
-    dc.w $09bf,$056d,$044b,$033a
-    endm
 
 copper_pal_03:macro
     dc.w $0180,$0b87,$0182,$0754,$0184,$0975,$0186,$0ca8
@@ -118,7 +105,6 @@ StartGame:
     move.w #$c020,INTENA(a6)                ;enable interrupts generally
                                             ;and vertb specifically.
 
-
     bsr.s Main
 
     rts
@@ -142,115 +128,109 @@ Main:
 *******************************************************************************
 
 Extract8BitplaneBytesFromTwoSourceBytes:
-    ;INPUT: d2 - source word (packed bytes) ;d2.w = zeroAndOneByte1 & zeroAndOneByte2 OR twoAndThreeByte1 & twoAndThreeByte2
-    ;       a2 - 8 decoded palette indexes ptr
-    ;USES:
+    ;INPUT:  d2 - source word (packed bytes) ;d2.w = zeroAndOneByte1 & zeroAndOneByte2 OR twoAndThreeByte1 & twoAndThreeByte2
+    ;        a2 - 8 decoded palette indexes ptr
     ;OUTPUT: a2 - decoded bitplane bytes (1 & 0 or 3 & 2)
 
     ;first byte of d2   => bitToSet => 0x10 and higher
     ;second byte of d2  => bitToSet => 0x01 and higher
-
-    ;var destIndex = (rowIndex % 0x10) * 2 + (rowIndex >= 0x10 ? 1 : 0);
 
     ;BITS 0-7  are in srcByte2
     ;BITS 8-15 are in srcByte1
 
     ;BPL 1
     btst #0,d2
-    beq .check_2
+    beq .byte_1_bit_1
 
     or.b #$01,(a2)
 
-.check_2
+.byte_1_bit_1
     btst #1,d2
-    beq .check_4
+    beq .byte_1_bit_2
 
     or.b #$02,(a2)
 
-.check_4
+.byte_1_bit_2
     btst #2,d2
-    beq .check_8
+    beq .byte_1_bit_3
 
     or.b #$04,(a2)
 
-.check_8
+.byte_1_bit_3
     btst #3,d2
-    beq .next_byte
+    beq .byte_2_bit_0
 
     or.b #$08,(a2)
 
-.next_byte
+.byte_2_bit_0
     btst #8,d2
-    beq .check_2a
+    beq .byte_2_bit_1
 
     or.b #$10,(a2)
 
-.check_2a
+.byte_2_bit_1
     btst #9,d2
-    beq .check_4a
+    beq .byte_2_bit_2
 
     or.b #$20,(a2)
 
-.check_4a
+.byte_2_bit_2
     btst #10,d2
-    beq .check_8a
+    beq .byte_2_bit_3
 
     or.b #$40,(a2)
 
-.check_8a
+.byte_2_bit_3
     btst #11,d2
-    beq .next_bytea
+    beq .byte_1_bit_4
 
     or.b #$80,(a2)
 
-.next_bytea
-
     ;BPL 0
 
+.byte_1_bit_4
     btst #4,d2
-    beq .check_2b
+    beq .byte_1_bit_5
 
     or.b #$01,1(a2)
 
-.check_2b
+.byte_1_bit_5
     btst #5,d2
-    beq .check_4b
+    beq .byte_1_bit_6
 
     or.b #$02,1(a2)
 
-.check_4b
+.byte_1_bit_6
     btst #6,d2
-    beq .check_8b
+    beq .byte_1_bit_7
 
     or.b #$04,1(a2)
 
-.check_8b
+.byte_1_bit_7
     btst #7,d2
-    beq .next_byteb
+    beq .byte_2_bit_4
 
     or.b #$08,1(a2)
-    or.b 8(a2),d3            ;0
-    move.b d3,8(a2)
 
-.next_byteb
+.byte_2_bit_4
     btst #12,d2
-    beq .check_2c
+    beq .byte_2_bit_5
 
     or.b #$10,1(a2)
 
-.check_2c
+.byte_2_bit_5
     btst #13,d2
-    beq .check_4c
+    beq .byte_2_bit_6
 
     or.b #$20,1(a2)
 
-.check_4c
+.byte_2_bit_6
     btst #14,d2
-    beq .check_8c
+    beq .byte_2_bit_7
 
     or.b #$40,1(a2)
 
-.check_8c
+.byte_2_bit_7
     btst #15,d2
     beq .end
 
@@ -500,11 +480,11 @@ CopBplP:
 CopperE:
 
 Oldguy: INCBIN "gfx/testgrfx.bin"
-    dcb.b logobwid*6,0
+    dcb.b bytewidth*6,0
 
 Logo:   INCBIN "gfx/sky3centered.raw"
 LogoE:
-    dcb.b logobwid*6,0
+    dcb.b bytewidth*6,0
 
     EVEN
 
