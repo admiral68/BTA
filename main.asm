@@ -81,8 +81,8 @@ Init:
 
 
 
-    ;lea Screen,a1
-    ;bsr.w ClearScreen
+    lea Screen,a1
+    bsr.w ClearScreen
 
 ;    lea Logo,a0                             ;ptr to first bitplane of logo
 ;    lea CopBplP,a1                          ;where to poke the bitplane pointer words.
@@ -165,139 +165,169 @@ Extract8PixelPaletteValues:
     ;OUTPUT: a2 - decoded pixels (8)
 
     ;BPL 1
-    move.l #$80,d3
-    btst #8,d2
+    move.l d1,d3
+    btst #0,d2
     beq .check_2
 
-    ;or.b (a2,d4.w),d3           ;$80
-    ;move.b d3,(a2,d4.w)
-    or.b 1(a2),d3
-    move.b d3,1(a2)
+    or.b 3(a2),d3           ;3
+    move.b d3,3(a2)
 
 .check_2
-    move.l #$40,d3
-    btst #9,d2
+    move.l d1,d3
+    btst #1,d2
     beq .check_4
 
-    or.b 1(a2),d3
-    move.b d3,1(a2)
+    or.b 2(a2),d3           ;2
+    move.b d3,2(a2)
 
 .check_4
-    move.l #$20,d3
-    btst #10,d2
+    move.l d1,d3
+    btst #2,d2
     beq .check_8
 
-    or.b 1(a2),d3
+    or.b 1(a2),d3           ;1
     move.b d3,1(a2)
 
 .check_8
-    move.l #$10,d3
-    btst #11,d2
+    move.l d1,d3
+    btst #3,d2
     beq .next_byte
 
-    or.b 1(a2),d3
-    move.b d3,1(a2)
+    or.b (a2),d3            ;0
+    move.b d3,(a2)
 
 .next_byte
-
-    move.l #$08,d3
-    btst #12,d2
+    move.l d1,d3
+    ror d3
+    ror d3
+    ror d3
+    ror d3
+    btst #8,d2
     beq .check_2a
 
-    or.b 1(a2),d3
-    move.b d3,1(a2)
+    or.b 7(a2),d3           ;7
+    move.b d3,7(a2)
 
 .check_2a
-    move.l #$04,d3
-    btst #13,d2
+    move.l d1,d3
+    ror d3
+    ror d3
+    ror d3
+    ror d3
+    btst #9,d2
     beq .check_4a
 
-    or.b 1(a2),d3
-    move.b d3,1(a2)
+    or.b 6(a2),d3           ;6
+    move.b d3,6(a2)
 
 .check_4a
-    move.l #$02,d3
-    btst #14,d2
+    move.l d1,d3
+    ror d3
+    ror d3
+    ror d3
+    ror d3
+    btst #10,d2
     beq .check_8a
 
-    or.b 1(a2),d3
-    move.b d3,1(a2)
+    or.b 5(a2),d3           ;5
+    move.b d3,5(a2)
 
 .check_8a
-    move.l #$01,d3
-    btst #15,d2
+    move.l d1,d3
+    ror d3
+    ror d3
+    ror d3
+    ror d3
+    btst #11,d2
     beq .next_bytea
 
-    or.b 1(a2),d3
-    move.b d3,1(a2)
+    or.b 4(a2),d3           ;4
+    move.b d3,4(a2)
 
 .next_bytea
 
     ;BPL 0
 
-    move.l #$80,d3
-    btst #0,d2
+    asr d1
+    move.l d1,d3
+    btst #4,d2
     beq .check_2b
 
-    or.b (a2),d3
-    move.b d3,(a2)
+    or.b 11(a2),d3           ;3
+    move.b d3,11(a2)
 
 .check_2b
-    move.l #$40,d3
-    btst #1,d2
+    move.l d1,d3
+    btst #5,d2
     beq .check_4b
 
-    or.b (a2),d3
-    move.b d3,(a2)
+    or.b 10(a2),d3           ;2
+    move.b d3,10(a2)
 
 .check_4b
-    move.l #$20,d3
-    btst #2,d2
+    move.l d1,d3
+    btst #6,d2
     beq .check_8b
 
-    or.b (a2),d3
-    move.b d3,(a2)
+    or.b 9(a2),d3           ;1
+    move.b d3,9(a2)
 
 .check_8b
-    move.l #$10,d3
-    btst #3,d2
+    move.l d1,d3
+    btst #7,d2
     beq .next_byteb
 
-    or.b (a2),d3
-    move.b d3,(a2)
+    or.b 8(a2),d3            ;0
+    move.b d3,8(a2)
 
 .next_byteb
 
-    move.l #$08,d3
-    btst #4,d2
+    move.l d1,d3
+    ror d3
+    ror d3
+    ror d3
+    ror d3
+    btst #12,d2
     beq .check_2c
 
-    or.b (a2),d3
-    move.b d3,(a2)
+    or.b 15(a2),d3           ;7
+    move.b d3,15(a2)
 
 .check_2c
-    move.l #$04,d3
-    btst #5,d2
+    move.l d1,d3
+    ror d3
+    ror d3
+    ror d3
+    ror d3
+    btst #13,d2
     beq .check_4c
 
-    or.b (a2),d3
-    move.b d3,(a2)
+    or.b 14(a2),d3           ;6
+    move.b d3,14(a2)
 
 .check_4c
-    move.l #$02,d3
-    btst #6,d2
+    move.l d1,d3
+    ror d3
+    ror d3
+    ror d3
+    ror d3
+    btst #14,d2
     beq .check_8c
 
-    or.b (a2),d3
-    move.b d3,(a2)
+    or.b 13(a2),d3           ;5
+    move.b d3,13(a2)
 
 .check_8c
-    move.l #$01,d3
-    btst #7,d2
+    move.l d1,d3
+    ror d3
+    ror d3
+    ror d3
+    ror d3
+    btst #15,d2
     beq .end
 
-    or.b (a2),d3
-    move.b d3,(a2)
+    or.b 12(a2),d3           ;4
+    move.b d3,12(a2)
 
 .end
     rts
@@ -313,26 +343,81 @@ DecodeRowOf16Pixels:
     move.l 0,4(a2)
                                                     ;leftmost columns of 8 pixels
 
+    move.l #$20,d1
     move.w om_bp_offset(a1),d2                      ;om_bp_offset = offset to bitplanes 0 and 1 in source
                                                     ;Bitplane 01 - lower nybble; Bitplane 00 - upper nybble
     bsr Extract8PixelPaletteValues                  ;returns DecodedBitplaneBytes in a2
 
+    move.l #$80,d1
     lea 2(a2),a2
     move.w (a1),d2
                                                     ;Bitplane 03 - lower nybble; Bitplane 02 - upper nybble
     bsr Extract8PixelPaletteValues                  ;returns DecodedBitplaneBytes in a2
 
+    move.l #$20,d1
     lea 2(a2),a2
     move.w om_bp_offset+om_upr_px_b_off(a1),d2      ;add $20 to get to the src of the rightmost 8 pixel columns
 
     bsr Extract8PixelPaletteValues
 
+    move.l #$80,d1
     lea 2(a2),a2
     move.w om_upr_px_b_off(a1),d2
 
     bsr Extract8PixelPaletteValues
     lea -6(a2),a2
     rts
+
+;TILE 0x2E9                  0 (1)                       1 (2)                       2 (4)                       3 (8)
+;00 00 00 00 | 12 35 55 54   00 00 00 00 | 10 11 11 10   00 00 00 00 | 01 10 00 00   00 00 00 00 | 00 01 11 11   00 00 00 00 | 00 00 00 00
+;00 00 00 01 | 23 44 44 44   00 00 00 01 | 01 00 00 00   00 00 00 00 | 11 00 00 00   00 00 00 00 | 00 11 11 11   00 00 00 00 | 00 00 00 00
+;02 00 00 01 | 23 33 44 44   00 00 00 01 | 01 11 00 00   01 00 00 00 | 11 11 00 00   00 00 00 00 | 00 00 11 11   00 00 00 00 | 00 00 00 00
+;00 10 00 01 | 23 44 55 54   00 10 00 01 | 01 00 11 10   00 00 00 00 | 11 00 00 00   00 00 00 00 | 00 11 11 11   00 00 00 00 | 00 00 00 00
+;00 30 00 01 | 22 22 22 33   00 10 00 01 | 00 00 00 11   00 10 00 00 | 11 11 11 11   00 00 00 00 | 00 00 00 00   00 00 00 00 | 00 00 00 00
+;00 00 01 F9 | A5 55 5A 93   00 00 01 11 | 01 11 10 11   00 00 00 10 | 10 00 01 01   00 00 00 10 | 01 11 10 00   00 00 00 11 | 10 00 10 10
+;33 22 12 9A | AA AA AA A2   11 00 10 10 | 00 00 00 00   11 11 01 01 | 11 11 11 11   00 00 00 00 | 00 00 00 00   00 00 00 11 | 11 11 11 10
+;12 11 21 12 | 21 11 F9 F2   10 11 01 10 | 01 11 11 10   01 00 10 01 | 10 00 10 11   00 00 00 00 | 00 00 10 10   00 00 00 00 | 00 00 11 10
+;21 1F 21 12 | 9A F9 A9 F3   01 11 01 10 | 10 11 01 11   10 01 10 01 | 01 10 10 11   00 01 00 00 | 00 10 00 10   00 01 00 00 | 11 11 11 10
+;02 1F 21 12 | 21 11 11 14   01 10 01 10 | 01 11 11 10   01 01 10 01 | 10 00 00 00   00 01 00 00 | 00 00 00 01   00 01 00 00 | 00 00 00 00
+;11 1F 12 12 | 32 22 22 14   11 11 10 10 | 10 00 00 10   00 01 01 01 | 11 11 11 00   00 01 00 00 | 00 00 00 01   00 01 00 00 | 00 00 00 00
+;FF FF F1 11 | 23 43 32 35   11 11 11 11 | 01 01 10 11   11 11 10 00 | 11 01 11 10   11 11 10 00 | 00 10 00 01   11 11 10 00 | 00 00 00 00
+;22 22 22 F9 | 12 32 21 25   00 00 00 11 | 10 10 01 01   11 11 11 10 | 01 11 10 10   00 00 00 10 | 00 00 00 01   00 00 00 11 | 00 00 00 00
+;00 00 00 9A | A1 22 19 91   00 00 00 10 | 01 00 11 11   00 00 00 01 | 10 11 00 00   00 00 00 00 | 00 00 00 00   00 00 00 11 | 10 00 01 10
+;00 00 00 9A | AA 99 AA A9   00 00 00 10 | 00 11 00 01   00 00 00 01 | 11 00 11 10   00 00 00 00 | 00 00 00 00   00 00 00 11 | 11 11 11 11
+;10 00 00 AA | 5A A5 55 5A   10 00 00 00 | 10 01 11 10   00 00 00 11 | 01 10 00 01   00 00 00 00 | 10 01 11 10   00 00 00 11 | 01 10 00 01
+;                                     00 | BE                     00 | 60                     00 | 1F                     00 | 00
+;                                     01 | 40                     00 | C0                     00 | 3F                     00 | 00
+;                                     01 | 70                     40 | F0                     00 | 0F                     00 | 00
+;                                     21 | 4E                     00 | C0                     00 | 3F                     00 | 00
+;                                     21 | 03                     20 | FF                     00 | 00                     00 | 00
+;                                     07 | 7B                     02 | 85                     02 | 78                     03 | 8A
+;                                     CA | 00                     F5 | FF                     00 | 00                     03 | FE
+;                                     B6 | 7E                     49 | 8B                     00 | 0A                     00 | 0E
+;                                     76 | B7                     99 | 6B                     10 | 22                     10 | FE
+;                                     66 | 7E                     59 | 80                     10 | 01                     10 | 00
+;                                     FA | 82                     15 | FC                     10 | 01                     10 | 00
+;                                     FF | 5B                     F8 | DE                     F8 | 21                     F8 | 00
+;                                     03 | A5                     FE | 7A                     02 | 01                     03 | 00
+;                                     02 | 4F                     01 | B0                     00 | 00                     03 | 86
+;                                     02 | 31                     01 | CE                     00 | 00                     03 | FF
+;                                     80 | 9E                     03 | 61                     00 | 9E                     03 | 61
+;00 BE 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+;00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+;00 00 00 00 00 00 00 00
+;00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+;00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+;00 60 00 C0 40 F0 00 C0 20 FF 02 85 F5 FF 49 8B
+;99 6B 59 80 15 FC F8 DE FE 7A 01 B0 01 CE 03 61
+;00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+;00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+;00 1F 00 3F 00 0F 00 3F 00 00 02 78 00 00 00 0A
+;10 22 10 01 10 01 F8 21 02 01 00 00 00 00 00 9E
+;00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+;00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+;00 00 00 00 00 00 00 00 00 00 03 8A 03 FE 00 0E
+;10 FE 10 00 10 00 F8 00 03 00 03 86 03 FF 03 61
+;00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+;00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 
 
 DecodeOldMan:
@@ -344,7 +429,7 @@ DecodeOldMan:
     clr.l (a0)+
     dbf d0,.l0
 
-    lea DecodedGraphic+2,a3
+    lea DecodedGraphic,a3
     lea Oldguy,a1
 
     move #$0F,d0
@@ -353,10 +438,10 @@ DecodeOldMan:
     lea DecodedBitplaneBytes,a2
     bsr DecodeRowOf16Pixels
 
-    move.w, (a2),(a3)
-    move.w, 2(a2),40(a3)
-    move.w, 4(a2),80(a3)
-    move.w, 6(a2),120(a3)
+    move.w, 2(a2),(a3)          ;bitplane 0
+    move.w, (a2),40(a3)         ;bitplane 1
+    move.w, 6(a2),80(a3)        ;bitplane 2
+    move.w, 4(a2),120(a3)       ;bitplane 3
     ;;move.w #$FFFF,(a3)            ;alone gives color #1
     ;move.w #$FFFF,40(a3)       ;alone gives color #2
     ;;move.w #$FFFF,80(a3)       ;alone gives color #4
@@ -367,18 +452,19 @@ DecodeOldMan:
 
     dbf d0,.extract_tile_01
 
-    lea DecodedGraphic+4,a3
+    lea $20(a1),a1
+    lea DecodedGraphic+2,a3
     move #$0F,d0
 .extract_tile_02:
 
     lea DecodedBitplaneBytes,a2
     bsr DecodeRowOf16Pixels
 
-    move.w, (a2),(a3)
-    move.w, 2(a2),40(a3)
-    move.w, 4(a2),80(a3)
-    move.w, 6(a2),120(a3)
-    ;;move.w #$FFFF,(a3)            ;alone gives color #1
+    move.w, 2(a2),(a3)
+    move.w, (a2),40(a3)
+    move.w, 6(a2),80(a3)
+    move.w, 4(a2),120(a3)
+     ;;move.w #$FFFF,(a3)            ;alone gives color #1
     ;move.w #$FFFF,40(a3)       ;alone gives color #2
     ;;move.w #$FFFF,80(a3)       ;alone gives color #4
     ;move.w #$FFFF,120(a3)      ;alone gives color #8
@@ -388,17 +474,18 @@ DecodeOldMan:
 
     dbf d0,.extract_tile_02
 
-    lea DecodedGraphic+(160*16)+2,a3
+    lea $20(a1),a1
+    lea DecodedGraphic+(160*16),a3
     move #$0F,d0
 .extract_tile_03:
 
     lea DecodedBitplaneBytes,a2
     bsr DecodeRowOf16Pixels
 
-    move.w, (a2),(a3)
-    move.w, 2(a2),40(a3)
-    move.w, 4(a2),80(a3)
-    move.w, 6(a2),120(a3)
+    move.w, 2(a2),(a3)
+    move.w, (a2),40(a3)
+    move.w, 6(a2),80(a3)
+    move.w, 4(a2),120(a3)
 
     ;move.w #$FFFF,0(a3)            ;alone gives color #1
     ;;move.w #$C000,2(a3)           ;alone gives color #1
@@ -412,17 +499,18 @@ DecodeOldMan:
 
     dbf d0,.extract_tile_03
 
-    lea DecodedGraphic+(160*16)+4,a3
+    lea $20(a1),a1
+    lea DecodedGraphic+(160*16)+2,a3
     move #$0F,d0
 .extract_tile_04:
 
     lea DecodedBitplaneBytes,a2
     bsr DecodeRowOf16Pixels
 
-    move.w, (a2),(a3)
-    move.w, 2(a2),40(a3)
-    move.w, 4(a2),80(a3)
-    move.w, 6(a2),120(a3)
+    move.w, 2(a2),(a3)
+    move.w, (a2),40(a3)
+    move.w, 6(a2),80(a3)
+    move.w, 4(a2),120(a3)
     ;move.w #$FFFF,0(a3)            ;alone gives color #1
     ;;move.w #$C000,2(a3)           ;alone gives color #1
     ;;move.w #$FFFF,40(a3)       ;alone gives color #2
@@ -434,6 +522,16 @@ DecodeOldMan:
     lea $02(a1),a1
 
     dbf d0,.extract_tile_04
+
+    lea DecodedGraphic,a3
+    lea Packed,a2
+
+    move.l #$0c80,d0
+.loadit
+    move.b (a2)+,(a3)+
+
+    dbf d0,.loadit
+
     rts
 
 ClearScreen:                                ;a1=screen destination address to clear
@@ -524,6 +622,9 @@ CopperE:
 Oldguy: INCBIN "gfx/testgrfx.bin"
     dcb.b logobwid*6,0
 
+Packed: INCBIN "gfx/interleavedpic.bin"
+    dcb.b logobwid*6,0
+
 Logo:   INCBIN "gfx/sky3centered.raw"
 LogoE:
     dcb.b logobwid*6,0
@@ -543,7 +644,7 @@ ScreenE:
     EVEN
 
 DecodedGraphic:
-    ds.b $2000            ;Define storage for graphic
+    ds.b $2800            ;Define storage for graphic
 DecodedGraphicE:
 
 
