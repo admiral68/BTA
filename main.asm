@@ -438,6 +438,13 @@ VBint:                                                      ;Blank template VERT
 
 DecodedBitplaneBytes:
     dc.b 0,0,0,0,0,0,0,0
+	
+	EVEN
+	
+EncTiles: INCBIN "gfx/tile_data.bin"
+
+    EVEN
+	
 
 *******************************************************************************
 * CHIPMEM
