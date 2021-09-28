@@ -18,7 +18,7 @@ tilesrc_bp_offset           = $20000
 tilesrc_upr_px_b_off        = $20
 
 
-test_starting_tile_old_man  = $2E9
+test_starting_tile_old_man  = $2E8
 
 bitpl_bytes_per_raster_line = 40
 
@@ -190,7 +190,7 @@ Init:
     lea TileImageStride,a1
     move.b #$08,(a1)
 
-    bsr Decode2x3TileGraphic
+    bsr Decode4x3TileGraphic
 
     lea DecodedGraphic,a0                                   ;ptr to first bitplane of logo
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
@@ -435,7 +435,7 @@ ExtractTile:
     rts
 
 ;-----------------------------------------------
-Decode2x3TileGraphic:
+Decode4x3TileGraphic:
     ;SCREEN LO-RES
     ;W: 320
     ;8 pixels/byte
@@ -456,12 +456,22 @@ Decode2x3TileGraphic:
 
     lea DecodedGraphic,a3
     lea EncTiles,a1
-    lea (a1,d0.l),a1                                        ;Oldguy
+    lea (a1,d0.l),a1
 
     bsr ExtractTile
 
     lea $20(a1),a1                                          ;skip to next tile in the source
     lea DecodedGraphic+2,a3
+
+    bsr ExtractTile
+
+    lea $20(a1),a1                                          ;skip to next tile in the source
+    lea DecodedGraphic+4,a3
+
+    bsr ExtractTile
+
+    lea $20(a1),a1                                          ;skip to next tile in the source
+    lea DecodedGraphic+6,a3
 
     bsr ExtractTile
 
@@ -482,6 +492,16 @@ Decode2x3TileGraphic:
 
     bsr ExtractTile
 
+    lea $20(a1),a1                                          ;skip to next tile in the source
+    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height)+4,a3
+
+    bsr ExtractTile
+
+    lea $20(a1),a1                                          ;skip to next tile in the source
+    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height)+6,a3
+
+    bsr ExtractTile
+
     lea TileToDecode,a0                                     ;skip to next tile in the source
     move.l (a0),d0
     lea TileImageStride,a0
@@ -497,6 +517,16 @@ Decode2x3TileGraphic:
 
     lea $20(a1),a1                                          ;skip to next tile in the source
     lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2)+2,a3
+
+    bsr ExtractTile
+
+    lea $20(a1),a1                                          ;skip to next tile in the source
+    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2)+4,a3
+
+    bsr ExtractTile
+
+    lea $20(a1),a1                                          ;skip to next tile in the source
+    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2)+6,a3
 
     bsr ExtractTile
 
