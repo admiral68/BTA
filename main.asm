@@ -185,23 +185,32 @@ Init:
 ; some test code
 
     lea TilesToDecode,a1
+    move.w #$02b4,(a1)+
+    move.w #$02bc,(a1)+
     move.w #$02a0,(a1)+
     move.w #$02e9,(a1)+
     move.w #$02ea,(a1)+
     move.w #$02bc,(a1)+
+    move.w #$02ba,(a1)+
+    move.w #$02a2,(a1)+
+    move.w #$02a3,(a1)+
     move.w #$02f0,(a1)+
     move.w #$02f1,(a1)+
     move.w #$02f2,(a1)+
     move.w #$02f3,(a1)+
+    move.w #$02a3,(a1)+
+    move.w #$02aa,(a1)+
+    move.w #$02ab,(a1)+
     move.w #$02f8,(a1)+
     move.w #$02f9,(a1)+
     move.w #$02fa,(a1)+
     move.w #$02fb,(a1)+
+    move.w #$02ab,(a1)+
 
     move.l bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic,d0
 
     lea TileColumnsToDecode,a1
-    move.b #4,(a1)
+    move.b #7,(a1)
 
     lea TileRowsToDecode,a1
     move.b #3,(a1)
