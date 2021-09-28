@@ -17,9 +17,6 @@ tilesrc_row_w               = $200
 tilesrc_bp_offset           = $20000
 tilesrc_upr_px_b_off        = $20
 
-
-test_starting_tile_old_man  = $2E8
-
 bitpl_bytes_per_raster_line = 40
 
 bpls                        = 3                             ;handy values:
@@ -184,11 +181,19 @@ Init:
     lea Screen,a1
     bsr.w ClearScreen
 
-    lea TileToDecode,a1
-    move.l #test_starting_tile_old_man,(a1)                 ;starting tile of old man
-
-    lea TileImageStride,a1
-    move.b #$08,(a1)
+    lea TilesToDecode,a1
+    move.w #$02a0,(a1)+
+    move.w #$02e9,(a1)+
+    move.w #$02ea,(a1)+
+    move.w #$02bc,(a1)+
+    move.w #$02f0,(a1)+
+    move.w #$02f1,(a1)+
+    move.w #$02f2,(a1)+
+    move.w #$02f3,(a1)+
+    move.w #$02f8,(a1)+
+    move.w #$02f9,(a1)+
+    move.w #$02fa,(a1)+
+    move.w #$02fb,(a1)+
 
     bsr Decode4x3TileGraphic
 
@@ -450,85 +455,152 @@ Decode4x3TileGraphic:
     clr.l (a0)+
     dbf d0,.l0
 
-    lea TileToDecode,a0
-    move.l (a0),d0                                          ;Starting tile
-    asl.l #$06,d0
+    clr.l d0
 
-    ;lea DecodedGraphic,a3
+    lea TilesToDecode,a0                                    ;Starting tile
+
+
+    lea TileDecodeDest,a2
+    lea DecodedGraphic,a1
+    move.l a1,(a2)
+    move.l (a2),a3
+
+
+
     lea EncTiles,a1
-    lea (a1,d0.l),a1
-    ;
-    ;bsr ExtractTile
-
-    move.l #$40,d0                                           ;(remove)
-    ;lea $20(a1),a1                                          ;skip to next tile in the source
-    lea (a1,d0.w),a1                                         ;(remove) skip to next tile in the source
-    lea DecodedGraphic+2,a3
-
-    bsr ExtractTile
-
-    lea $20(a1),a1                                          ;skip to next tile in the source
-    lea DecodedGraphic+4,a3
-
-    bsr ExtractTile
-
-    ;lea $20(a1),a1                                          ;skip to next tile in the source
-    ;lea DecodedGraphic+6,a3
-    ;
-    ;bsr ExtractTile
-
-    lea TileToDecode,a0                                     ;skip to next tile in the source
-    move.l (a0),d0
-    lea TileImageStride,a0
-    add.b (a0),d0
-
+    move.w (a0)+,d0
     asl.l #$06,d0
-    lea EncTiles,a1
     lea (a1,d0.l),a1
-    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height),a3
 
     bsr ExtractTile
 
-    lea $20(a1),a1                                          ;skip to next tile in the source
-    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height)+2,a3
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    movea.l (a2),a3
 
-    bsr ExtractTile
-
-    lea $20(a1),a1                                          ;skip to next tile in the source
-    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height)+4,a3
-
-    bsr ExtractTile
-
-    lea $20(a1),a1                                          ;skip to next tile in the source
-    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height)+6,a3
-
-    bsr ExtractTile
-
-    lea TileToDecode,a0                                     ;skip to next tile in the source
-    move.l (a0),d0
-    lea TileImageStride,a0
-    add.b (a0),d0
-    add.b (a0),d0
-
+    lea EncTiles,a1
+    move.w (a0)+,d0
     asl.l #$06,d0
-    lea EncTiles,a1
     lea (a1,d0.l),a1
-    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2),a3
 
     bsr ExtractTile
 
-    lea $20(a1),a1                                          ;skip to next tile in the source
-    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2)+2,a3
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    movea.l (a2),a3
+
+    lea EncTiles,a1
+    move.w (a0)+,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
 
     bsr ExtractTile
 
-    lea $20(a1),a1                                          ;skip to next tile in the source
-    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2)+4,a3
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    movea.l (a2),a3
+
+    lea EncTiles,a1
+    move.w (a0)+,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
 
     bsr ExtractTile
 
-    lea $20(a1),a1                                          ;skip to next tile in the source
-    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2)+6,a3
+
+    lea TileDecodeDest,a2
+    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height),a1
+    move.l a1,(a2)
+    move.l (a2),a3
+
+
+
+
+
+    lea EncTiles,a1
+    move.w (a0)+,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    bsr ExtractTile
+
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    movea.l (a2),a3
+
+    lea EncTiles,a1
+    move.w (a0)+,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    bsr ExtractTile
+
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    movea.l (a2),a3
+
+    lea EncTiles,a1
+    move.w (a0)+,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    bsr ExtractTile
+
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    movea.l (a2),a3
+
+    lea EncTiles,a1
+    move.w (a0)+,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    bsr ExtractTile
+
+
+    lea TileDecodeDest,a2
+    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2),a1
+    move.l a1,(a2)
+    move.l (a2),a3
+
+
+    lea EncTiles,a1
+    move.w (a0)+,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    bsr ExtractTile
+
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    movea.l (a2),a3
+
+    lea EncTiles,a1
+    move.w (a0)+,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    bsr ExtractTile
+
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    movea.l (a2),a3
+
+    lea EncTiles,a1
+    move.w (a0)+,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    bsr ExtractTile
+
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    movea.l (a2),a3
+
+    lea EncTiles,a1
+    move.w (a0)+,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
 
     bsr ExtractTile
 
@@ -565,11 +637,14 @@ VBint:                                                      ;Blank template VERT
 * DATA (FASTMEM)
 *******************************************************************************
 
-TileToDecode:
+TileDecodeDest:
     dc.l 0
 
 TileImageStride:
     dc.l 0
+
+TilesToDecode:
+    ds.w 21*17*tile_height
 
 DecodedBitplaneBytes:
     dc.b 0,0,0,0,0,0,0,0
