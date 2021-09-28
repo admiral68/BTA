@@ -186,6 +186,50 @@ Init:
 
 ; some test code
 
+
+; ScrollDataLev1
+;
+; HB+(BITS0-2 of LB << 8) = TILE SELECTION  ((0x7 & LB) << 8) + HB    ==> INDEX VALUES BETWEEN 0x000 & 0x7FF
+; (BITS3-6 of LB)         = PALETTE INDEX                             ==> INDEX VALUES BETWEEN 0x0 & 0xF
+; BIT 7 of LB:            = FLIP HORIZONTALLY
+;
+; ATTR:
+;   BITS 0-2 = UPPER 3 BITS OF TILE INDEX (ABOVE LOWER 8 bits of index--so we can index up to 0x7FF)
+;   BITS 3-6 = COLOR INFO (0x0 - 0xF) (16 possible PALETTES) (raw PALETTE index)
+;   BIT  7   = FLIP TILE (0x0 = NO, 0x1 = YES)
+
+    move.l #0,d2
+    move.l #0,d3
+
+    lea ScrollDataLev1,a1
+    move.l #16,d0
+
+.outer_loop
+    move.l #20,d1
+
+.inner_loop
+    move.w (a1)+,d2
+    ror #8,d2                                               ;swap bytes; source is little endian
+    move.w d2,d3
+    and.w #tile_index_mask,d3
+
+    btst #7,d2
+    beq .not_flipped
+
+    nop                                                     ;todo: flipped tile!
+    bra .finish_inner_loop
+
+.not_flipped
+    nop
+
+.finish_inner_loop
+
+    dbf d1,.inner_loop
+
+
+    dbf d0,.outer_loop
+
+
     lea TilesToDecode,a1
     move.w #$02b4,(a1)+
     move.w #$02bc,(a1)+
@@ -565,6 +609,12 @@ VBint:                                                      ;Blank template VERT
 * DATA (FASTMEM)
 *******************************************************************************
 
+EncTiles: INCBIN "gfx/gfx2.bin"
+    EVEN
+
+ScrollDataLev1: INCBIN "data/lev_1_scroll_data.bin"
+    EVEN
+
 TilesToDecode:
     ds.w 21*17*tile_height
 
@@ -593,11 +643,6 @@ TileRowsToDecode:
     dc.b 0
 
     EVEN
-
-EncTiles: INCBIN "gfx/gfx2.bin"
-
-    EVEN
-
 
 *******************************************************************************
 * CHIPMEM
