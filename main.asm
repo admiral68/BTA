@@ -13,6 +13,8 @@ bplsize                     = w*h/8
 tile_bitplanes              = 4
 tile_height                 = 16
 
+tile_index_mask             = $07ff
+
 tilesrc_row_w               = $200
 tilesrc_bp_offset           = $20000
 tilesrc_upr_px_b_off        = $20
@@ -217,6 +219,10 @@ Init:
 
     lea DestGraphicVTileOffset,a1                           ;One tile height in destination bitmap
     move.l #bitpl_bytes_per_raster_line*tile_bitplanes*tile_height,(a1)
+
+    lea EncTiles,a0
+    lea TileSource,a1
+    move.l a0,(a1)
 
     bsr DecodeTileGraphicToScreen
 
@@ -495,8 +501,10 @@ DecodeTileGraphicToScreen:
 .inner_loop
     move.l (a2),a3
 
-    lea EncTiles,a1
+    lea TileSource,a4
+    move.l (a4),a1
     move.w (a0)+,d0
+    andi.w #tile_index_mask,d0                              ;TODO: USE UPPER BIT TO DENOTE "FLIP" TILE
     asl.l #$06,d0
     lea (a1,d0.l),a1
 
@@ -567,6 +575,9 @@ TileDecodeRowDest:
     dc.l 0
 
 TileImageStride:
+    dc.l 0
+
+TileSource:
     dc.l 0
 
 DestGraphicVTileOffset:
