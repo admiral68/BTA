@@ -17,6 +17,9 @@ tilesrc_row_w               = $200
 tilesrc_bp_offset           = $20000
 tilesrc_upr_px_b_off        = $20
 
+
+test_starting_tile_old_man  = $2E9
+
 bitpl_bytes_per_raster_line = 40
 
 bpls                        = 3                             ;handy values:
@@ -181,7 +184,13 @@ Init:
     lea Screen,a1
     bsr.w ClearScreen
 
-    bsr DecodeOldMan
+    lea TileToDecode,a1
+    move.l #test_starting_tile_old_man,(a1)                 ;starting tile of old man
+
+    lea TileImageStride,a1
+    move.b #$08,(a1)
+
+    bsr Decode2x3TileGraphic
 
     lea DecodedGraphic,a0                                   ;ptr to first bitplane of logo
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
@@ -426,7 +435,7 @@ ExtractTile:
     rts
 
 ;-----------------------------------------------
-DecodeOldMan:
+Decode2x3TileGraphic:
     ;SCREEN LO-RES
     ;W: 320
     ;8 pixels/byte
@@ -441,7 +450,8 @@ DecodeOldMan:
     clr.l (a0)+
     dbf d0,.l0
 
-    move.l #$000002E9,d0                                    ;Starting tile
+    lea TileToDecode,a0
+    move.l (a0),d0                                          ;Starting tile
     asl.l #$06,d0
 
     lea DecodedGraphic,a3
@@ -455,7 +465,11 @@ DecodeOldMan:
 
     bsr ExtractTile
 
-    move.l #$000002F1,d0                                    ;skip to next tile in the source
+    lea TileToDecode,a0                                     ;skip to next tile in the source
+    move.l (a0),d0
+    lea TileImageStride,a0
+    add.b (a0),d0
+
     asl.l #$06,d0
     lea EncTiles,a1
     lea (a1,d0.l),a1
@@ -468,7 +482,12 @@ DecodeOldMan:
 
     bsr ExtractTile
 
-    move.l #$000002F9,d0                                    ;skip to next tile in the source
+    lea TileToDecode,a0                                     ;skip to next tile in the source
+    move.l (a0),d0
+    lea TileImageStride,a0
+    add.b (a0),d0
+    add.b (a0),d0
+
     asl.l #$06,d0
     lea EncTiles,a1
     lea (a1,d0.l),a1
@@ -513,6 +532,12 @@ VBint:                                                      ;Blank template VERT
 *******************************************************************************
 * DATA (FASTMEM)
 *******************************************************************************
+
+TileToDecode:
+    dc.l 0
+
+TileImageStride:
+    dc.l 0
 
 DecodedBitplaneBytes:
     dc.b 0,0,0,0,0,0,0,0
