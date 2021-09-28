@@ -357,7 +357,6 @@ DecodeRowOf16Pixels:
     ;INPUT: a1 - source bytes ptr
     ;USES:  d2,a4
     ;OUTPUT: a2 - bitplane data
-    ;        a3 - destination
 
     move.l 0,0(a2)                                          ;leftmost column destinations
     move.l 0,4(a2)                                          ;rightmost column destinations
@@ -394,8 +393,39 @@ DecodeRowOf16Pixels:
     bsr Extract8BitplaneBytesFromTwoSourceBytes
     lea -6(a2),a2
     rts
-;-----------------------------------------------
 
+;-----------------------------------------------
+ExtractTile:
+    ;INPUT:  a1 - source bytes ptr
+    ;        a3 - destination ptr
+    ;USES:   a2
+    ;OUTPUT: a3 - destination
+
+    move #$0F,d0                                            ;16 rasterlines at a time; rightmost byte done too
+.extract_tile:
+
+    lea DecodedBitplaneBytes,a2                             ;stores intermediate decoded bitplane bytes
+    bsr DecodeRowOf16Pixels
+
+    ;    0  1  2  3   4  5  6  7
+    ;a2: 3, 2, 1, 0 | 3, 2, 1, 0
+
+    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
+    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
+    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
+    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
+    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
+    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
+    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
+    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
+
+    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline (a0 = $28 * 4 bitplanes; $28 = bytes in one rasterline for one bitplane)
+    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
+
+    dbf d0,.extract_tile
+    rts
+
+;-----------------------------------------------
 DecodeOldMan:
     ;SCREEN LO-RES
     ;W: 320
@@ -418,158 +448,38 @@ DecodeOldMan:
     lea EncTiles,a1
     lea (a1,d0.l),a1                                        ;Oldguy
 
-    ; ******************************************************
-
-    move #$0F,d0                                            ;16 rasterlines at a time; rightmost byte done too
-.extract_tile_01:
-
-    lea DecodedBitplaneBytes,a2                             ;stores intermediate decoded bitplane bytes
-    bsr DecodeRowOf16Pixels
-
-    ;    0  1  2  3   4  5  6  7
-    ;a2: 3, 2, 1, 0 | 3, 2, 1, 0
-
-    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
-    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
-    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
-    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
-    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
-    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
-    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
-    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
-
-    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline (a0 = $28 * 4 bitplanes; $28 = bytes in one rasterline for one bitplane)
-    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
-
-    dbf d0,.extract_tile_01
-
-    ; ******************************************************
+    bsr ExtractTile
 
     lea $20(a1),a1                                          ;skip to next tile in the source
     lea DecodedGraphic+2,a3
-    move #$0F,d0                                            ;16 rasterlines at a time
-.extract_tile_02:
 
-    lea DecodedBitplaneBytes,a2
-    bsr DecodeRowOf16Pixels
-
-    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
-    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
-    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
-    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
-    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
-    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
-    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
-    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
-
-    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline
-    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
-
-    dbf d0,.extract_tile_02
-
-    ; ******************************************************
+    bsr ExtractTile
 
     move.l #$000002F1,d0                                    ;skip to next tile in the source
     asl.l #$06,d0
     lea EncTiles,a1
     lea (a1,d0.l),a1
-
     lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height),a3
-    move #$0F,d0                                            ;16 rasterlines at a time
-.extract_tile_03:
 
-    lea DecodedBitplaneBytes,a2
-    bsr DecodeRowOf16Pixels
-
-    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
-    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
-    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
-    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
-    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
-    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
-    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
-    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
-
-    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline
-    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
-
-    dbf d0,.extract_tile_03
-
-    ; ******************************************************
+    bsr ExtractTile
 
     lea $20(a1),a1                                          ;skip to next tile in the source
     lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height)+2,a3
-    move #$0F,d0                                            ;16 rasterlines at a time
-.extract_tile_04:
 
-    lea DecodedBitplaneBytes,a2
-    bsr DecodeRowOf16Pixels
-
-    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
-    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
-    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
-    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
-    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
-    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
-    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
-    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
-
-    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline
-    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
-
-    dbf d0,.extract_tile_04
-
-    ; ******************************************************
+    bsr ExtractTile
 
     move.l #$000002F9,d0                                    ;skip to next tile in the source
     asl.l #$06,d0
     lea EncTiles,a1
     lea (a1,d0.l),a1
-
     lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2),a3
-    move #$0F,d0                                            ;16 rasterlines at a time
-.extract_tile_05:
 
-    lea DecodedBitplaneBytes,a2
-    bsr DecodeRowOf16Pixels
-
-    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
-    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
-    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
-    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
-    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
-    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
-    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
-    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
-
-    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline
-    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
-
-    dbf d0,.extract_tile_05
-
-    ; ******************************************************
+    bsr ExtractTile
 
     lea $20(a1),a1                                          ;skip to next tile in the source
     lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2)+2,a3
-    move #$0F,d0                                            ;16 rasterlines at a time
-.extract_tile_06:
 
-    lea DecodedBitplaneBytes,a2
-    bsr DecodeRowOf16Pixels
-
-    move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
-    move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
-    move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
-    move.b, (a2),bitpl_bytes_per_raster_line*3(a3)          ;bitplane 3
-    move.b, 7(a2),bitpl_bytes_per_raster_line*0+1(a3)       ;bitplane 0
-    move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
-    move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
-    move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
-
-    lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline
-    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
-
-    dbf d0,.extract_tile_06
+    bsr ExtractTile
 
     rts
 ;-----------------------------------------------
