@@ -454,13 +454,15 @@ Decode4x3TileGraphic:
     move.l (a0),d0                                          ;Starting tile
     asl.l #$06,d0
 
-    lea DecodedGraphic,a3
+    ;lea DecodedGraphic,a3
     lea EncTiles,a1
     lea (a1,d0.l),a1
+    ;
+    ;bsr ExtractTile
 
-    bsr ExtractTile
-
-    lea $20(a1),a1                                          ;skip to next tile in the source
+    move.l #$40,d0                                           ;(remove)
+    ;lea $20(a1),a1                                          ;skip to next tile in the source
+    lea (a1,d0.w),a1                                         ;(remove) skip to next tile in the source
     lea DecodedGraphic+2,a3
 
     bsr ExtractTile
@@ -470,10 +472,10 @@ Decode4x3TileGraphic:
 
     bsr ExtractTile
 
-    lea $20(a1),a1                                          ;skip to next tile in the source
-    lea DecodedGraphic+6,a3
-
-    bsr ExtractTile
+    ;lea $20(a1),a1                                          ;skip to next tile in the source
+    ;lea DecodedGraphic+6,a3
+    ;
+    ;bsr ExtractTile
 
     lea TileToDecode,a0                                     ;skip to next tile in the source
     move.l (a0),d0
