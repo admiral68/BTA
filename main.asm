@@ -181,6 +181,9 @@ Init:
     lea Screen,a1
     bsr.w ClearScreen
 
+
+; some test code
+
     lea TilesToDecode,a1
     move.w #$02a0,(a1)+
     move.w #$02e9,(a1)+
@@ -212,7 +215,7 @@ Init:
     lea bitpl_bytes_per_raster_line(a0),a0                  ;apparently every 40 bytes we'll have new bitplane data
     dbf d0,.bpl7
 
-
+;test code ends
 
     movem.l (sp)+,d0-a6
     rts
@@ -449,6 +452,9 @@ Decode4x3TileGraphic:
     ;40*32*4
 
     lea DecodedGraphic,a0
+    lea TileDecodeRowDest,a1
+
+    move.l a0,(a1)
 
     move.l bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic,d0
 .l0:
@@ -457,16 +463,27 @@ Decode4x3TileGraphic:
 
     clr.l d0
 
+    lea TileColumnsToDecode,a1
+    move.b #4,(a1)
+
+    lea TileRowsToDecode,a1
+    move.b #3,(a1)
+
+    lea DestGraphicVTileOffset,a1                           ;One tile height in destination bitmap
+    move.l #bitpl_bytes_per_raster_line*tile_bitplanes*tile_height,(a1)
+
     lea TilesToDecode,a0                                    ;Starting tile
 
-
     lea TileDecodeDest,a2
-    lea DecodedGraphic,a1
-    move.l a1,(a2)
+    lea TileDecodeRowDest,a1
+
+    move.l (a1),(a2)
+
+    move.l #0,d4
+
+.loop_1
     move.l (a2),a3
 
-
-
     lea EncTiles,a1
     move.w (a0)+,d0
     asl.l #$06,d0
@@ -474,49 +491,28 @@ Decode4x3TileGraphic:
 
     bsr ExtractTile
 
+    lea TileColumnsToDecode,a4
     lea TileDecodeDest,a2
     add.l #2,(a2)
-    movea.l (a2),a3
 
-    lea EncTiles,a1
-    move.w (a0)+,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
+    addi.b #1,d4
+    cmp.b (a4),d4
+    bne .loop_1
 
-    bsr ExtractTile
-
+    lea TileDecodeRowDest,a4
+    move.l (a4),a1
     lea TileDecodeDest,a2
-    add.l #2,(a2)
-    movea.l (a2),a3
+    lea DestGraphicVTileOffset,a3                           ;One tile height in destination bitmap
 
-    lea EncTiles,a1
-    move.w (a0)+,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
-
-    bsr ExtractTile
-
-    lea TileDecodeDest,a2
-    add.l #2,(a2)
-    movea.l (a2),a3
-
-    lea EncTiles,a1
-    move.w (a0)+,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
-
-    bsr ExtractTile
-
-
-    lea TileDecodeDest,a2
-    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height),a1
+    adda.l (a3),a1
     move.l a1,(a2)
+    move.l a1,(a4)
+
+    move.l #0,d4
+
+.loop_2
     move.l (a2),a3
 
-
-
-
-
     lea EncTiles,a1
     move.w (a0)+,d0
     asl.l #$06,d0
@@ -524,45 +520,28 @@ Decode4x3TileGraphic:
 
     bsr ExtractTile
 
+    lea TileColumnsToDecode,a4
     lea TileDecodeDest,a2
     add.l #2,(a2)
-    movea.l (a2),a3
 
-    lea EncTiles,a1
-    move.w (a0)+,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
+    addi.b #1,d4
+    cmp.b (a4),d4
+    bne .loop_2
 
-    bsr ExtractTile
-
+    lea TileDecodeRowDest,a4
+    move.l (a4),a1
     lea TileDecodeDest,a2
-    add.l #2,(a2)
-    movea.l (a2),a3
+    lea DestGraphicVTileOffset,a3                           ;One tile height in destination bitmap
 
-    lea EncTiles,a1
-    move.w (a0)+,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
-
-    bsr ExtractTile
-
-    lea TileDecodeDest,a2
-    add.l #2,(a2)
-    movea.l (a2),a3
-
-    lea EncTiles,a1
-    move.w (a0)+,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
-
-    bsr ExtractTile
-
-
-    lea TileDecodeDest,a2
-    lea DecodedGraphic+(bitpl_bytes_per_raster_line*tile_bitplanes*tile_height*2),a1
+    adda.l (a3),a1
     move.l a1,(a2)
+    move.l a1,(a4)
     move.l (a2),a3
 
+    move.l #0,d4
+
+.loop_3
+    move.l (a2),a3
 
     lea EncTiles,a1
     move.w (a0)+,d0
@@ -571,38 +550,13 @@ Decode4x3TileGraphic:
 
     bsr ExtractTile
 
+    lea TileColumnsToDecode,a4
     lea TileDecodeDest,a2
     add.l #2,(a2)
-    movea.l (a2),a3
 
-    lea EncTiles,a1
-    move.w (a0)+,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
-
-    bsr ExtractTile
-
-    lea TileDecodeDest,a2
-    add.l #2,(a2)
-    movea.l (a2),a3
-
-    lea EncTiles,a1
-    move.w (a0)+,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
-
-    bsr ExtractTile
-
-    lea TileDecodeDest,a2
-    add.l #2,(a2)
-    movea.l (a2),a3
-
-    lea EncTiles,a1
-    move.w (a0)+,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
-
-    bsr ExtractTile
+    addi.b #1,d4
+    cmp.b (a4),d4
+    bne .loop_3
 
     rts
 ;-----------------------------------------------
@@ -637,17 +591,29 @@ VBint:                                                      ;Blank template VERT
 * DATA (FASTMEM)
 *******************************************************************************
 
+TilesToDecode:
+    ds.w 21*17*tile_height
+
 TileDecodeDest:
+    dc.l 0
+
+TileDecodeRowDest:
     dc.l 0
 
 TileImageStride:
     dc.l 0
 
-TilesToDecode:
-    ds.w 21*17*tile_height
+DestGraphicVTileOffset:
+    dc.l 0
 
 DecodedBitplaneBytes:
     dc.b 0,0,0,0,0,0,0,0
+
+TileColumnsToDecode:
+    dc.b 0
+
+TileRowsToDecode:
+    dc.b 0
 
     EVEN
 
