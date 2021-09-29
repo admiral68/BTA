@@ -209,6 +209,18 @@ Init:
     ;move.w #$02fb,(a1)+
     ;move.w #$02ab,(a1)+
 
+    ;In the source, the tile scroll data is formatted in blocks of tiles 16 x 16. These blocks are $200 bytes in size a piece.
+    ;"8x4" means 8 of these big blocks wide by 4 of those blocks high
+
+    ; HB+(BITS0-2 of LB << 8) = TILE SELECTION  ((0x7 & LB) << 8) + HB    ==> INDEX VALUES BETWEEN 0x000 & 0x7FF
+    ; (BITS3-6 of LB)         = PALETTE INDEX                             ==> INDEX VALUES BETWEEN 0x0 & 0xF
+    ; BIT 7 of LB:            = FLIP HORIZONTALLY
+    ;
+    ; ATTR:
+    ;   BITS 0-2 = UPPER 3 BITS OF TILE INDEX (ABOVE LOWER 8 bits of index--so we can index up to 0x7FF)
+    ;   BITS 3-6 = COLOR INFO (0x0 - 0xF) (16 possible PALETTES) (raw PALETTE index)
+    ;   BIT  7   = FLIP TILE (0x0 = NO, 0x1 = YES)
+
     move.l bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic,d0
 
     lea TileColumnsToDecode,a1
@@ -224,27 +236,13 @@ Init:
     lea TileSource,a1
     move.l a0,(a1)
 
-    ;In the source, the tile scroll data is formatted in blocks of tiles 16 x 16. These blocks are $200 bytes in size a piece.
-    ;"8x4" means 8 of these big blocks wide by 4 of those blocks high
-
-    ; HB+(BITS0-2 of LB << 8) = TILE SELECTION  ((0x7 & LB) << 8) + HB    ==> INDEX VALUES BETWEEN 0x000 & 0x7FF
-    ; (BITS3-6 of LB)         = PALETTE INDEX                             ==> INDEX VALUES BETWEEN 0x0 & 0xF
-    ; BIT 7 of LB:            = FLIP HORIZONTALLY
-    ;
-    ; ATTR:
-    ;   BITS 0-2 = UPPER 3 BITS OF TILE INDEX (ABOVE LOWER 8 bits of index--so we can index up to 0x7FF)
-    ;   BITS 3-6 = COLOR INFO (0x0 - 0xF) (16 possible PALETTES) (raw PALETTE index)
-    ;   BIT  7   = FLIP TILE (0x0 = NO, 0x1 = YES)
-
     move.l #0,d2
     move.l #0,d3
     move.l #0,d4
-    move.l #0,d5
 
     lea TilesToDecode,a2
     lea ScrollDataLev1,a1
     movea.l a1,a3
-    movea.l a1,a4
     move.l #15,d0
 
 .outer_loop
@@ -268,27 +266,14 @@ Init:
 
     cmp.b #16,d4
     bne .skip_1
-    lea $e0(a1),a1
+    lea $1e0(a1),a1
 
 .skip_1
-    cmp.b #20,d4
-    bne .skip_2
-    lea $20(a3),a3
-    movea.l a3,a1
-
-.skip_2
     dbf d1,.inner_loop
 
+    move.l #0,d4
     lea $20(a3),a3
     movea.l a3,a1
-
-    addi.w #1,d5
-    cmp.b #16,d4
-    bne .skip_3
-    lea $2000(a4),a1
-    movea.l a1,a3
-
-.skip_3
 
     dbf d0,.outer_loop
 
