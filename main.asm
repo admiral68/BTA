@@ -212,6 +212,10 @@ Init:
     ;In the source, the tile scroll data is formatted in blocks of tiles 16 x 16. These blocks are $200 bytes in size a piece.
     ;"8x4" means 8 of these big blocks wide by 4 of those blocks high
 
+    ;The Black Tiger screen was only 256x224, meaning that a maximum of 16 columns and 14 rows of tiles could be displayed
+    ;on screen at once anyway. I need to check to see if the game actually draws that many columns, or if there is other space
+    ;reserved for HUD (top/bottom/etc)
+
     ; HB+(BITS0-2 of LB << 8) = TILE SELECTION  ((0x7 & LB) << 8) + HB    ==> INDEX VALUES BETWEEN 0x000 & 0x7FF
     ; (BITS3-6 of LB)         = PALETTE INDEX                             ==> INDEX VALUES BETWEEN 0x0 & 0xF
     ; BIT 7 of LB:            = FLIP HORIZONTALLY
