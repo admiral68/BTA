@@ -480,21 +480,6 @@ DecodeRowOf16Pixels:
     move.l #0,d2
     move.w (a4),d2
 
-;   cmp.b #1,d1
-;   bne .not_flip_1
-;
-;   move.l #0,d6
-;
-;   move.b (a4),d2
-;   move.b 1(a4),d6
-;   REPT 8
-;   roxr.b #1,d6
-;   addx.b d2,d2
-;   ENDR
-;   roxr.b #1,d6
-;   asl.b #8,d2
-;   add.b d6,d2
-;.not_flip_1
                                                             ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
                                                             ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
     bsr Extract8BitplaneBytesFromTwoSourceBytes             ;returns DecodedBitplaneBytes in a2
@@ -503,22 +488,6 @@ DecodeRowOf16Pixels:
     move.l #0,d2
     move.w (a1),d2                                          ;d2.w = twoAndThreeByte1 & twoAndThreeByte2
 
-
-;   cmp.b #1,d1
-;   bne .not_flip_2
-;
-;   move.l #0,d6
-;
-;   move.b (a1),d2
-;   move.b 1(a1),d6
-;   REPT 8
-;   roxr.b #1,d6
-;   addx.b d2,d2
-;   ENDR
-;   roxr.b #1,d6
-;   asl.b #8,d2
-;   add.b d6,d2
-;.not_flip_2
 
                                                             ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
     bsr Extract8BitplaneBytesFromTwoSourceBytes             ;returns DecodedBitplaneBytes in a2
@@ -530,21 +499,6 @@ DecodeRowOf16Pixels:
     move.l #0,d2
     move.w tilesrc_upr_px_b_off(a4),d2                      ;add $20 to get to the src of the rightmost 8 pixel columns
 
-;   cmp.b #1,d1
-;   bne .not_flip_3
-;
-;   move.l #0,d6
-;
-;   move.b tilesrc_upr_px_b_off(a4),d2
-;   move.b tilesrc_upr_px_b_off+1(a4),d6
-;   REPT 8
-;   roxr.b #1,d6
-;   addx.b d2,d2
-;   ENDR
-;   roxr.b #1,d6
-;   asl.b #8,d2
-;   add.b d6,d2
-;.not_flip_3
 
                                                             ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
                                                             ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
@@ -555,22 +509,6 @@ DecodeRowOf16Pixels:
     move.l #0,d2
     move.w tilesrc_upr_px_b_off(a1),d2                      ;d2.w = twoAndThreeByte1 & twoAndThreeByte2
 
-
-;   cmp.b #1,d1
-;   bne .not_flip_4
-;
-;   move.l #0,d6
-;
-;   move.b tilesrc_upr_px_b_off(a1),d2
-;   move.b tilesrc_upr_px_b_off+1(a1),d6
-;   REPT 8
-;   roxr.b #1,d6
-;   addx.b d2,d2
-;   ENDR
-;   roxr.b #1,d6
-;   asl.b #8,d2
-;   add.b d6,d2
-;.not_flip_4
 
                                                             ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
 
@@ -595,6 +533,59 @@ ExtractTile:
     ;    0  1  2  3   4  5  6  7
     ;a2: 3, 2, 1, 0 | 3, 2, 1, 0
 
+    ;To flip the tile horizontally, we need to reverse the 4 bit color indexes,
+    ;which means reversing the NYBBLES--not the bits. Reversing the bits gives
+    ;us swapping of the odd bitplanes, which messes up the colors
+
+    cmp.b #1,d1
+    bne .no_flip
+
+    swap d1
+
+    move.b 3(a2),d6
+    move.b 7(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,3(a2)
+    move.b d1,7(a2)
+
+    move.b 2(a2),d6
+    move.b 6(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,2(a2)
+    move.b d1,6(a2)
+
+    move.b 1(a2),d6
+    move.b 5(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,1(a2)
+    move.b d1,5(a2)
+
+    move.b (a2),d6
+    move.b 4(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,(a2)
+    move.b d1,4(a2)
+
+    swap d1
+
+.no_flip
+
     move.b, 3(a2),bitpl_bytes_per_raster_line*0(a3)         ;bitplane 0
     move.b, 2(a2),bitpl_bytes_per_raster_line*1(a3)         ;bitplane 1
     move.b, 1(a2),bitpl_bytes_per_raster_line*2(a3)         ;bitplane 2
@@ -603,59 +594,6 @@ ExtractTile:
     move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
     move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
     move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
-
-    cmp.b #1,d1
-    bne .no_flip
-
-;   swap d1
-;   move.l #0,d6
-;
-;   move.b (a3),d1
-;   move.b 1(a3),d6
-;   REPT 8
-;   roxr.b #1,d6
-;   addx.b d1,d1
-;   ENDR
-;   roxr.b #1,d6
-;   move.b d1,(a3)
-;   move.b d6,1(a3)
-;
-;   move.b bitpl_bytes_per_raster_line*1(a3),d1
-;   move.b bitpl_bytes_per_raster_line*1+1(a3),d6
-;   REPT 8
-;   roxr.b #1,d6
-;   addx.b d1,d1
-;   ENDR
-;   roxr.b #1,d6
-;   move.b d1,bitpl_bytes_per_raster_line*1(a3)
-;   move.b d6,bitpl_bytes_per_raster_line*1+1(a3)
-;
-;   move.b bitpl_bytes_per_raster_line*2(a3),d1
-;   move.b bitpl_bytes_per_raster_line*2+1(a3),d6
-;   REPT 8
-;   roxr.b #1,d6
-;   addx.b d1,d1
-;   ENDR
-;   roxr.b #1,d6
-;   move.b d1,bitpl_bytes_per_raster_line*2(a3)
-;   move.b d6,bitpl_bytes_per_raster_line*2+1(a3)
-;
-;   move.b bitpl_bytes_per_raster_line*3(a3),d1
-;   move.b bitpl_bytes_per_raster_line*3+1(a3),d1
-;   REPT 8
-;   roxr.b #1,d6
-;   addx.b d1,d1
-;   ENDR
-;   roxr.b #1,d6
-;   move.b d1,bitpl_bytes_per_raster_line*3(a3)
-;   move.b d6,bitpl_bytes_per_raster_line*3+1(a3)
-;
-;   move.b #0,d6
-;   move.b #0,d1
-;
-;   swap d1
-
-.no_flip
 
     lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline (a0 = $28 * 4 bitplanes; $28 = bytes in one rasterline for one bitplane)
     lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
@@ -839,9 +777,6 @@ CopBplP:
     dc.w $0100,$4200
 
     ;dc.w $9207,$fffe
-
-    ;dc.w $0180,$044f,$0182,$068e,$0184,$0adf,$0186,$0dff
-    ;dc.w $0188,$09bf,$018a,$056d,$018c,$044b,$018e,$033a
 
     dc.w $ffff,$fffe
 CopperE:
