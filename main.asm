@@ -160,10 +160,10 @@ tile_pal_0e:macro
     endm
 
 tile_pal_0f:macro
-    dc.w $0180,$0xxx,$0182,$0xxx,$0184,$0xxx,$0186,$0xxx
-    dc.w $0188,$0xxx,$018a,$0xxx,$018c,$0xxx,$018e,$0xxx
-    dc.w $0190,$0xxx,$0192,$0xxx,$0194,$0xxx,$0196,$0xxx
-    dc.w $0198,$0xxx,$019a,$0xxx,$019c,$0xxx,$019e,$0xxx
+    dc.w $0180,$0111,$0182,$0FF9,$0184,$0EC7,$0186,$0DA6
+    dc.w $0188,$0C85,$018a,$0A74,$018c,$0864,$018e,$0753
+    dc.w $0190,$0641,$0192,$0533,$0194,$0431,$0196,$0111
+    dc.w $0198,$0111,$019a,$0111,$019c,$0111,$019e,$0110
     endm
 
 WAITBLIT:macro
@@ -186,80 +186,36 @@ Init:
 
 ; some test code
 
-
-; ScrollDataLev1
-;
-; HB+(BITS0-2 of LB << 8) = TILE SELECTION  ((0x7 & LB) << 8) + HB    ==> INDEX VALUES BETWEEN 0x000 & 0x7FF
-; (BITS3-6 of LB)         = PALETTE INDEX                             ==> INDEX VALUES BETWEEN 0x0 & 0xF
-; BIT 7 of LB:            = FLIP HORIZONTALLY
-;
-; ATTR:
-;   BITS 0-2 = UPPER 3 BITS OF TILE INDEX (ABOVE LOWER 8 bits of index--so we can index up to 0x7FF)
-;   BITS 3-6 = COLOR INFO (0x0 - 0xF) (16 possible PALETTES) (raw PALETTE index)
-;   BIT  7   = FLIP TILE (0x0 = NO, 0x1 = YES)
-
-    move.l #0,d2
-    move.l #0,d3
-
-    lea ScrollDataLev1,a1
-    move.l #16,d0
-
-.outer_loop
-    move.l #20,d1
-
-.inner_loop
-    move.w (a1)+,d2
-    ror #8,d2                                               ;swap bytes; source is little endian
-    move.w d2,d3
-    and.w #tile_index_mask,d3
-
-    btst #7,d2
-    beq .not_flipped
-
-    nop                                                     ;todo: flipped tile!
-    bra .finish_inner_loop
-
-.not_flipped
-    nop
-
-.finish_inner_loop
-
-    dbf d1,.inner_loop
-
-
-    dbf d0,.outer_loop
-
-
-    lea TilesToDecode,a1
-    move.w #$02b4,(a1)+
-    move.w #$02bc,(a1)+
-    move.w #$02a0,(a1)+
-    move.w #$02e9,(a1)+
-    move.w #$02ea,(a1)+
-    move.w #$02bc,(a1)+
-    move.w #$02ba,(a1)+
-    move.w #$02a2,(a1)+
-    move.w #$02a3,(a1)+
-    move.w #$02f0,(a1)+
-    move.w #$02f1,(a1)+
-    move.w #$02f2,(a1)+
-    move.w #$02f3,(a1)+
-    move.w #$02a3,(a1)+
-    move.w #$02aa,(a1)+
-    move.w #$02ab,(a1)+
-    move.w #$02f8,(a1)+
-    move.w #$02f9,(a1)+
-    move.w #$02fa,(a1)+
-    move.w #$02fb,(a1)+
-    move.w #$02ab,(a1)+
+    ;lea TilesToDecode,a1
+    ;move.w #$02b4,(a1)+
+    ;move.w #$02bc,(a1)+
+    ;move.w #$02a0,(a1)+
+    ;move.w #$02e9,(a1)+
+    ;move.w #$02ea,(a1)+
+    ;move.w #$02bc,(a1)+
+    ;move.w #$02ba,(a1)+
+    ;move.w #$02a2,(a1)+
+    ;move.w #$02a3,(a1)+
+    ;move.w #$02f0,(a1)+
+    ;move.w #$02f1,(a1)+
+    ;move.w #$02f2,(a1)+
+    ;move.w #$02f3,(a1)+
+    ;move.w #$02a3,(a1)+
+    ;move.w #$02aa,(a1)+
+    ;move.w #$02ab,(a1)+
+    ;move.w #$02f8,(a1)+
+    ;move.w #$02f9,(a1)+
+    ;move.w #$02fa,(a1)+
+    ;move.w #$02fb,(a1)+
+    ;move.w #$02ab,(a1)+
 
     move.l bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic,d0
 
     lea TileColumnsToDecode,a1
-    move.b #7,(a1)
+    move.b #20,(a1)                                         ;7
 
     lea TileRowsToDecode,a1
-    move.b #3,(a1)
+    move.b #16,(a1)                                         ;3
 
     lea DestGraphicVTileOffset,a1                           ;One tile height in destination bitmap
     move.l #bitpl_bytes_per_raster_line*tile_bitplanes*tile_height,(a1)
@@ -267,6 +223,74 @@ Init:
     lea EncTiles,a0
     lea TileSource,a1
     move.l a0,(a1)
+
+    ;In the source, the tile scroll data is formatted in blocks of tiles 16 x 16. These blocks are $200 bytes in size a piece.
+    ;"8x4" means 8 of these big blocks wide by 4 of those blocks high
+
+    ; HB+(BITS0-2 of LB << 8) = TILE SELECTION  ((0x7 & LB) << 8) + HB    ==> INDEX VALUES BETWEEN 0x000 & 0x7FF
+    ; (BITS3-6 of LB)         = PALETTE INDEX                             ==> INDEX VALUES BETWEEN 0x0 & 0xF
+    ; BIT 7 of LB:            = FLIP HORIZONTALLY
+    ;
+    ; ATTR:
+    ;   BITS 0-2 = UPPER 3 BITS OF TILE INDEX (ABOVE LOWER 8 bits of index--so we can index up to 0x7FF)
+    ;   BITS 3-6 = COLOR INFO (0x0 - 0xF) (16 possible PALETTES) (raw PALETTE index)
+    ;   BIT  7   = FLIP TILE (0x0 = NO, 0x1 = YES)
+
+    move.l #0,d2
+    move.l #0,d3
+    move.l #0,d4
+    move.l #0,d5
+
+    lea TilesToDecode,a2
+    lea ScrollDataLev1,a1
+    movea.l a1,a3
+    movea.l a1,a4
+    move.l #15,d0
+
+.outer_loop
+    move.l #19,d1
+
+.inner_loop
+    move.w (a1)+,d2                                         ;load "scroll word" into d2 from a1
+    ror #8,d2                                               ;swap bytes; source is little endian
+    move.w d2,d3
+    and.w #tile_index_mask,d3
+
+    btst #15,d2
+    beq .finish_inner_loop
+
+    or.w #$8000,d3                                          ;set "flipped" tile index
+
+.finish_inner_loop
+    move.w d3,(a2)+                                         ;poke this into the tile list
+
+    addi.w #1,d4
+
+    cmp.b #16,d4
+    bne .skip_1
+    lea $e0(a1),a1
+
+.skip_1
+    cmp.b #20,d4
+    bne .skip_2
+    lea $20(a3),a3
+    movea.l a3,a1
+
+.skip_2
+    dbf d1,.inner_loop
+
+    lea $20(a3),a3
+    movea.l a3,a1
+
+    addi.w #1,d5
+    cmp.b #16,d4
+    bne .skip_3
+    lea $2000(a4),a1
+    movea.l a1,a3
+
+.skip_3
+
+    dbf d0,.outer_loop
 
     bsr DecodeTileGraphicToScreen
 
@@ -453,13 +477,49 @@ DecodeRowOf16Pixels:
     move.l d2,a4
 
                                                             ;leftmost columns of 8 pixels
+    move.l #0,d2
     move.w (a4),d2
+
+;   cmp.b #1,d1
+;   bne .not_flip_1
+;
+;   move.l #0,d6
+;
+;   move.b (a4),d2
+;   move.b 1(a4),d6
+;   REPT 8
+;   roxr.b #1,d6
+;   addx.b d2,d2
+;   ENDR
+;   roxr.b #1,d6
+;   asl.b #8,d2
+;   add.b d6,d2
+;.not_flip_1
                                                             ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
                                                             ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
     bsr Extract8BitplaneBytesFromTwoSourceBytes             ;returns DecodedBitplaneBytes in a2
 
     lea 2(a2),a2
+    move.l #0,d2
     move.w (a1),d2                                          ;d2.w = twoAndThreeByte1 & twoAndThreeByte2
+
+
+;   cmp.b #1,d1
+;   bne .not_flip_2
+;
+;   move.l #0,d6
+;
+;   move.b (a1),d2
+;   move.b 1(a1),d6
+;   REPT 8
+;   roxr.b #1,d6
+;   addx.b d2,d2
+;   ENDR
+;   roxr.b #1,d6
+;   asl.b #8,d2
+;   add.b d6,d2
+;.not_flip_2
+
                                                             ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
     bsr Extract8BitplaneBytesFromTwoSourceBytes             ;returns DecodedBitplaneBytes in a2
 
@@ -467,14 +527,51 @@ DecodeRowOf16Pixels:
                                                             ;rightmost columns of 8 pixels
 
     lea 2(a2),a2
+    move.l #0,d2
     move.w tilesrc_upr_px_b_off(a4),d2                      ;add $20 to get to the src of the rightmost 8 pixel columns
+
+;   cmp.b #1,d1
+;   bne .not_flip_3
+;
+;   move.l #0,d6
+;
+;   move.b tilesrc_upr_px_b_off(a4),d2
+;   move.b tilesrc_upr_px_b_off+1(a4),d6
+;   REPT 8
+;   roxr.b #1,d6
+;   addx.b d2,d2
+;   ENDR
+;   roxr.b #1,d6
+;   asl.b #8,d2
+;   add.b d6,d2
+;.not_flip_3
+
                                                             ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
                                                             ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
 
     bsr Extract8BitplaneBytesFromTwoSourceBytes
 
     lea 2(a2),a2
+    move.l #0,d2
     move.w tilesrc_upr_px_b_off(a1),d2                      ;d2.w = twoAndThreeByte1 & twoAndThreeByte2
+
+
+;   cmp.b #1,d1
+;   bne .not_flip_4
+;
+;   move.l #0,d6
+;
+;   move.b tilesrc_upr_px_b_off(a1),d2
+;   move.b tilesrc_upr_px_b_off+1(a1),d6
+;   REPT 8
+;   roxr.b #1,d6
+;   addx.b d2,d2
+;   ENDR
+;   roxr.b #1,d6
+;   asl.b #8,d2
+;   add.b d6,d2
+;.not_flip_4
+
                                                             ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
 
     bsr Extract8BitplaneBytesFromTwoSourceBytes
@@ -485,6 +582,7 @@ DecodeRowOf16Pixels:
 ExtractTile:
     ;INPUT:  a1 - source bytes ptr
     ;        a3 - destination ptr
+    ;        d1 - flipped = 1.b, not flipped = 0.b
     ;USES:   a2
     ;OUTPUT: a3 - destination
 
@@ -505,6 +603,59 @@ ExtractTile:
     move.b, 6(a2),bitpl_bytes_per_raster_line*1+1(a3)       ;bitplane 1
     move.b, 5(a2),bitpl_bytes_per_raster_line*2+1(a3)       ;bitplane 2
     move.b, 4(a2),bitpl_bytes_per_raster_line*3+1(a3)       ;bitplane 3
+
+    cmp.b #1,d1
+    bne .no_flip
+
+;   swap d1
+;   move.l #0,d6
+;
+;   move.b (a3),d1
+;   move.b 1(a3),d6
+;   REPT 8
+;   roxr.b #1,d6
+;   addx.b d1,d1
+;   ENDR
+;   roxr.b #1,d6
+;   move.b d1,(a3)
+;   move.b d6,1(a3)
+;
+;   move.b bitpl_bytes_per_raster_line*1(a3),d1
+;   move.b bitpl_bytes_per_raster_line*1+1(a3),d6
+;   REPT 8
+;   roxr.b #1,d6
+;   addx.b d1,d1
+;   ENDR
+;   roxr.b #1,d6
+;   move.b d1,bitpl_bytes_per_raster_line*1(a3)
+;   move.b d6,bitpl_bytes_per_raster_line*1+1(a3)
+;
+;   move.b bitpl_bytes_per_raster_line*2(a3),d1
+;   move.b bitpl_bytes_per_raster_line*2+1(a3),d6
+;   REPT 8
+;   roxr.b #1,d6
+;   addx.b d1,d1
+;   ENDR
+;   roxr.b #1,d6
+;   move.b d1,bitpl_bytes_per_raster_line*2(a3)
+;   move.b d6,bitpl_bytes_per_raster_line*2+1(a3)
+;
+;   move.b bitpl_bytes_per_raster_line*3(a3),d1
+;   move.b bitpl_bytes_per_raster_line*3+1(a3),d1
+;   REPT 8
+;   roxr.b #1,d6
+;   addx.b d1,d1
+;   ENDR
+;   roxr.b #1,d6
+;   move.b d1,bitpl_bytes_per_raster_line*3(a3)
+;   move.b d6,bitpl_bytes_per_raster_line*3+1(a3)
+;
+;   move.b #0,d6
+;   move.b #0,d1
+;
+;   swap d1
+
+.no_flip
 
     lea bitpl_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline (a0 = $28 * 4 bitplanes; $28 = bytes in one rasterline for one bitplane)
     lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
@@ -539,15 +690,20 @@ DecodeTileGraphicToScreen:
     move.l (a1),(a2)
     move.l #0,d5
 
-.outer_loop
+.loop_rows
     move.l #0,d4
 
-.inner_loop
+.loop_columns
     move.l (a2),a3
 
+    move.b #0,d1
     lea TileSource,a4
     move.l (a4),a1
     move.w (a0)+,d0
+    btst #15,d0
+    beq .no_flip
+    move.b #1,d1
+.no_flip
     andi.w #tile_index_mask,d0                              ;TODO: USE UPPER BIT TO DENOTE "FLIP" TILE
     asl.l #$06,d0
     lea (a1,d0.l),a1
@@ -560,7 +716,7 @@ DecodeTileGraphicToScreen:
 
     addi.b #1,d4
     cmp.b (a4),d4
-    bne .inner_loop
+    bne .loop_columns
 
     lea TileDecodeRowDest,a4
     move.l (a4),a1
@@ -574,7 +730,7 @@ DecodeTileGraphicToScreen:
     lea TileRowsToDecode,a4
     addi.b #1,d5
     cmp.b (a4),d5
-    bne .outer_loop
+    bne .loop_rows
 
     rts
 ;-----------------------------------------------
@@ -664,7 +820,7 @@ Copper:
     dc.w $0102,0
     dc.w $0104,0
 
-    tile_pal_03
+    tile_pal_0f
 
 CopBplP:
     dc.w $00e0,0                                            ;1
@@ -682,10 +838,10 @@ CopBplP:
 
     dc.w $0100,$4200
 
-    dc.w $9207,$fffe
+    ;dc.w $9207,$fffe
 
-    dc.w $0180,$044f,$0182,$068e,$0184,$0adf,$0186,$0dff
-    dc.w $0188,$09bf,$018a,$056d,$018c,$044b,$018e,$033a
+    ;dc.w $0180,$044f,$0182,$068e,$0184,$0adf,$0186,$0dff
+    ;dc.w $0188,$09bf,$018a,$056d,$018c,$044b,$018e,$033a
 
     dc.w $ffff,$fffe
 CopperE:
