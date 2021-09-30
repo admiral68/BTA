@@ -1,8 +1,8 @@
-    bsr TestCode
-
-    move.l (DecodedGraphicE-DecodedGraphic)/4,d0
-    bsr DecodeTileGraphicToScreen
-
+;    bsr TestCode
+;
+;    move.l (DecodedGraphicE-DecodedGraphic)/4,d0
+;    bsr DecodeTileGraphicToScreen
+;
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"
@@ -11,9 +11,9 @@
 * DEFINES
 *******************************************************************************
 
-w                           = 320
+testwidth                   = 320
 h                           = 256
-bplsize                     = w*h/8
+bplsize                     = testwidth*h/8
 
 tile_bitplanes              = 4
 tile_height                 = 16
@@ -24,26 +24,20 @@ tilesrc_row_w               = $200
 tilesrc_bp_offset           = $20000
 tilesrc_upr_px_b_off        = $20
 
-test_cols_to_decode         = 31
+test_cols_to_decode         = testwidth/16
 test_rows_to_decode         = 16
 
 test_scroll_byte_offset     = 0;2
 test_fetch                  = $38;                               ;$30            / $38
-test_modulo                 = (320/8)*3-test_scroll_byte_offset ;$(320/8)*3 - 2 / (320/8)*3
+test_modulo                 = (testwidth/8)*3-test_scroll_byte_offset ;$(320/8)*3 - 2 / (320/8)*3
 
-horz_disp_words             = 20
+horz_disp_words             = testwidth/16  ;20
 bitpl_bytes_per_raster_line = horz_disp_words*2
 
 bpls                        = 3                             ;handy values:
-bpl                         = w/16*2                        ;byte-width of 1 bitplane line
+bpl                         = 320/16*2                ;byte-width of 1 bitplane line
 
 test_vlines_per_graphic     = 48                            ;32
-
-    *-----------------*
-    * logo dimensions *
-    *-----------------*
-
-bytewidth       =(w/8)*3
 
     *-----------------*
     * palettes        *
@@ -343,8 +337,8 @@ TestCode:
     move.l #test_rows_to_decode-1,d0
 
 .outer_loop
-    ;move.l #test_cols_to_decode-1,d1           ;TODO: This has a bug because we assume 320px wide
-    move.l #19,d1   ;TODO: TEMPORARILY CLAMP THIS TO 20 columns (320 px)
+    move.l #test_cols_to_decode-1,d1                        ;TODO: This has a bug because we assume 320 px wide
+    ;move.l #19,d1                                          ;TODO: TEMPORARILY CLAMP THIS TO 20 columns (320 px)
 
 .inner_loop
     move.w (a1)+,d2                                         ;load "scroll word" into d2 from a1
@@ -414,7 +408,7 @@ Init:
 
     move.l (DecodedGraphicE-DecodedGraphic)/4,d0
     bsr DecodeTileGraphicToScreen
-                                                            ;ptr to first bitplane of logo ; 2 because we're scrollin'
+                                                            ;ptr to first bitplane of image ; 2 because we're scrollin'
     ;lea DecodedGraphic-test_scroll_byte_offset+(test_cols_to_decode-horz_disp_words)*1,a0
     lea DecodedGraphic,a0
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
@@ -743,7 +737,7 @@ DecodeTileGraphicToScreen:
 
     clr.l d0
 
-    lea TilesToDecode,a0                                    ;Starting tile
+    lea TilesToDecode,a0                                                ;Starting tile
     lea TileDecodeDest,a2
     lea TileDecodeRowDest,a1
 
@@ -764,7 +758,7 @@ DecodeTileGraphicToScreen:
     beq .no_flip
     move.b #1,d1
 .no_flip
-    andi.w #tile_index_mask,d0                              ;TODO: USE UPPER BIT TO DENOTE "FLIP" TILE
+    andi.w #tile_index_mask,d0                                          ;TODO: USE UPPER BIT TO DENOTE "FLIP" TILE
     asl.l #$06,d0
     lea (a1,d0.l),a1
 
@@ -778,16 +772,16 @@ DecodeTileGraphicToScreen:
 
 
     move.l d4,d6
-    divu #20,d6                                             ;turns out 20 columns fits exactly into one interleaved bitplane section
+    divu #testwidth/16,d6                                               ;turns out testwidth/16 (20?) columns fits exactly into one interleaved bitplane section
     swap d6
     cmp.w #0,d6
     bne .check_loop
 
-    move.b (a4),d4 ; TODO: temporarily short-circuit any tiles that would make our bitmap too wide
+    ;move.b (a4),d4 ; TODO: temporarily short-circuit any tiles that would make our bitmap too wide
 
-    ;add.l #($a00-$28),(a2)                                 ;16 vertical lines and 4 bitplanes away
-    ;lea TileDecodeRowDest,a3
-    ;move.l (a2),(a3)
+    add.l #(testwidth*8-testwidth/8),(a2)                               ;16 vertical lines and 4 bitplanes away
+    lea TileDecodeRowDest,a3
+    move.l (a2),(a3)
 
 
 
@@ -801,18 +795,24 @@ DecodeTileGraphicToScreen:
     ;SINCE WE DEFINED OUR BITMAP AS 320PX wide, we only have 20 horizontal words to work with
     ;If we decoded fewer than 20 columns (for 320px) then we should make up the difference
 
+    move.l d4,d6
+    divu #testwidth/16,d6                                               ;turns out testwidth/16 columns fits exactly into one interleaved bitplane section
+    swap d6
+    cmp.w #0,d6
+    beq .continue_row
+
 
     lea TileDecodeRowDest,a4
     move.l (a4),a1
     lea TileDecodeDest,a2
-    lea DestGraphicVTileOffset,a3                           ;One tile height in destination bitmap
+    lea DestGraphicVTileOffset,a3                                       ;One tile height in destination bitmap
 
     adda.l (a3),a1
     move.l a1,(a2)
     move.l a1,(a4)
 
 
-
+.continue_row
     lea TileRowsToDecode,a4
     addi.b #1,d5
     cmp.b (a4),d5
