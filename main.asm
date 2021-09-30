@@ -19,7 +19,7 @@ tilesrc_row_w               = $200
 tilesrc_bp_offset           = $20000
 tilesrc_upr_px_b_off        = $20
 
-test_cols_to_decode         = 28
+test_cols_to_decode         = 20
 test_rows_to_decode         = 16
 
 test_scroll_byte_offset     = 2
