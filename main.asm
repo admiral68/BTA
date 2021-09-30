@@ -1,3 +1,8 @@
+    bsr TestCode
+
+    move.l (DecodedGraphicE-DecodedGraphic)/4,d0
+    bsr DecodeTileGraphicToScreen
+
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"
@@ -19,11 +24,11 @@ tilesrc_row_w               = $200
 tilesrc_bp_offset           = $20000
 tilesrc_upr_px_b_off        = $20
 
-test_cols_to_decode         = 20
+test_cols_to_decode         = 31
 test_rows_to_decode         = 16
 
-test_scroll_byte_offset     = 2
-test_fetch                  = $30                               ;$30            / $38
+test_scroll_byte_offset     = 0;2
+test_fetch                  = $38;                               ;$30            / $38
 test_modulo                 = (320/8)*3-test_scroll_byte_offset ;$(320/8)*3 - 2 / (320/8)*3
 
 horz_disp_words             = 20
@@ -296,6 +301,82 @@ WAITBLIT:macro
 * GAME
 *******************************************************************************
 
+    ;In the source, the tile scroll data is formatted in blocks of tiles 16 x 16. These blocks are $200 bytes in size a piece.
+    ;"8x4" means 8 of these big blocks wide by 4 of those blocks high
+
+    ;The Black Tiger screen was only 256x224, meaning that a maximum of 16 columns and 14 rows of tiles could be displayed
+    ;on screen at once anyway. I checked and there are only 16 tile columns and 13 tile rows used.
+    ;The top tile row is skipped, so the first (visible) map tiles start on row 1 (not row 0).
+
+    ; HB+(BITS0-2 of LB << 8) = TILE SELECTION  ((0x7 & LB) << 8) + HB    ==> INDEX VALUES BETWEEN 0x000 & 0x7FF
+    ; (BITS3-6 of LB)         = PALETTE INDEX                             ==> INDEX VALUES BETWEEN 0x0 & 0xF
+    ; BIT 7 of LB:            = FLIP HORIZONTALLY
+    ;
+    ; ATTR:
+    ;   BITS 0-2 = UPPER 3 BITS OF TILE INDEX (ABOVE LOWER 8 bits of index--so we can index up to 0x7FF)
+    ;   BITS 3-6 = COLOR INFO (0x0 - 0xF) (16 possible PALETTES) (raw PALETTE index)
+    ;   BIT  7   = FLIP TILE (0x0 = NO, 0x1 = YES)
+
+TestCode:
+    move.l #bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic,d0
+
+    lea TileColumnsToDecode,a1
+    move.b #test_cols_to_decode,(a1)
+
+    lea TileRowsToDecode,a1
+    move.b #test_rows_to_decode,(a1)
+
+    lea DestGraphicVTileOffset,a1                           ;One tile height in destination bitmap
+    move.l #bitpl_bytes_per_raster_line*tile_bitplanes*tile_height,(a1)
+
+    lea EncTiles,a0
+    lea TileSource,a1
+    move.l a0,(a1)
+
+    move.l #0,d2
+    move.l #0,d3
+    move.l #0,d4
+
+    lea TilesToDecode,a2
+    lea ScrollDataLev1,a1
+    movea.l a1,a3
+    move.l #test_rows_to_decode-1,d0
+
+.outer_loop
+    ;move.l #test_cols_to_decode-1,d1           ;TODO: This has a bug because we assume 320px wide
+    move.l #19,d1   ;TODO: TEMPORARILY CLAMP THIS TO 20 columns (320 px)
+
+.inner_loop
+    move.w (a1)+,d2                                         ;load "scroll word" into d2 from a1
+    ror #8,d2                                               ;swap bytes; source is little endian
+    move.w d2,d3
+    and.w #tile_index_mask,d3
+
+    btst #15,d2
+    beq .finish_inner_loop
+
+    or.w #$8000,d3                                          ;set "flipped" tile index
+
+.finish_inner_loop
+    move.w d3,(a2)+                                         ;poke this into the tile list
+
+    addi.w #1,d4
+
+    cmp.b #16,d4
+    bne .skip_1
+    lea $1e0(a1),a1
+
+.skip_1
+    dbf d1,.inner_loop
+
+    move.l #0,d4
+    lea $20(a3),a3
+    movea.l a3,a1
+
+    dbf d0,.outer_loop
+
+    rts
+
 Init:
     movem.l d0-a6,-(sp)
 
@@ -329,81 +410,13 @@ Init:
     ;move.w #$02fb,(a1)+
     ;move.w #$02ab,(a1)+
 
-    ;In the source, the tile scroll data is formatted in blocks of tiles 16 x 16. These blocks are $200 bytes in size a piece.
-    ;"8x4" means 8 of these big blocks wide by 4 of those blocks high
+    bsr TestCode
 
-    ;The Black Tiger screen was only 256x224, meaning that a maximum of 16 columns and 14 rows of tiles could be displayed
-    ;on screen at once anyway. I checked and there are only 16 tile columns and 13 tile rows used.
-    ;The top tile row is skipped, so the first (visible) map tiles start on row 1 (not row 0).
-
-    ; HB+(BITS0-2 of LB << 8) = TILE SELECTION  ((0x7 & LB) << 8) + HB    ==> INDEX VALUES BETWEEN 0x000 & 0x7FF
-    ; (BITS3-6 of LB)         = PALETTE INDEX                             ==> INDEX VALUES BETWEEN 0x0 & 0xF
-    ; BIT 7 of LB:            = FLIP HORIZONTALLY
-    ;
-    ; ATTR:
-    ;   BITS 0-2 = UPPER 3 BITS OF TILE INDEX (ABOVE LOWER 8 bits of index--so we can index up to 0x7FF)
-    ;   BITS 3-6 = COLOR INFO (0x0 - 0xF) (16 possible PALETTES) (raw PALETTE index)
-    ;   BIT  7   = FLIP TILE (0x0 = NO, 0x1 = YES)
-
-    move.l bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic,d0
-
-    lea TileColumnsToDecode,a1
-    move.b #test_cols_to_decode,(a1)
-
-    lea TileRowsToDecode,a1
-    move.b #test_rows_to_decode,(a1)
-
-    lea DestGraphicVTileOffset,a1                           ;One tile height in destination bitmap
-    move.l #bitpl_bytes_per_raster_line*tile_bitplanes*tile_height,(a1)
-
-    lea EncTiles,a0
-    lea TileSource,a1
-    move.l a0,(a1)
-
-    move.l #0,d2
-    move.l #0,d3
-    move.l #0,d4
-
-    lea TilesToDecode,a2
-    lea ScrollDataLev1,a1
-    movea.l a1,a3
-    move.l #test_rows_to_decode-1,d0
-
-.outer_loop
-    move.l #test_cols_to_decode-1,d1
-
-.inner_loop
-    move.w (a1)+,d2                                         ;load "scroll word" into d2 from a1
-    ror #8,d2                                               ;swap bytes; source is little endian
-    move.w d2,d3
-    and.w #tile_index_mask,d3
-
-    btst #15,d2
-    beq .finish_inner_loop
-
-    or.w #$8000,d3                                          ;set "flipped" tile index
-
-.finish_inner_loop
-    move.w d3,(a2)+                                         ;poke this into the tile list
-
-    addi.w #1,d4
-
-    cmp.b #16,d4
-    bne .skip_1
-    lea $1e0(a1),a1
-
-.skip_1
-    dbf d1,.inner_loop
-
-    move.l #0,d4
-    lea $20(a3),a3
-    movea.l a3,a1
-
-    dbf d0,.outer_loop
-
+    move.l (DecodedGraphicE-DecodedGraphic)/4,d0
     bsr DecodeTileGraphicToScreen
                                                             ;ptr to first bitplane of logo ; 2 because we're scrollin'
-    lea DecodedGraphic-test_scroll_byte_offset+(test_cols_to_decode-horz_disp_words)*1,a0
+    ;lea DecodedGraphic-test_scroll_byte_offset+(test_cols_to_decode-horz_disp_words)*1,a0
+    lea DecodedGraphic,a0
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
     move #4-1,d0
 
@@ -760,10 +773,34 @@ DecodeTileGraphicToScreen:
     lea TileColumnsToDecode,a4
     lea TileDecodeDest,a2
     add.l #2,(a2)
-
     addi.b #1,d4
+
+
+
+    move.l d4,d6
+    divu #20,d6                                             ;turns out 20 columns fits exactly into one interleaved bitplane section
+    swap d6
+    cmp.w #0,d6
+    bne .check_loop
+
+    move.b (a4),d4 ; TODO: temporarily short-circuit any tiles that would make our bitmap too wide
+
+    ;add.l #($a00-$28),(a2)                                 ;16 vertical lines and 4 bitplanes away
+    ;lea TileDecodeRowDest,a3
+    ;move.l (a2),(a3)
+
+
+
+.check_loop
     cmp.b (a4),d4
     bne .loop_columns
+
+    ;TODO: HERE WE NEED TO FIGURE OUT HOW MANY BYTES ARE LEFT IN THE INTERLEAVED SECTION
+    ;FOR EACH OF THE BITPLANES
+
+    ;SINCE WE DEFINED OUR BITMAP AS 320PX wide, we only have 20 horizontal words to work with
+    ;If we decoded fewer than 20 columns (for 320px) then we should make up the difference
+
 
     lea TileDecodeRowDest,a4
     move.l (a4),a1
@@ -773,6 +810,8 @@ DecodeTileGraphicToScreen:
     adda.l (a3),a1
     move.l a1,(a2)
     move.l a1,(a4)
+
+
 
     lea TileRowsToDecode,a4
     addi.b #1,d5
@@ -803,35 +842,35 @@ VBint:                                                      ;Blank template VERT
 
 ;begin test scroll r
 
-   lea TestScrollDir,a0
-   lea CopHorzScrollPos,a1
-   move.w 2(a1),d0
-   and.w #$00ff,d0
-
-   cmp.b #1,(a0)
-   beq .left
-
-.right
-   add.w #$0011,d0
-   bra .finish
-
-.left
-   sub.w #$0011,d0
-
-.finish
-   and.w #$00ff,d0
-   move.w d0,2(a1)
-
-.checkFF
-   move.b #1,d2
-   cmp.w #$00ff,d0
-   beq .skip
-.check00
-   move.b #0,d2
-   cmp.w #$0000,d0
-   bne .notvb
-.skip
-   move.b d2,(a0)
+;   lea TestScrollDir,a0
+;   lea CopHorzScrollPos,a1
+;   move.w 2(a1),d0
+;   and.w #$00ff,d0
+;
+;   cmp.b #1,(a0)
+;   beq .left
+;
+;.right
+;   add.w #$0011,d0
+;   bra .finish
+;
+;.left
+;   sub.w #$0011,d0
+;
+;.finish
+;   and.w #$00ff,d0
+;   move.w d0,2(a1)
+;
+;.checkFF
+;   move.b #1,d2
+;   cmp.w #$00ff,d0
+;   beq .skip
+;.check00
+;   move.b #0,d2
+;   cmp.w #$0000,d0
+;   bne .notvb
+;.skip
+;   move.b d2,(a0)
 
 ;end test scroll r
 
@@ -893,8 +932,10 @@ TestScrollDir:
 Copper:
     dc.w $01fc,0                                            ;slow fetch mode, AGA compatibility
     dc.w $0100,$0200
-    dc.b 0,$8e,$2c,$91                                      ;81
-    dc.b 0,$90,$2c,$b1                                      ;c1
+    ;dc.b 0,$8e,$2c,$91                                      ;81
+    ;dc.b 0,$90,$2c,$b1                                      ;c1
+    dc.b 0,$8e,$2c,$81
+    dc.b 0,$90,$2c,$c1
     dc.w $0092,test_fetch                                   ;$38 for no scrolling
     dc.w $0094,$d0
 
@@ -944,7 +985,7 @@ ScreenE:
 
 DecodedGraphic:
     ;ds.b bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic
-    ds.b 42*tile_bitplanes*test_vlines_per_graphic
+    ds.b 80*tile_bitplanes*test_vlines_per_graphic
 DecodedGraphicE:
 
 
