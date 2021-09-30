@@ -19,7 +19,7 @@ tilesrc_row_w               = $200
 tilesrc_bp_offset           = $20000
 tilesrc_upr_px_b_off        = $20
 
-test_cols_to_decode         = 20
+test_cols_to_decode         = 28
 test_rows_to_decode         = 16
 
 test_scroll_byte_offset     = 2
@@ -333,8 +333,8 @@ Init:
     ;"8x4" means 8 of these big blocks wide by 4 of those blocks high
 
     ;The Black Tiger screen was only 256x224, meaning that a maximum of 16 columns and 14 rows of tiles could be displayed
-    ;on screen at once anyway. I need to check to see if the game actually draws that many columns, or if there is other space
-    ;reserved for HUD (top/bottom/etc)
+    ;on screen at once anyway. I checked and there are only 16 tile columns and 13 tile rows used.
+    ;The top tile row is skipped, so the first (visible) map tiles start on row 1 (not row 0).
 
     ; HB+(BITS0-2 of LB << 8) = TILE SELECTION  ((0x7 & LB) << 8) + HB    ==> INDEX VALUES BETWEEN 0x000 & 0x7FF
     ; (BITS3-6 of LB)         = PALETTE INDEX                             ==> INDEX VALUES BETWEEN 0x0 & 0xF
@@ -402,8 +402,8 @@ Init:
     dbf d0,.outer_loop
 
     bsr DecodeTileGraphicToScreen
-
-    lea DecodedGraphic-test_scroll_byte_offset,a0           ;ptr to first bitplane of logo ; 2 because we're scrollin'
+                                                            ;ptr to first bitplane of logo ; 2 because we're scrollin'
+    lea DecodedGraphic-test_scroll_byte_offset+(test_cols_to_decode-horz_disp_words)*1,a0
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
     move #4-1,d0
 
@@ -853,7 +853,7 @@ ScrollDataLev1: INCBIN "data/lev_1_scroll_data.bin"
     EVEN
 
 TilesToDecode:
-    ds.w (horz_disp_words+1)*17*tile_height
+    ds.w (test_cols_to_decode+1)*(test_rows_to_decode+1)*tile_height
 
 TileDecodeDest:
     dc.l 0
