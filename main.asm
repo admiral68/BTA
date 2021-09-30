@@ -19,7 +19,15 @@ tilesrc_row_w               = $200
 tilesrc_bp_offset           = $20000
 tilesrc_upr_px_b_off        = $20
 
-bitpl_bytes_per_raster_line = 40
+test_cols_to_decode         = 20
+test_rows_to_decode         = 16
+
+test_scroll_byte_offset     = 2
+test_fetch                  = $30                               ;$30            / $38
+test_modulo                 = (320/8)*3-test_scroll_byte_offset ;$(320/8)*3 - 2 / (320/8)*3
+
+horz_disp_words             = 20
+bitpl_bytes_per_raster_line = horz_disp_words*2
 
 bpls                        = 3                             ;handy values:
 bpl                         = w/16*2                        ;byte-width of 1 bitplane line
@@ -340,10 +348,10 @@ Init:
     move.l bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic,d0
 
     lea TileColumnsToDecode,a1
-    move.b #20,(a1)                                         ;7
+    move.b #test_cols_to_decode,(a1)
 
     lea TileRowsToDecode,a1
-    move.b #16,(a1)                                         ;3
+    move.b #test_rows_to_decode,(a1)
 
     lea DestGraphicVTileOffset,a1                           ;One tile height in destination bitmap
     move.l #bitpl_bytes_per_raster_line*tile_bitplanes*tile_height,(a1)
@@ -359,10 +367,10 @@ Init:
     lea TilesToDecode,a2
     lea ScrollDataLev1,a1
     movea.l a1,a3
-    move.l #15,d0
+    move.l #test_rows_to_decode-1,d0
 
 .outer_loop
-    move.l #19,d1
+    move.l #test_cols_to_decode-1,d1
 
 .inner_loop
     move.w (a1)+,d2                                         ;load "scroll word" into d2 from a1
@@ -395,7 +403,7 @@ Init:
 
     bsr DecodeTileGraphicToScreen
 
-    lea DecodedGraphic,a0                                   ;ptr to first bitplane of logo
+    lea DecodedGraphic-test_scroll_byte_offset,a0           ;ptr to first bitplane of logo ; 2 because we're scrollin'
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
     move #4-1,d0
 
@@ -793,6 +801,40 @@ VBint:                                                      ;Blank template VERT
     move.w d0,INTREQ(a6)
     move.w d0,INTREQ(a6)
 
+;begin test scroll r
+
+   lea TestScrollDir,a0
+   lea CopHorzScrollPos,a1
+   move.w 2(a1),d0
+   and.w #$00ff,d0
+
+   cmp.b #1,(a0)
+   beq .left
+
+.right
+   add.w #$0011,d0
+   bra .finish
+
+.left
+   sub.w #$0011,d0
+
+.finish
+   and.w #$00ff,d0
+   move.w d0,2(a1)
+
+.checkFF
+   move.b #1,d2
+   cmp.w #$00ff,d0
+   beq .skip
+.check00
+   move.b #0,d2
+   cmp.w #$0000,d0
+   bne .notvb
+.skip
+   move.b d2,(a0)
+
+;end test scroll r
+
 .notvb:
     movem.l (sp)+,d0-a6                                     ;restore
     rte
@@ -811,7 +853,7 @@ ScrollDataLev1: INCBIN "data/lev_1_scroll_data.bin"
     EVEN
 
 TilesToDecode:
-    ds.w 21*17*tile_height
+    ds.w (horz_disp_words+1)*17*tile_height
 
 TileDecodeDest:
     dc.l 0
@@ -837,6 +879,9 @@ TileColumnsToDecode:
 TileRowsToDecode:
     dc.b 0
 
+TestScrollDir:
+    dc.b 0
+
     EVEN
 
 *******************************************************************************
@@ -848,15 +893,16 @@ TileRowsToDecode:
 Copper:
     dc.w $01fc,0                                            ;slow fetch mode, AGA compatibility
     dc.w $0100,$0200
-    dc.b 0,$8e,$2c,$81
-    dc.b 0,$90,$2c,$c1
-    dc.w $0092,$38
+    dc.b 0,$8e,$2c,$91                                      ;81
+    dc.b 0,$90,$2c,$b1                                      ;c1
+    dc.w $0092,test_fetch                                   ;$38 for no scrolling
     dc.w $0094,$d0
 
-    dc.w $0108,(320/8)*3
-    dc.w $010a,(320/8)*3
+    dc.w $0108,test_modulo                                  ;(320/8)*3 for no scrolling
+    dc.w $010a,test_modulo                                  ;(320/8)*3 for no scrolling
 
-    dc.w $0102,0
+CopHorzScrollPos:
+    dc.w $0102,$00
     dc.w $0104,0
 
     tile_pal_0f
@@ -897,7 +943,8 @@ ScreenE:
     EVEN
 
 DecodedGraphic:
-    ds.b bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic
+    ;ds.b bitpl_bytes_per_raster_line*tile_bitplanes*test_vlines_per_graphic
+    ds.b 42*tile_bitplanes*test_vlines_per_graphic
 DecodedGraphicE:
 
 
