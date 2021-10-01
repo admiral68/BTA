@@ -7,7 +7,7 @@
 *******************************************************************************
 
 screenwidth                 = 320
-bitmapwidth                 = 448
+bitmapwidth                 = test_cols_to_decode*16
 h                           = 256
 bplsize                     = bitmapwidth*h/8
 
@@ -20,8 +20,8 @@ tilesrc_row_w               = $200
 tilesrc_bp_offset           = $20000
 tilesrc_upr_px_b_off        = $20
 
-test_cols_to_decode         = bitmapwidth/16
-test_rows_to_decode         = 16
+test_cols_to_decode         = 28
+test_rows_to_decode         = 16                                            ;TODO: Make it possible to decode more than 16 rows
 
 test_scroll_byte_offset     = 0                                             ;2
 test_fetch                  = $38                                           ;$30            / $38
@@ -434,10 +434,15 @@ Main:
     rts
 
 *******************************************************************************
-* ROUTINES
+* TEST ROUTINES
 *******************************************************************************
+TESTVBCode:
 
-Extract8BitplaneBytesFromTwoSourceBytes:
+    bsr TESTScroll
+    rts
+;-----------------------------------------------
+
+TESTExtract8BitplaneBytesFromTwoSourceBytes:
     ;INPUT:  d2 - source word (packed bytes) ;d2.w = zeroAndOneByte1 & zeroAndOneByte2 OR twoAndThreeByte1 & twoAndThreeByte2
     ;        a2 - 8 decoded palette indexes ptr
     ;OUTPUT: a2 - decoded bitplane bytes (1 & 0 or 3 & 2)
@@ -549,8 +554,7 @@ Extract8BitplaneBytesFromTwoSourceBytes:
 .end
     rts
 ;-----------------------------------------------
-
-DecodeRowOf16Pixels:
+TESTDecodeRowOf16Pixels:
     ;INPUT: a1 - source bytes ptr
     ;USES:  d2,a4
     ;OUTPUT: a2 - bitplane data
@@ -568,7 +572,7 @@ DecodeRowOf16Pixels:
 
                                                             ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
                                                             ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
-    bsr Extract8BitplaneBytesFromTwoSourceBytes             ;returns DecodedBitplaneBytes in a2
+    bsr TESTExtract8BitplaneBytesFromTwoSourceBytes         ;returns DecodedBitplaneBytes in a2
 
     lea 2(a2),a2
     move.l #0,d2
@@ -576,7 +580,7 @@ DecodeRowOf16Pixels:
 
 
                                                             ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
-    bsr Extract8BitplaneBytesFromTwoSourceBytes             ;returns DecodedBitplaneBytes in a2
+    bsr TESTExtract8BitplaneBytesFromTwoSourceBytes             ;returns DecodedBitplaneBytes in a2
 
 
                                                             ;rightmost columns of 8 pixels
@@ -589,7 +593,7 @@ DecodeRowOf16Pixels:
                                                             ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
                                                             ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
 
-    bsr Extract8BitplaneBytesFromTwoSourceBytes
+    bsr TESTExtract8BitplaneBytesFromTwoSourceBytes
 
     lea 2(a2),a2
     move.l #0,d2
@@ -598,8 +602,49 @@ DecodeRowOf16Pixels:
 
                                                             ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
 
-    bsr Extract8BitplaneBytesFromTwoSourceBytes
+    bsr TESTExtract8BitplaneBytesFromTwoSourceBytes
     lea -6(a2),a2
+    rts
+;-----------------------------------------------
+TESTScroll:
+   lea TestScrollDir,a0
+   lea CopHorzScrollPos,a1
+   move.w 2(a1),d0
+   and.w #$00ff,d0
+
+   cmp.b #1,(a0)
+   beq .left
+
+.right
+   add.w #$0011,d0
+   bra .finish
+
+.left
+   sub.w #$0011,d0
+
+.finish
+   and.w #$00ff,d0
+   move.w d0,2(a1)
+
+.checkFF
+   move.b #1,d2
+   cmp.w #$00ff,d0
+   beq .skip
+.check00
+   move.b #0,d2
+   cmp.w #$0000,d0
+   bne .end
+.skip
+   move.b d2,(a0)
+
+.end
+    rts
+
+*******************************************************************************
+* ROUTINES
+*******************************************************************************
+VBCode:
+
     rts
 
 ;-----------------------------------------------
@@ -614,7 +659,7 @@ ExtractTile:
 .extract_tile:
 
     lea DecodedBitplaneBytes,a2                             ;stores intermediate decoded bitplane bytes
-    bsr DecodeRowOf16Pixels
+    bsr TESTDecodeRowOf16Pixels                             ;This can be changed for a version where we decode differently
 
     ;    0  1  2  3   4  5  6  7
     ;a2: 3, 2, 1, 0 | 3, 2, 1, 0
@@ -739,8 +784,6 @@ DecodeTileGraphicToScreen:
     add.l #2,(a2)
     addi.b #1,d4
 
-
-
     move.l d4,d6
     divu #screenwidth/16,d6                                               ;turns out screenwidth/16 (20?) columns fits exactly into one interleaved bitplane section
     swap d6
@@ -759,13 +802,16 @@ DecodeTileGraphicToScreen:
     ;SINCE WE DEFINED OUR BITMAP AS 320PX wide, we only have 20 horizontal words to work with
     ;If we decoded fewer than 20 columns (for 320px) then we should make up the difference
 
+    cmp.b #20,d4
+    blo .do_ragged_row
+
     move.l d4,d6
     divu #screenwidth/16,d6                                               ;turns out screenwidth/16 columns fits exactly into one interleaved bitplane section
     swap d6
     cmp.w #0,d6
     beq .continue_row
 
-
+.do_ragged_row
     lea TileDecodeRowDest,a4
     move.l (a4),a1
     lea TileDecodeDest,a2
@@ -774,7 +820,6 @@ DecodeTileGraphicToScreen:
     adda.l (a3),a1
     move.l a1,(a2)
     move.l a1,(a4)
-
 
 .continue_row
     lea TileRowsToDecode,a4
@@ -804,39 +849,8 @@ VBint:                                                      ;Blank template VERT
     move.w d0,INTREQ(a6)
     move.w d0,INTREQ(a6)
 
-;begin test scroll r
-
-   lea TestScrollDir,a0
-   lea CopHorzScrollPos,a1
-   move.w 2(a1),d0
-   and.w #$00ff,d0
-
-   cmp.b #1,(a0)
-   beq .left
-
-.right
-   add.w #$0011,d0
-   bra .finish
-
-.left
-   sub.w #$0011,d0
-
-.finish
-   and.w #$00ff,d0
-   move.w d0,2(a1)
-
-.checkFF
-   move.b #1,d2
-   cmp.w #$00ff,d0
-   beq .skip
-.check00
-   move.b #0,d2
-   cmp.w #$0000,d0
-   bne .notvb
-.skip
-   move.b d2,(a0)
-
-;end test scroll r
+    bsr TESTVBCode
+    bsr VBCode
 
 .notvb:
     movem.l (sp)+,d0-a6                                     ;restore
