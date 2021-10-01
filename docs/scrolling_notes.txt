@@ -1,3 +1,135 @@
+the bitmap is no longer double-wide. For 1x and 2x FETCH Modes an EXTRAWIDTH of 32 (2 * BLOCKWIDTH)
+
+BITMAPWIDTH = 352
+MAPWIDTH = 128
+BITMAPBLOCKSPERROW = 352 / 16 = 22
+
+overallbitmapheight = BITMAPHEIGHT + (MAPWIDTH : BITMAPBLOCKSPERROW : NUMPLANES) + 1
+overallbitmapheight = 256 + (128 / 22 / 4) + 1 = 258
+
+BITMAPHEIGHT is the actually wanted bitmap height, in our case 256 pixels. 
+MAPWIDTH is the width of the map in blocks. 
+BITMAPBLOCKSPERROW equals BITMAPWIDTH / BLOCKWIDTH, that is 22 (1x and 2x FETCH Mode) or 24 (4x FETCH Mode) in our case.
+
+
+256 + (128 / 22 / 1) + 1 = 258
+
+
+
+
+
+To calculate which block to blit in a certain situation (= map position) we devide the map position X by 16
+and look at the remainder. The remainder determines the step. In C it is possible to calculate the remainder of a division 
+with the modulo operator (%). But since 16 is a power of 2 it can also be done with a binary AND:
+
+1) MapPositionX % BLOCKWIDTH            0-127 % 16
+2) MapPositionX & (BLOCKWIDTH - 1)
+
+The result will be values between 0 and BLOCKWIDTH - 1. 
+In our case (that is a block width of 16 pixels) values between 0 and 15. 
+The block at the very top of the column is block 0, 
+the block at the very bottom is block 15. We wanted to scroll right, that is go from map position X 0 to map position X 1. 
+For a map position of 1 above calculation would give as a result of 1, but since we must or want to blit the topmost block (0) 
+first we increase the variable MapPositionX (in the source code called mapposx) only at the end of the ScrollRight() function. 
+By doing so when scrolling from map position 0 to map position 1 the calculation's result is step 0, for map position 1 to 
+map position 2 the calculation's result is step 1 etc. So the block column gets filled step by step with the new map area.
+
+The X position of the fillup-column in the bitmap is the same as in Scroller_XUnlimited algorithm. We take the position 
+of the actual-bitmap-area (red rectangle) and round it down to a multiple of a block's width:
+
+videoposx & ~(BLOCKWIDTH - 1)
+
+
+
+ If for example we have a coordinate pair (x=0,y=1) where y is in planelines (1 pixelline consists of NUMPLANES planelines) 
+ then another coordinate pair (x=352,y=0) is equivalent, if we assume a bitmap width of 352 pixels.
+
+BITMAPWIDTH=352
+(x=352,y=0) = (x=0,y=1) 
+
+(MIND=BLOWN)
+
+ Since the area is plane-shifted, blitting also needs to happen plane-shifted, that is the real destination Y 
+ coordinate of the single blocks we have to blit, needs to be increased by 1 planeline. The easiest way to do this, 
+ is to add BITMAPWIDTH (352) to the destination X (X not Y!) coordinate. By doing so we don't need to take extra 
+ care of the y positions. We simply can assume, that the fillup-column always starts at y position 0.
+ 
+ 
+ 
+ 
+  SCROLL_LEFT:
+
+   /* Restoring */
+
+   if (Previous_ScrollDirection == RIGHT)
+   {
+       copy saveword to savewordpointer;
+   }
+   
+   /* Backup */
+
+   savewordpointer = address of the first planeline that will be overblitted
+   saveword = content of savewordpointer
+
+   /* Blit */
+   
+   Blit block
+   
+   Previous_ScrollDirection = LEFT
+
+   return
+
+
+
+ SCROLL_RIGHT:
+
+   /* Restoring */
+
+   if (Previous_ScrollDirection == LEFT)
+   {
+       copy saveword to savewordpointer
+   }
+   
+   /* Backup */
+
+   savewordpointer = address of the last planeline that will be overblitted
+   saveword = content of savewordpointer
+
+   /* Blit */
+   
+   Blit block
+   
+   Previous_ScrollDirection = RIGHT
+
+   return
+
+
+
+
+ 
+One question is still up. At which X position stays the fillup-column in the bitmap - where do we have to blit the new blocks? 
+Answer: At the place where the "going out" block column is. In the above example this would be column 0. Since during 
+scrolling each block is blitted twice, that is one time in the left bitmap half and one time in the right bitmap half, 
+the actual visible area when scrolling right slowly approaches the fillup-column of the right bitmap half. This column 
+will be completely done (filled = blitted) just in time before it becomes visible to the user. When this happens the 
+fillup-column will already have advanced one block to the right. In the source code the variable videoposx contains 
+the position of the actual-bitmap-area (red rectangle). We use this variable to calculate the position of the 
+fillup-column in the bitmap, that is the position where to blit the blocks. Again there is a slow (1) and a faster (2) 
+method - the latter only working if BLOCKWIDTH is a power of 2:
+
+1) x = videoposx - (videoposx % BLOCKWIDTH)
+2) x = videoposx & ~(BLOCKWIDTH - 1)
+
+This formula calculates the position for the left bitmap half. For blitting into the right bitmap half we simply add 
+HALFBITMAPWIDTH, that is 352.
+Scrolling to the left is pretty much the same except that we adjust the MapPositionX variable no longer at the 
+end of the scroll function but at the init. We use predecrement instead of postincrement as used in the scroll right 
+function, so to speak. The reason: Let's imagine to have scrolled from map position 0 to map position 1, that is 1 
+pixel to the right. The result is, that block 0 (at the very top) of the fillup-column is a block which came in at 
+the right side, more precisely block (22,0), that is the 23rd block of the topmost row in the map - in the following 
+picture shown as a yellow rectangle with a red outline:
+
+
 #define ARG_SPEED 0
 #define ARG_NTSC  1
 #define ARG_HOW   2
