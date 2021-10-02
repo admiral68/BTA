@@ -21,19 +21,35 @@ test_rows_to_decode         = 16                                            ;TOD
     * constants:video *
     *-----------------*
 
-screenwidth                 = 320
-extrawidth                  = 32
+screen_width                = 320
+screen_extrawidth           = 32
+screen_plane_lines          = tile_bitplanes*h
+screen_blit_size            = h*tile_bitplanes*64+screen_width/16
+screen_modulo               =(screen_width/8)*3-scroll_byte_offset          ;$(320/8)*3 - 2 / (320/8)*3
+
 bitmapwidth                 = test_cols_to_decode*16
-bitmap_bytes_per_row        = (screenwidth+extrawidth)/8
+bitmap_bytes_per_row        = (screen_width+screen_extrawidth)/8
 h                           = 256
-bplsize                     = bitmapwidth*h/8
+bplsize                     = (320+screen_extrawidth)*(h+1)/8
+
+;"tile" here means 16x16 pixels
 
 tile_bitplanes              = 4
 tile_height                 = 16
 tile_width                  = 16
 tile_plane_lines            = tile_bitplanes*tile_height
-tile_bytes_per_row          = screenwidth/8
-tiles_per_row               = screenwidth/tile_width
+tile_bytes_per_row          = screen_width/8
+tiles_per_row               = screen_width/tile_width
+tile_blit_size              = tile_plane_lines*64+(tile_width/16)
+
+;"block" here means 16x16 "block" of tiles
+
+block_width_pixels          = 256
+block_horz_disp_words       = block_width_pixels/tile_width
+block_bp_bytes_per_raster_line = block_horz_disp_words*2
+block_vtile_offset          = block_bp_bytes_per_raster_line*tile_bitplanes*tile_height
+block_tiles_height          = 16
+block_byte_size             = block_vtile_offset*block_tiles_height
 
 tile_index_mask             = $07ff
 
@@ -41,15 +57,13 @@ scroll_byte_offset          = 2                                             ;2
 DMA_fetch                   = $30                                           ;$30            / $38
 display_start               = $81                                           ;$81 for non-scrolling display; $91 otherwise
 display_stop                = $b1                                           ;$c1 for non-scrolling display
-screen_modulo               = (screenwidth/8)*3-scroll_byte_offset          ;$(320/8)*3 - 2 / (320/8)*3
 
-horz_disp_words             = screenwidth/16
+horz_disp_words             = screen_width/16
 bitpl_bytes_per_raster_line = horz_disp_words*2
 
-blit_size                   = tile_plane_lines*64+(tile_width/16)
 
 bpls                        = 3                                             ;handy values:
-bpl                         = screenwidth/16*2                              ;byte-width of 1 bitplane line
+bpl                         = screen_width/16*2                             ;byte-width of 1 bitplane line
 
 vlines_per_graphic          = 48                                            ;32
 
@@ -328,8 +342,10 @@ Init:
 
     move.l (DecodedGraphicE-DecodedGraphic)/4,d0
     bsr DecodeTileGraphicToScreen
-                                                            ;ptr to first bitplane of image ; 2 because we're scrollin'
-    lea DecodedGraphic,a0
+    ;bsr DecodeTileGraphicToScreenBetter                    ;TODO: USE THIS ONE, ONCE I HAVE COPYING FIXED
+    bsr CopyScreenFromDecodedGraphic
+                                                            ;ptr to first bitplane of image; 2 because we're scrollin'
+    lea Screen,a0
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
     move #4-1,d0
 
@@ -391,6 +407,12 @@ TESTVBCode:
     rts
 
 ;-----------------------------------------------
+TESTCode:
+    bsr TESTLoadLevel1Tiles
+    rts
+
+;-----------------------------------------------
+TESTLoadLevel1Tiles
 
     ;In the source, the tile scroll data is formatted in blocks of tiles 16 x 16. These blocks are $200 bytes in size a piece.
     ;"8x4" means 8 of these big blocks wide by 4 of those blocks high
@@ -408,9 +430,6 @@ TESTVBCode:
     ;   BITS 3-6 = COLOR INFO (0x0 - 0xF) (16 possible PALETTES) (raw PALETTE index)
     ;   BIT  7   = FLIP TILE (0x0 = NO, 0x1 = YES)
 
-TESTCode:
-    move.l #bitpl_bytes_per_raster_line*tile_bitplanes*vlines_per_graphic,d0
-
     lea TileColumnsToDecode,a1
     move.b #test_cols_to_decode,(a1)
 
@@ -419,6 +438,9 @@ TESTCode:
 
     lea DestGraphicVTileOffset,a1                           ;One tile height in destination bitmap
     move.l #bitpl_bytes_per_raster_line*tile_bitplanes*tile_height,(a1)
+
+    lea DestGraphicVTileOffset2,a1
+    move.l #block_vtile_offset,(a1)
 
     lea EncodedTilesSource,a0
     lea TileSource,a1
@@ -645,8 +667,8 @@ TESTGetXYPositionsForScrollRight
     move.w (a3),d3                                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
-    move.w #screenwidth,d4
-    add.w #extrawidth,d4
+    move.w #screen_width,d4
+    add.w #screen_extrawidth,d4
     asr.w #4,d4                                             ;BITMAPBLOCKSPERROW = BITMAPWIDTH / BLOCKWIDTH
 
     add.w d4,d3                                             ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
@@ -657,8 +679,8 @@ TESTGetXYPositionsForScrollRight
 
     lea VideoXYPosition,a4
 
-    move.w #screenwidth,d4
-    add.w #extrawidth,d4
+    move.w #screen_width,d4
+    add.w #screen_extrawidth,d4
 
     move.w (a4),d5
     and.w #15,d5
@@ -735,7 +757,7 @@ TESTScroll:
 .rupdate_saveword
    clr.l d1
    clr.l d2
-   lea DecodedGraphic,a5
+   lea Screen,a5
    move.l a5,d2
    move.w d4,d1
    asr.w #3,d1
@@ -813,7 +835,7 @@ TESTScroll:
 .lupdate_saveword
    clr.l d1
    clr.l d2
-   lea DecodedGraphic,a5
+   lea Screen,a5
    move.l a5,d2
    move.w d4,d1
    asr.w #3,d1
@@ -878,6 +900,29 @@ TESTScroll:
 *******************************************************************************
 VBCode:
 
+    rts
+
+;-----------------------------------------------
+CopyScreenFromDecodedGraphic:
+
+    lea DecodedGraphic,a3
+    lea Screen,a4
+    move.l a3,d3
+    move.l a4,d4
+
+    ;TODO: REMEMBER THESE ARE NOT THE SAME WIDTH NOW!
+    ;HAVE TO DO TWO BLITS OR SOMETHING
+
+    move.w #$09F0,BLTCON0(a6)                               ;use A and D. Op: D = A
+    move.w #$0000,BLTCON1(a6)
+    move.w #$FFFF,BLTAFWM(a6)
+    move.w #$0000,BLTALWM(a6)
+    move.w #0,BLTAMOD(a6)
+    move.w #0,BLTDMOD(a6)
+    move.l d3,BLTAPTH(a6)
+    move.l d4,BLTDPTH(a6)
+
+    move.w #screen_width/16,BLTSIZE(a6)                     ;no "h" term needed since it's 1024. Thanks ross @eab!
     rts
 
 ;-----------------------------------------------
@@ -1018,12 +1063,12 @@ DecodeTileGraphicToScreen:
     addi.b #1,d4
 
     move.l d4,d6
-    divu #screenwidth/16,d6                                 ;turns out screenwidth/16 (20?) columns fits exactly into one interleaved bitplane section
+    divu #screen_width/16,d6                                 ;turns out screen_width/16 (20?) columns fits exactly into one interleaved bitplane section
     swap d6
     cmp.w #0,d6
     bne .check_loop
 
-    add.l #(screenwidth*8-screenwidth/8),(a2)               ;16 vertical lines and 4 bitplanes away
+    add.l #(screen_width*8-screen_width/8),(a2)               ;16 vertical lines and 4 bitplanes away
 
 .check_loop
     cmp.b (a4),d4
@@ -1039,7 +1084,7 @@ DecodeTileGraphicToScreen:
     blo .do_ragged_row
 
     move.l d4,d6
-    divu #screenwidth/16,d6                                 ;turns out screenwidth/16 columns fits exactly into one interleaved bitplane section
+    divu #screen_width/16,d6                                 ;turns out screen_width/16 columns fits exactly into one interleaved bitplane section
     swap d6
     cmp.w #0,d6
     beq .continue_row
@@ -1063,15 +1108,109 @@ DecodeTileGraphicToScreen:
     rts
 
 ;-----------------------------------------------
+DecodeTileGraphicToScreenBetter:
+    ;SCREEN LO-RES
+    ;W: 320=screen; W=256 for blocks
+    ;8 pixels/byte
+    ;32 bytes per line/16 words per line
+    ;done to show how to extract Black Tiger-encoded image data
+    ;32*32*4
+
+    lea DecodedGraphic,a0
+    lea TileDecodeRowDest,a1
+
+    move.l a0,(a1)
+
+.l0:
+    clr.l (a0)+
+    dbf d0,.l0
+
+    clr.l d0
+
+    lea TilesToDecode,a0                                    ;Starting tile
+    lea TileDecodeDest,a2
+    lea TileDecodeRowDest,a1
+
+    move.l (a1),(a2)
+    move.l #0,d5
+
+.loop_rows
+    move.l #0,d4
+
+.loop_columns
+    move.l (a2),a3
+
+    move.b #0,d1
+    lea TileSource,a4
+    move.l (a4),a1
+    move.w (a0)+,d0
+    btst #15,d0
+    beq .no_flip
+    move.b #1,d1
+.no_flip
+    andi.w #tile_index_mask,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    bsr ExtractTile
+
+    lea TileColumnsToDecode,a4
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    addi.b #1,d4
+
+    move.l d4,d6
+    divu #block_width_pixels/16,d6                            ;block_width_pixels/16 = 16
+    swap d6
+    cmp.w #0,d6
+    bne .check_loop
+
+    add.l #(block_width_pixels*8-block_width_pixels/8),(a2)   ;16 vertical lines and 4 bitplanes away
+
+.check_loop
+    cmp.b (a4),d4
+    bne .loop_columns
+
+    ;TODO: HERE WE NEED TO FIGURE OUT HOW MANY BYTES ARE LEFT IN THE INTERLEAVED SECTION
+    ;FOR EACH OF THE BITPLANES
+
+    ;We only have 16 horizontal words to work with for the tile block
+    ;If we decoded fewer than 16 columns (for 256px) then we should make up the difference
+
+    cmp.b #16,d4
+    blo .do_ragged_row
+
+    move.l d4,d6
+    divu #block_width_pixels/16,d6                          ;block_width_pixels/16 = 16
+    swap d6
+    cmp.w #0,d6
+    beq .continue_row
+
+.do_ragged_row
+    lea TileDecodeRowDest,a4
+    move.l (a4),a1
+    lea TileDecodeDest,a2
+    lea DestGraphicVTileOffset2,a3                          ;One tile height in destination bitmap
+
+    adda.l (a3),a1
+    move.l a1,(a2)
+    move.l a1,(a4)
+
+.continue_row
+    lea TileRowsToDecode,a4
+    addi.b #1,d5
+    cmp.b (a4),d5
+    bne .loop_rows
+
+    rts
+
+;-----------------------------------------------
 DrawTile:
 ;INPUT: mapx/y in d3
 ;       x/y in d4
-;   UBYTE block;
-;
-;   // x = in pixels
-;   // y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
-;
-;
+;       x = in pixels
+;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
+
 
     move.w d4,d5
     asr.w #3,d5
@@ -1079,8 +1218,10 @@ DrawTile:
 
     swap d5
     swap d4
+
     move.w d4,d5
-    mulu #bitmap_bytes_per_row,d5                           ;y = y * BITMAPBYTESPERROW;
+    mulu #40,d5                                             ;y = y * BITMAPBYTESPERROW;
+    ;mulu #bitmap_bytes_per_row,d5                           ;y = y * BITMAPBYTESPERROW;
 
     move.l d5,d4
 
@@ -1106,7 +1247,7 @@ DrawTile:
     clr.l d5
 
     move.w d3,d5
-    divu #tiles_per_row,d5                                  ;turns out screenwidth/16 (20?) columns fits exactly into one interleaved bitplane section
+    divu #tiles_per_row,d5                                  ;turns out screen_width/16 (20?) columns fits exactly into one interleaved bitplane section
     swap d5                                                 ;(block % tiles_per_row)
     move.w d5,d3
     asl.w #1,d3                                             ;mapx = (block % tiles_per_row) * 2;
@@ -1123,8 +1264,9 @@ DrawTile:
     WAITBLIT                                                ;HardWaitBlit();
 
     lea DecodedGraphic,a3
+    lea Screen,a4
     move.l a3,d5
-    move.l d5,d1
+    move.l a4,d1
 
     add.w d3,d5
     swap d3
@@ -1143,7 +1285,7 @@ DrawTile:
     move.l d5,BLTAPTH(a6)                                   ;blocksbuffer + mapy + mapx;
     move.l d1,BLTDPTH(a6)                                   ;frontbuffer + y + x
 
-    move.w #blit_size,BLTSIZE(a6)
+    move.w #tile_blit_size,BLTSIZE(a6)
     rts
 
 ;-----------------------------------------------
@@ -1214,6 +1356,9 @@ PtrSaveWord
     dc.l 0
 
 DestGraphicVTileOffset:
+    dc.l 0
+
+DestGraphicVTileOffset2:
     dc.l 0
 
 SaveWord:
@@ -1291,13 +1436,13 @@ CopperE:
     SECTION AllBuffers,BSS_C
 
 Screen:
-    ds.b bplsize*4
+    ds.b screen_blit_size                                   ;bplsize*4
 ScreenE:
 
     EVEN
 
 DecodedGraphic:
-    ds.b bitmapwidth/16*tile_bitplanes*vlines_per_graphic
+    ds.b $40000     ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
 DecodedGraphicE:
 
 
