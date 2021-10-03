@@ -1012,16 +1012,18 @@ CopyScreenFromDecodedGraphic2:
     move.l d4,BLTDPTH(a6)
 
     move.w #$10,BLTSIZE(a6)                                 ;16 tiles/cols
+	
+	WAITBLIT
 
-    ;add.l #$8000,d3                                        ;Move to next 256x256 px tile block
-    ;add.l #512,d4                                          ;Move to right side of screen
+    add.l #$8000,d3                                        ;Move to next 256x256 px tile block
+    add.l #32,d4                                           ;Move to right side of screen
 
-    ;move.w #24,BLTAMOD(a6)                                 ;256px wide; first 4 tiles
-    ;move.w #32,BLTDMOD(a6)                                 ;320px wide; last 4 cols/tiles
-    ;move.l d3,BLTAPTH(a6)
-    ;move.l d4,BLTDPTH(a6)
+    move.w #24,BLTAMOD(a6)                                 ;256px wide; first 4 tiles
+    move.w #32,BLTDMOD(a6)                                 ;320px wide; last 4 cols/tiles
+    move.l d3,BLTAPTH(a6)
+    move.l d4,BLTDPTH(a6)
 
-    ;move.w #$4,BLTSIZE(a6)                                 ;4 tiles/cols
+    move.w #$4,BLTSIZE(a6)                                 ;4 tiles/cols
 
     rts
 
