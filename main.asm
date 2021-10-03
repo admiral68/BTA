@@ -1,3 +1,11 @@
+    ;bsr TESTGetXYPositionsForScrollRight
+	
+	;lea MapXYPosition,a1
+	;REPT 16
+	;bsr TESTGetXYPositionsForScrollLeft
+	;subi.l #16,(a1)
+	;ENDR
+	
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"
@@ -45,9 +53,10 @@ tile_bitplanes              = 4
 tile_height                 = 16
 tile_width                  = 16
 tile_plane_lines            = tile_bitplanes*tile_height
-tile_bytes_per_row          = screen_width/8
-tiles_per_row               = screen_width/tile_width
 tile_blit_size              = tile_plane_lines*64+(tile_width/16)
+
+tile_bytes_per_row          = test_cols_to_decode*2
+tiles_per_row               = test_cols_to_decode
 
 ;"block" here means 16x16 "block" of tiles
 
@@ -809,15 +818,15 @@ TESTDecodeRowOf16Pixels:
     rts
 
 ;-----------------------------------------------
-TESTGetXYPositionsForScrollRight
+TESTGetXYPositionsForScrollRight:
     ;returns mapx/y in d3
     ;returns x/y in d4
 
     lea MapXYPosition,a3
 
-    move.w (a3),d3                                          ;mapposx (pixels)
+    move.w 2(a3),d3                                          ;mapposx (pixels)
     swap d3
-    move.w (a3),d3                                          ;mapposx
+    move.w 2(a3),d3                                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
     move.w #screen_width,d4
@@ -835,7 +844,7 @@ TESTGetXYPositionsForScrollRight
     move.w #screen_width,d4
     add.w #screen_extrawidth,d4
 
-    move.w (a4),d5
+    move.w 2(a4),d5
     and.w #15,d5
 
     add.w d5,d4                                             ;x = BITMAPWIDTH + ROUND2BLOCKWIDTH(videoposx);
@@ -855,34 +864,45 @@ TESTGetXYPositionsForScrollLeft:
 
    lea MapXYPosition,a3
    lea VideoXYPosition,a4
+   
+   cmp.w #0,2(a3)
+   bne .subtract
+
+   move.l #test_cols_to_decode*tile_width,(a3)
+   
+.subtract   
    subi.l #1,(a3)                                           ;mapposx--;
-   move.l (a4),(a3)                                         ;videoposx = mapposx;
+   
+.update   
+   move.l (a3),(a4)                                         ;videoposx = mapposx;
 
-    lea MapXYPosition,a3
+   lea MapXYPosition,a3
 
-    move.w (a3),d3                                          ;mapposx (pixels)
-    swap d3
-    move.w (a3),d3                                          ;mapposx
-    asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH;
-    swap d3
-    and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
+   move.w 2(a3),d3                                         ;mapposx (pixels)
+   swap d3
+   move.w 2(a3),d3                                         ;mapposx
+   asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH;
+   swap d3
+   and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
 
-    clr.l d4
+   clr.l d4
 
-    lea VideoXYPosition,a4
-    move.w (a4),d4
-    and.w #15,d4                                            ;x = ROUND2BLOCKWIDTH(videoposx);
-
-    swap d4
-    move.w d3,d4
-    asl.w #6,d4                                             ;y = mapy * tile_height * tile_bitplanes;
-    swap d3                                                 ;mapx
-    swap d4                                                 ;x
+   lea VideoXYPosition,a4
+   move.w 2(a4),d4
+   and.w #15,d4                                            ;x = ROUND2BLOCKWIDTH(videoposx);
+   swap d4
+   move.w d3,d4
+   asl.w #6,d4                                             ;y = mapy * tile_height * tile_bitplanes;
+   swap d3                                                 ;mapx
+   swap d4                                                 ;x
 
    rts
 
 ;-----------------------------------------------
 TESTScroll:
+
+	rts
+	
    lea TestScrollCommand,a0
    lea CopHorzScrollPos,a1
    lea TileXYPosition,a2
@@ -896,7 +916,9 @@ TESTScroll:
 .right
 ;   if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) switch_directions;
 
+   
    bsr TESTGetXYPositionsForScrollRight
+   move.l d3,d5
 
    lea PtrSaveWord,a3
    lea SaveWord,a4
@@ -910,6 +932,7 @@ TESTScroll:
 .rupdate_saveword
    clr.l d1
    clr.l d2
+
    lea Screen,a5
    move.l a5,d2
    move.w d4,d1
@@ -918,7 +941,7 @@ TESTScroll:
 
    clr.l d1
    swap d4                                                  ;y
-   move.w d1,d4
+   move.w d4,d1
    add.w #tile_plane_lines-1,d1                             ;(y + tile_plane_lines - 1)
    mulu #bitmap_bytes_per_row,d1                            ;* bitmap_bytes_per_row
    add.l d1,d2
@@ -931,48 +954,117 @@ TESTScroll:
 
    lea MapXYPosition,a3
    lea VideoXYPosition,a4
+   
+   cmp.l #(test_cols_to_decode*tile_width),(a3)
+   bne .add
+   
+   move.l #0,(a3)     
+   bra .update
+
+.add
    addi.l #1,(a3)                                           ;mapposx++;
-   move.l (a4),(a3)                                         ;videoposx = mapposx;
+   
+.update   
+   move.l (a3),(a4)                                         ;videoposx = mapposx;
    lea PreviousScrollDir,a3
    move.b #0,(a3)                                           ;previous_direction = DIRECTION_RIGHT;
 
+
+
+
 ;now do the scroll
 
-   add.w #$0011,d0
+   sub.w #$0011,d0
    and.w #$00ff,d0
 
-   move.b #1,d2
-   cmp.w #$0010,d0
+   move.b #0,d2
+   cmp.w #$ef,d0
    bne .end
 
-   move.w #0,d0
+   move.w #$ff,d0
+   
    addi.w #1,(a2)
    cmp.w #128,(a2)
 
    beq .switch_direction
 
+
+
 .rupdate_copper
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
    move #4-1,d1
 
-.bpl8:
-   clr.l d3
-   move.w 2(a2),d3                                          ;hi word
-   swap d3
-   move.w 6(a2),d3                                          ;lo word
-   sub.l #2,d3
+   ;If mapx == 0, wrap the bitplane pointers to last column
 
-   move.w d3,6(a2)                                          ;lo word
-   swap d3
-   move.w d3,2(a2)                                          ;hi word
 
-   addq #8,a2                                               ;point to next bpl to poke in copper
-   dbf d1,.bpl8
+
+   clr.l d6
+   move.w d5,d6
+   divu #screen_width/8,d6
+   swap d6
+   cmp.w #0,d6
+   bne .bpl9
+   
+   lea Screen,a3
+   lea -$78(a3),a3											;point to the 20th tile column
+   
+;.rreset:
+;   move.l a3,d4
+;   swap d4
+;   move.w d4,2(a2)                                         ;hi word
+;   swap d4
+;   move.w d4,6(a2)                                         ;lo word
+;
+;   addq #8,a1                                              ;point to next bpl to poke in copper
+;   lea bitpl_bytes_per_raster_line(a3),a3                  ;apparently every 40 bytes we'll have new bitplane data
+;   dbf d1,.rreset
 
    bra .end
 
+
+;.bpl8:
+;   clr.l d3
+;   move.w 2(a2),d3                                          ;hi word
+;   swap d3
+;   move.w 6(a2),d3                                          ;lo word
+;
+;   sub.l #2,d3
+;
+;   move.w d3,6(a2)                                          ;lo word
+;   swap d3
+;   move.w d3,2(a2)                                          ;hi word
+;
+;   addq #8,a2                                               ;point to next bpl to poke in copper
+;   dbf d1,.bpl8
+
+;   bra .end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .left
+
+   rts
+   
    bsr TESTGetXYPositionsForScrollLeft
+   move.l d3,d5
 
 ;   if (mapposx < 1) switch_directions;
 
@@ -1003,45 +1095,71 @@ TESTScroll:
    move (a3),(a4)                                           ;saveword = *savewordpointer;
    swap d4                                                  ;x
 
-   bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
+   ;bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
 
    lea PreviousScrollDir,a3
    move.b #1,(a3)                                           ;previous_direction = DIRECTION_LEFT;
 
 ;now do the scroll
 
-   sub.w #$0011,d0
+   add.w #$0011,d0
    and.w #$00ff,d0
 
-   move.b #0,d2
-   cmp.w #$ef,d0
+   move.b #1,d2
+   cmp.w #$0010,d0
    bne .end
 
-   move.w #$ff,d0
-   subi.w #1,(a2)
+   move.w #0,d0
+   
+   addi.w #1,(a2)
+   cmp.w #128,(a2)
+
    beq .switch_direction
 
 .lupdate_copper
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
    move #4-1,d1
 
-.bpl9:
-   clr.l d3
-   move.w 2(a2),d3                                          ;hi word
-   swap d3
-   move.w 6(a2),d3                                          ;lo word
-   add.l #2,d3
+   ;figure out mapx to see if it is past the last column. If so, wrap the bitplane pointers to 0
 
-   move.w d3,6(a2)                                          ;lo word
-   swap d3
-   move.w d3,2(a2)                                          ;hi word
-
-   addq #8,a2                                               ;point to next bpl to poke in copper
-   dbf d1,.bpl9
+;   cmp.w #$0,d5
+;   bne .bpl9
+;           
+;   lea Screen,a3
+   
+;.lreset:
+;   move.l a3,d4
+;   swap d4
+;   move.w d4,2(a2)                                         ;hi word
+;   swap d4
+;   move.w d4,6(a2)                                         ;lo word
+;
+;   addq #8,a2                                              ;point to next bpl to poke in copper
+;   lea bitpl_bytes_per_raster_line(a3),a3                  ;apparently every 40 bytes we'll have new bitplane data
+;   dbf d1,.lreset
 
    bra .end
 
+.bpl9:
+;   clr.l d3
+;   move.w 2(a2),d3                                          ;hi word
+;   swap d3
+;   move.w 6(a2),d3                                          ;lo word
+;
+;   add.l #2,d3
+;
+;   move.w d3,6(a2)                                          ;lo word
+;   swap d3
+;   move.w d3,2(a2)                                          ;hi word
+;
+;   addq #8,a2                                               ;point to next bpl to poke in copper
+;   dbf d1,.bpl9
+;
+   bra .end
+
 .switch_direction
+   
+   move.b #0,(a2)
    move.b d2,(a0)
 
 .end
@@ -1709,7 +1827,7 @@ DrawTile:
     clr.l d5
 
     move.w d3,d5
-    divu #tiles_per_row,d5                                  ;turns out screen_width/16 (20?) columns fits exactly into one interleaved bitplane section
+    divu #tiles_per_row,d5                                  ;screen_width/16 (20) columns
     swap d5                                                 ;(block % tiles_per_row)
     move.w d5,d3
     asl.w #1,d3                                             ;mapx = (block % tiles_per_row) * 2;
@@ -1747,7 +1865,7 @@ DrawTile:
     move.l d5,BLTAPTH(a6)                                   ;blocksbuffer + mapy + mapx;
     move.l d1,BLTDPTH(a6)                                   ;frontbuffer + y + x
 
-    move.w #tile_blit_size,BLTSIZE(a6)
+    move.w #$401,BLTSIZE(a6)
     rts
 
 ;-----------------------------------------------
@@ -1839,10 +1957,10 @@ TileRowsToDecode:
     dc.b 0
 
 TestScrollCommand:
-    dc.b 1
+    dc.b 0
 
 PreviousScrollDir:
-    dc.b 1
+    dc.b 0
 
     EVEN
 
