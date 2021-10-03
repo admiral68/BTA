@@ -10,12 +10,19 @@
     * test stuff      *
     *-----------------*
 
-test_tilesrc_row_w          = $200
-test_tilesrc_bp_offset      = $20000
-test_tilesrc_upr_px_b_off   = $20
+test_tilesrc_row_w                  = $200
+test_tilesrc_bp_offset              = $20000
+test_tilesrc_upr_px_b_off           = $20
 
-test_cols_to_decode         = 128
-test_rows_to_decode         = 16                                            ;TODO: Make it possible to decode more than 16 rows
+test_cols_to_decode                 = 128
+test_rows_to_decode                 = 16                                    ;TODO: Make it possible to decode more than 16 rows
+
+test_bmp_width_pixels               = 2048
+test_bmp_horz_disp_words            = test_bmp_width_pixels/tile_width
+test_bmp_bp_bytes_per_raster_line   = test_bmp_horz_disp_words*2
+test_bmp_vtile_offset               = test_bmp_bp_bytes_per_raster_line*tile_bitplanes*tile_height
+test_bmp_tiles_height               = 16
+test_bmp_byte_size                  = test_bmp_vtile_offset*test_bmp_tiles_height
 
     *-----------------*
     * constants:video *
@@ -345,11 +352,12 @@ Init:
 ;    bsr DecodeTileGraphicToScreen
 ;    bsr CopyScreenFromDecodedGraphic
 
-    ;TODO: I THINK THE BITPLANES NEED TO BE DECODED SO THEY ARE NOT
-    ;      INTERLEAVED
+    ;bsr DecodeTileGraphicToScreenBetter                    ;TODO: USE THIS ONE, ONCE I HAVE COPYING FIXED
+    ;bsr CopyScreenFromDecodedGraphic2
 
-    bsr DecodeTileGraphicToScreenBetter                    ;TODO: USE THIS ONE, ONCE I HAVE COPYING FIXED
-    bsr CopyScreenFromDecodedGraphic2
+    bsr DecodeTileGraphicToScreenBest
+    bsr CopyScreenFromDecodedGraphic3
+
                                                             ;ptr to first bitplane of image; 2 because we're scrollin'
     lea Screen,a0
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
@@ -409,12 +417,85 @@ Main:
 *******************************************************************************
 TESTVBCode:
 
-    ;bsr TESTScroll
+    bsr TESTScroll
     rts
 
 ;-----------------------------------------------
 TESTCode:
-    bsr TESTLoadLevel1Tiles2
+    bsr TESTLoadLevel1Tiles3
+    rts
+
+;-----------------------------------------------
+TESTLoadLevel1Tiles3:
+    ;THIS DECODES THE TILES IN MAP LAYOUT (16x16 TILES). 128 tiles horizontally
+    ;then wrap to the next row of tiles
+
+    lea TileColumnsToDecode,a1
+    move.b #test_cols_to_decode,(a1)
+
+    lea TileRowsToDecode,a1
+    move.b #test_rows_to_decode,(a1)
+
+    lea DestGraphicVTileOffset,a1                           ;One tile height in destination bitmap
+    move.l #bitpl_bytes_per_raster_line*tile_bitplanes*tile_height,(a1)
+
+    lea DestGraphicVTileOffset2,a1
+    move.l #block_vtile_offset,(a1)
+
+    lea DestGraphicVTileOffset3,a1
+    move.l #test_bmp_vtile_offset,(a1)
+
+    lea EncodedTilesSource,a0
+    lea TileSource,a1
+    move.l a0,(a1)
+
+    ;BELOW HERE
+
+    move.l #0,d2
+    move.l #0,d3
+
+    lea TilesToDecode,a2
+    lea ScrollDataLev1,a1
+    move.l a1,a4                                            ;row
+    move.l #test_rows_to_decode-1,d0
+
+.outer_loop
+    move.l #test_cols_to_decode-1,d1
+    move.l #0,d4
+
+.inner_loop
+    move.w (a1)+,d2                                         ;load "scroll word" into d2 from a1
+    ror #8,d2                                               ;swap bytes; source is little endian
+    move.w d2,d3
+    and.w #tile_index_mask,d3
+
+    btst #15,d2
+    beq .finish_inner_loop
+
+    or.w #$8000,d3                                          ;set "flipped" tile index
+
+.finish_inner_loop
+    move.w d3,(a2)+                                         ;poke this into the tile list
+
+    ;Here we need a counter, because every 16 tiles, Black Tiger wraps down
+
+    addi #1,d4
+    move.l d4,d6
+    divu #16,d6                                             ;test_cols_to_decode/16 = 128
+    swap d6
+    cmp.w #0,d6
+    bne .end_inner_loop
+
+    lea $1E0(a1),a1                                         ;down to next 16x16 block of tile indexes
+
+.end_inner_loop
+    dbf d1,.inner_loop
+
+    lea $20(a4),a4                                          ;down one row of 16 tile indexes in src
+    movea.l a4,a1
+
+    dbf d0,.outer_loop
+
     rts
 
 ;-----------------------------------------------
@@ -449,6 +530,9 @@ TESTLoadLevel1Tiles2:
 
     lea DestGraphicVTileOffset2,a1
     move.l #block_vtile_offset,(a1)
+
+    lea DestGraphicVTileOffset3,a1
+    move.l #test_bmp_vtile_offset,(a1)
 
     lea EncodedTilesSource,a0
     lea TileSource,a1
@@ -506,6 +590,9 @@ TESTLoadLevel1Tiles:
 
     lea DestGraphicVTileOffset2,a1
     move.l #block_vtile_offset,(a1)
+
+    lea DestGraphicVTileOffset3,a1
+    move.l #test_bmp_vtile_offset,(a1)
 
     lea EncodedTilesSource,a0
     lea TileSource,a1
@@ -1012,8 +1099,8 @@ CopyScreenFromDecodedGraphic2:
     move.l d4,BLTDPTH(a6)
 
     move.w #$10,BLTSIZE(a6)                                 ;16 tiles/cols
-	
-	WAITBLIT
+
+    WAITBLIT
 
     add.l #$8000,d3                                        ;Move to next 256x256 px tile block
     add.l #32,d4                                           ;Move to right side of screen
@@ -1025,6 +1112,26 @@ CopyScreenFromDecodedGraphic2:
 
     move.w #$4,BLTSIZE(a6)                                 ;4 tiles/cols
 
+    rts
+
+;-----------------------------------------------
+CopyScreenFromDecodedGraphic3:
+;Does a rectangular blit over the entire screen at once, with the source being 2048px wide
+    lea DecodedGraphic,a3
+    lea Screen,a4
+    move.l a3,d3
+    move.l a4,d4
+
+    move.w #$09F0,BLTCON0(a6)                               ;use A and D. Op: D = A
+    move.w #$0000,BLTCON1(a6)
+    move.w #$FFFF,BLTAFWM(a6)
+    move.w #$0000,BLTALWM(a6)
+    move.w #216,BLTAMOD(a6)
+    move.w #0,BLTDMOD(a6)
+    move.l d3,BLTAPTH(a6)
+    move.l d4,BLTDPTH(a6)
+
+    move.w #screen_width/16,BLTSIZE(a6)                     ;no "h" term needed since it's 1024. Thanks ross @eab!
     rts
 
 ;-----------------------------------------------
@@ -1198,7 +1305,96 @@ ExtractTile2:
     move.b, 5(a2),block_bp_bytes_per_raster_line*2+1(a3)       ;bitplane 2
     move.b, 4(a2),block_bp_bytes_per_raster_line*3+1(a3)       ;bitplane 3
 
-    lea block_bp_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline (a0 = $28 * 4 bitplanes; $28 = bytes in one rasterline for one bitplane)
+    lea block_bp_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline ($80 = $20 * 4 bitplanes; $20 = bytes in one rasterline for one bitplane)
+    lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
+
+    dbf d0,.extract_tile
+    rts
+
+;-----------------------------------------------
+ExtractTile3:
+    ;INPUT:  a1 - source bytes ptr
+    ;        a3 - destination ptr
+    ;        d1 - flipped = 1.b, not flipped = 0.b
+    ;USES:   a2
+    ;OUTPUT: a3 - destination
+
+    move #$0F,d0                                            ;16 rasterlines at a time; rightmost byte done too
+
+.extract_tile:
+
+    lea DecodedBitplaneBytes,a2                             ;stores intermediate decoded bitplane bytes
+    bsr TESTDecodeRowOf16Pixels                             ;This can be changed for a version where we decode differently
+
+    ;    0  1  2  3   4  5  6  7
+    ;a2: 3, 2, 1, 0 | 3, 2, 1, 0
+
+    ;To flip the tile horizontally, we need to reverse the 4 bit color indexes,
+    ;which means reversing the NYBBLES--not the bits. Reversing the bits gives
+    ;us swapping of the odd bitplanes, which messes up the colors
+
+    cmp.b #1,d1
+    bne .no_flip
+
+    swap d1
+
+    move.b 3(a2),d6
+    move.b 7(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,3(a2)
+    move.b d1,7(a2)
+
+    move.b 2(a2),d6
+    move.b 6(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,2(a2)
+    move.b d1,6(a2)
+
+    move.b 1(a2),d6
+    move.b 5(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,1(a2)
+    move.b d1,5(a2)
+
+    move.b (a2),d6
+    move.b 4(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,(a2)
+    move.b d1,4(a2)
+
+    swap d1
+
+.no_flip
+
+    ;this interleaves the bytes. Maybe we can do something that doesn't
+    ;interleave the bytes
+
+    move.b, 3(a2),test_bmp_bp_bytes_per_raster_line*0(a3)         ;bitplane 0
+    move.b, 2(a2),test_bmp_bp_bytes_per_raster_line*1(a3)         ;bitplane 1
+    move.b, 1(a2),test_bmp_bp_bytes_per_raster_line*2(a3)         ;bitplane 2
+    move.b, (a2),test_bmp_bp_bytes_per_raster_line*3(a3)          ;bitplane 3
+    move.b, 7(a2),test_bmp_bp_bytes_per_raster_line*0+1(a3)       ;bitplane 0
+    move.b, 6(a2),test_bmp_bp_bytes_per_raster_line*1+1(a3)       ;bitplane 1
+    move.b, 5(a2),test_bmp_bp_bytes_per_raster_line*2+1(a3)       ;bitplane 2
+    move.b, 4(a2),test_bmp_bp_bytes_per_raster_line*3+1(a3)       ;bitplane 3
+
+    lea test_bmp_bp_bytes_per_raster_line*tile_bitplanes(a3),a3   ;move down one rasterline ($400 = $100 * 4 bitplanes; $100 = bytes in one rasterline for one bitplane)
     lea $02(a1),a1                                          ;source bytes per rasterline are 2 bytes apart
 
     dbf d0,.extract_tile
@@ -1399,6 +1595,78 @@ DecodeTileGraphicToScreenBetter:
     rts
 
 ;-----------------------------------------------
+DecodeTileGraphicToScreenBest:
+    ;SCREEN LO-RES
+    ;W: 320=screen; W=256 for blocks
+    ;8 pixels/byte
+    ;32 bytes per line/16 words per line
+    ;done to show how to extract Black Tiger-encoded image data
+    ;32*32*4
+
+    lea DecodedGraphic,a0
+    lea TileDecodeRowDest,a1
+
+    move.l a0,(a1)
+
+.l0:
+    clr.l (a0)+
+    dbf d0,.l0
+
+    clr.l d0
+
+    lea TilesToDecode,a0                                    ;Starting tile
+    lea TileDecodeDest,a2
+    lea TileDecodeRowDest,a1
+
+    move.l (a1),(a2)
+    move.l #0,d5
+
+.loop_rows
+    move.l #0,d4
+
+.loop_columns
+    move.l (a2),a3
+
+    move.b #0,d1
+    lea TileSource,a4
+    move.l (a4),a1
+    move.w (a0)+,d0
+    btst #15,d0
+    beq .no_flip
+    move.b #1,d1
+.no_flip
+    andi.w #tile_index_mask,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    bsr ExtractTile3
+
+    lea TileColumnsToDecode,a4
+    lea TileDecodeDest,a2
+    add.l #2,(a2)
+    addi.b #1,d4
+
+.check_loop
+    cmp.b (a4),d4
+    bne .loop_columns
+
+    lea TileDecodeRowDest,a4
+    move.l (a4),a1
+    lea TileDecodeDest,a2
+    lea DestGraphicVTileOffset3,a3                          ;One tile height in destination bitmap
+
+    adda.l (a3),a1
+    move.l a1,(a2)
+    move.l a1,(a4)
+
+    lea TileRowsToDecode,a4
+    addi.b #1,d5
+    cmp.b (a4),d5
+    bne .loop_rows
+
+    rts
+
+;-----------------------------------------------
 DrawTile:
 ;INPUT: mapx/y in d3
 ;       x/y in d4
@@ -1553,6 +1821,9 @@ DestGraphicVTileOffset:
     dc.l 0
 
 DestGraphicVTileOffset2:
+    dc.l 0
+
+DestGraphicVTileOffset3:
     dc.l 0
 
 SaveWord:
