@@ -1,11 +1,11 @@
     ;bsr TESTGetXYPositionsForScrollRight
-	
-	;lea MapXYPosition,a1
-	;REPT 16
-	;bsr TESTGetXYPositionsForScrollLeft
-	;subi.l #16,(a1)
-	;ENDR
-	
+
+    ;lea MapXYPosition,a1
+    ;REPT 16
+    ;bsr TESTGetXYPositionsForScrollLeft
+    ;subi.l #16,(a1)
+    ;ENDR
+
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"
@@ -39,7 +39,7 @@ test_bmp_byte_size                  = test_bmp_vtile_offset*test_bmp_tiles_heigh
 screen_width                = 320
 screen_extrawidth           = 32
 screen_plane_lines          = tile_bitplanes*h
-screen_blit_size            = h*tile_bitplanes*64+screen_width/16
+screen_blit_size            = h*tile_bitplanes*64+(screen_width*screen_extrawidth)/16
 screen_modulo               =(screen_width/8)*3-scroll_byte_offset          ;$(320/8)*3 - 2 / (320/8)*3
 
 bitmapwidth                 = test_cols_to_decode*16
@@ -824,10 +824,10 @@ TESTGetXYPositionsForScrollRight:
 
     lea MapXYPosition,a3
 
-    move.w 2(a3),d3                                          ;mapposx (pixels)
+    move.w 2(a3),d3                                          ;save for mapy
     swap d3
     move.w 2(a3),d3                                          ;mapposx
-    asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
+    asr.w #4,d3                                              ;mapposx / BLOCKWIDTH
 
     move.w #screen_width,d4
     add.w #screen_extrawidth,d4
@@ -864,19 +864,12 @@ TESTGetXYPositionsForScrollLeft:
 
    lea MapXYPosition,a3
    lea VideoXYPosition,a4
-   
-   cmp.w #0,2(a3)
-   bne .subtract
 
-   move.l #test_cols_to_decode*tile_width,(a3)
-   
-.subtract   
    subi.l #1,(a3)                                           ;mapposx--;
-   
-.update   
+
+.update
    move.l (a3),(a4)                                         ;videoposx = mapposx;
 
-   lea MapXYPosition,a3
 
    move.w 2(a3),d3                                         ;mapposx (pixels)
    swap d3
@@ -887,7 +880,6 @@ TESTGetXYPositionsForScrollLeft:
 
    clr.l d4
 
-   lea VideoXYPosition,a4
    move.w 2(a4),d4
    and.w #15,d4                                            ;x = ROUND2BLOCKWIDTH(videoposx);
    swap d4
@@ -901,24 +893,31 @@ TESTGetXYPositionsForScrollLeft:
 ;-----------------------------------------------
 TESTScroll:
 
-	rts
-	
-   lea TestScrollCommand,a0
-   lea CopHorzScrollPos,a1
-   lea TileXYPosition,a2
+   rts
 
-   move.w 2(a1),d0
+   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
+   lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
+   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
+
+   move.w 2(a1),d0                                          ;d0=HORIZONTAL SCROLL POS
    and.w #$00ff,d0
 
-   cmp.b #1,(a0)
+   clr.l d1
+   lea MapXYPosition,a3
+   move.w 2(a3),d1
+
+   cmp.b #1,(a0)                                            ;user move left... do left
    beq .left
 
 .right
-;   if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) switch_directions;
+    ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
+    cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width),d1
+    blo .right_not_done
+    rts
 
-   
+.right_not_done
+
    bsr TESTGetXYPositionsForScrollRight
-   move.l d3,d5
 
    lea PtrSaveWord,a3
    lea SaveWord,a4
@@ -933,38 +932,40 @@ TESTScroll:
    clr.l d1
    clr.l d2
 
-   lea Screen,a5
+   lea Screen,a5                                            ;frontbuffer
    move.l a5,d2
-   move.w d4,d1
-   asr.w #3,d1
+   move.w d4,d1                                             ;x
+   asr.w #3,d1                                              ;(x / 8)
    add.l d1,d2                                              ;frontbuffer + (x / 8)
 
    clr.l d1
+
    swap d4                                                  ;y
    move.w d4,d1
    add.w #tile_plane_lines-1,d1                             ;(y + tile_plane_lines - 1)
    mulu #bitmap_bytes_per_row,d1                            ;* bitmap_bytes_per_row
    add.l d1,d2
-   move.l d2,(a3)                                           ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
-   move (a3),(a4)                                           ;saveword = *savewordpointer;
+   move.l d2,a3                                             ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
+   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
+
    swap d4                                                  ;x
 
-;TODO: BRING IN ONE TILE
    bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
+   move.w d6,d5
 
    lea MapXYPosition,a3
    lea VideoXYPosition,a4
-   
+
    cmp.l #(test_cols_to_decode*tile_width),(a3)
    bne .add
-   
-   move.l #0,(a3)     
+
+   move.l #0,(a3)
    bra .update
 
 .add
    addi.l #1,(a3)                                           ;mapposx++;
-   
-.update   
+
+.update
    move.l (a3),(a4)                                         ;videoposx = mapposx;
    lea PreviousScrollDir,a3
    move.b #0,(a3)                                           ;previous_direction = DIRECTION_RIGHT;
@@ -974,40 +975,37 @@ TESTScroll:
 
 ;now do the scroll
 
-   sub.w #$0011,d0
-   and.w #$00ff,d0
+   sub.w #$0011,d0                                          ;subtracting from BPLCON1 makes more data appear
+   and.w #$00ff,d0                                          ;at the right edge
 
    move.b #0,d2
    cmp.w #$ef,d0
    bne .end
 
-   move.w #$ff,d0
-   
+   move.w #$ff,d0                                           ;move bitplane pointers+2
+
    addi.w #1,(a2)
    cmp.w #128,(a2)
 
-   beq .switch_direction
+   bne .rupdate_copper
 
-
+   move.w #0,d0
+   bra .switch_direction
 
 .rupdate_copper
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
    move #4-1,d1
 
-   ;If mapx == 0, wrap the bitplane pointers to last column
-
-
-
    clr.l d6
    move.w d5,d6
-   divu #screen_width/8,d6
+   divu #screen_width/tile_width,d6                         ;
    swap d6
    cmp.w #0,d6
    bne .bpl9
-   
-   lea Screen,a3
-   lea -$78(a3),a3											;point to the 20th tile column
-   
+
+;   lea Screen,a3
+;   lea -$78(a3),a3                                          ;point to the 20th tile column
+
 ;.rreset:
 ;   move.l a3,d4
 ;   swap d4
@@ -1061,12 +1059,14 @@ TESTScroll:
 
 .left
 
-   rts
-   
+    cmp.w #-1,d1
+    bgt .left_not_done
+    rts                                                     ;if (mapposx < 1) return;
+
+.left_not_done
+
    bsr TESTGetXYPositionsForScrollLeft
    move.l d3,d5
-
-;   if (mapposx < 1) switch_directions;
 
    lea PtrSaveWord,a3
    lea SaveWord,a4
@@ -1081,40 +1081,45 @@ TESTScroll:
    clr.l d1
    clr.l d2
    lea Screen,a5
-   move.l a5,d2
-   move.w d4,d1
-   asr.w #3,d1
+   move.l a5,d2                                             ;frontbuffer
+   move.w d4,d1                                             ;x
+   asr.w #3,d1                                              ;(x / 8)
    add.l d1,d2                                              ;frontbuffer + (x / 8)
 
    clr.l d1
    swap d4                                                  ;y
    move.w d1,d4
-   mulu #bitmap_bytes_per_row,d1                            ;* bitmap_bytes_per_row
+   mulu #bitmap_bytes_per_row,d1                            ;y * bitmap_bytes_per_row
    add.l d1,d2
-   move.l d2,(a3)                                           ;savewordpointer = (WORD *)(frontbuffer + y * bitmap_bytes_per_row + (x / 8));
-   move (a3),(a4)                                           ;saveword = *savewordpointer;
+   move.l d2,a3                                             ;savewordpointer = (WORD *)(frontbuffer + y * bitmap_bytes_per_row + (x / 8));
+   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
    swap d4                                                  ;x
 
-   ;bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
+   bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
+   move.w d6,d5
 
    lea PreviousScrollDir,a3
    move.b #1,(a3)                                           ;previous_direction = DIRECTION_LEFT;
 
+
+
 ;now do the scroll
 
-   add.w #$0011,d0
-   and.w #$00ff,d0
+   add.w #$0011,d0                                          ;adding to BPLCON1 makes more data appear
+   and.w #$00ff,d0                                          ;at the left edge
 
    move.b #1,d2
    cmp.w #$0010,d0
    bne .end
 
-   move.w #0,d0
-   
+   move.w #0,d0                                             ;move bitplane pointers-2
+
    addi.w #1,(a2)
    cmp.w #128,(a2)
+   bne .lupdate_copper
 
-   beq .switch_direction
+   move.w #$ff,d0
+   bra .switch_direction
 
 .lupdate_copper
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
@@ -1124,9 +1129,9 @@ TESTScroll:
 
 ;   cmp.w #$0,d5
 ;   bne .bpl9
-;           
+;
 ;   lea Screen,a3
-   
+
 ;.lreset:
 ;   move.l a3,d4
 ;   swap d4
@@ -1158,7 +1163,7 @@ TESTScroll:
    bra .end
 
 .switch_direction
-   
+
    move.b #0,(a2)
    move.b d2,(a0)
 
@@ -1790,18 +1795,18 @@ DrawTile:
 ;       x/y in d4
 ;       x = in pixels
 ;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
-
+;OUTPUT: mapx in d6
 
     move.w d4,d5
-    asr.w #3,d5
+    asr.w #3,d5                                             ;(x / 8)
     and.w #$fffe,d5                                         ;x = (x / 8) & 0xFFFE;
 
     swap d5
     swap d4
 
-    move.w d4,d5
-    mulu #40,d5                                             ;y = y * BITMAPBYTESPERROW;
-    ;mulu #bitmap_bytes_per_row,d5                           ;y = y * BITMAPBYTESPERROW;
+    move.w d4,d5                                            ;y
+    ;mulu #40,d5                                             ;y = y * BITMAPBYTESPERROW;
+    mulu #tile_bytes_per_row,d5                             ;y = y * BITMAPBYTESPERROW;
 
     move.l d5,d4
 
@@ -1810,62 +1815,64 @@ DrawTile:
     ;      BITMAP ALREADY LOADED INTO A LONG SCREEN BUFFER
     ;      THE TILE BITMAP IS HERE: EncodedTilesSource
 
-    ;clr.l d4
-    ;swap d3
-    ;move.w d3,d4
-    ;asl.w #7,d4                                            ;TODO: CHECK TO SEE IF THIS IS LEVEL 3;
-    ;                                                       ;IF SO, ASL ONLY 6 (64 blocks wide)
-    ;swap d3
-    ;add.w d3,d4
-    ;
-    ;lea EncodedTilesSource,a3
-    ;lea (a3,d4.l),a3                                       ;block = mapdata[mapy * test_cols_to_decode + mapx];
-    ;clr.l d4
-    ;move.w (a3),d4
-    ;but, now we'd have to decode the tile
-
     clr.l d5
-
-    move.w d3,d5
-    divu #tiles_per_row,d5                                  ;screen_width/16 (20) columns
-    swap d5                                                 ;(block % tiles_per_row)
-    move.w d5,d3
-    asl.w #1,d3                                             ;mapx = (block % tiles_per_row) * 2;
 
     swap d3
+    move.w d3,d5                                            ;mapy
+    asl.w #7,d5                                             ;mapy * mapwidth
+    swap d3
+    add.w d3,d5                                             ;block = mapdata[mapy * mapwidth + mapx]
+    divu #tiles_per_row,d5                                  ;block / tiles_per_row
+    swap d5                                                 ;block % tiles_per_row
+    move.w d5,d3
+    asl.w #1,d3                                             ;mapx = (block % BLOCKSPERROW) * (BLOCKWIDTH / 8);
+
+    swap d3                                                 ;mapy
     swap d5
+
     move.w d5,d3                                            ;(block / tiles_per_row)
+
     clr.l d5
     move.w d3,d5
-    asl.w #6,d5                                             ;*(tile_bitplanes*tile_height)
-    mulu #tile_bytes_per_row,d5                             ;mapy = (block / tiles_per_row) * (tile_bitplanes*tile_height * tile_bytes_per_row);
-    move.w d5,d3
+    asl.w #6,d5                                             ;(block / tiles_per_row) * (BLOCKPLANELINES)
+    mulu #(tile_bytes_per_row*4),d5                         ;mapy = (block / BLOCKSPERROW) * (BLOCKPLANELINES * BLOCKSBYTESPERROW)
+    move.w d5,d3                                            ;mapy
 
     WAITBLIT                                                ;HardWaitBlit();
 
     lea DecodedGraphic,a3
     lea Screen,a4
-    move.l a3,d5
-    move.l a4,d1
+    move.l a3,d5                                            ;A source (blocksbuffer)
+    move.l a4,d1                                            ;D dest (frontbuffer)
 
-    add.w d3,d5
+    clr.l d6
+    clr.l d2
+    add.w d3,d2
+    add.l d2,d5
+    clr.w d3
     swap d3
-    add.w d3,d5
+    move.w d3,d6                                            ;preserve mapx
+    add.l d3,d5                                             ;blocksbuffer + mapy + mapx
 
-    add.w d4,d1
+    clr.l d2
+    add.w d4,d2
+    add.l d2,d1
+    clr.w d4
     swap d4
-    add.w d4,d1
+    add.l d4,d1                                             ;frontbuffer + y + x
 
-    move.w #$09F0,BLTCON0(a6)                               ;use A and D. Op: D = A
-    move.w #$0000,BLTCON1(a6)
-    move.w #$FFFF,BLTAFWM(a6)
-    move.w #$0000,BLTALWM(a6)
-    move.w #tile_bytes_per_row-2,BLTAMOD(a6)
-    move.w #bitmap_bytes_per_row-2,BLTDMOD(a6)
-    move.l d5,BLTAPTH(a6)                                   ;blocksbuffer + mapy + mapx;
-    move.l d1,BLTDPTH(a6)                                   ;frontbuffer + y + x
+    move.w #$09F0,BLTCON0(a6)                               ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
+    move.w #$0000,BLTCON1(a6)                               ;custom->bltcon1 = 0;
+    move.w #$FFFF,BLTAFWM(a6)                               ;custom->bltafwm = 0xFFFF;
+    move.w #$FFFF,BLTALWM(a6)                               ;custom->bltalwm = 0xFFFF;
+    move.w #(tile_bytes_per_row*4)-2,BLTAMOD(a6)            ;custom->bltamod = BLOCKSBYTESPERROW - (BLOCKWIDTH / 8);
+    move.w #bitmap_bytes_per_row-2,BLTDMOD(a6)              ;custom->bltdmod = BITMAPBYTESPERROW - (BLOCKWIDTH / 8);
+    move.l d5,BLTAPTH(a6)                                   ;custom->bltapt  = blocksbuffer + mapy + mapx;
+    move.l d1,BLTDPTH(a6)                                   ;custom->bltdpt  = frontbuffer + y + x;
 
-    move.w #$401,BLTSIZE(a6)
+    ;BLOCKPLANELINES * 64 = tiles_per_row*tile_bitplanes*8+2
+
+    move.w #(tiles_per_row*tile_bitplanes*8+2),BLTSIZE(a6)  ;custom->bltsize = BLOCKPLANELINES * 64 + (BLOCKWIDTH / 16);
     rts
 
 ;-----------------------------------------------
