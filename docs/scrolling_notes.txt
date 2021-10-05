@@ -22,18 +22,6 @@ SCROLLED  1      $B0      $2C                              $160         $0
           F    $E0B0    $26AC                             $7160      $1340
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 the bitmap is no longer double-wide. For 1x and 2x FETCH Modes an EXTRAWIDTH of 32 (2 * BLOCKWIDTH)
 
 BITMAPWIDTH = 352
@@ -49,8 +37,6 @@ BITMAPBLOCKSPERROW equals BITMAPWIDTH / BLOCKWIDTH, that is 22 (1x and 2x FETCH 
 
 
 256 + (128 / 22 / 1) + 1 = 258
-
-
 
 
 
@@ -1393,3 +1379,97 @@ my crap code
 ;   mulu #(screen_width+screen_extrawidth)/2,d1              ;* bitmap_bytes_per_row
 ;   add.l d1,d2
 
+DrawTile:
+;INPUT: mapx/y in d3
+;       x/y in d4
+;       x = in pixels
+;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
+;OUTPUT: mapx in d6
+
+    ;calc destination offsets into d4
+	;I'm probably breaking this code for left scroll...
+
+	
+    ;move.w d4,d5
+    ;asr.w #3,d5                                             ;(x / 8)
+    ;and.w #$fffe,d5                                         ;x = (x / 8) & 0xFFFE;
+	;
+    ;swap d5
+    ;swap d4
+	;
+    ;move.w d4,d5                                            ;y
+    ;mulu #screen_width/2,d1                                 ;* bitmap_bytes_per_row
+	;
+    ;move.l d5,d4
+
+
+    ;TODO: ORDINARILY, WE'D HAVE THE BLOCK DATA AS A TILE SHEET IN MEMORY
+    ;      WE MAY NOT WANT TO DO THAT. RIGHT NOW, I JUST HAVE A SINGLE COPY OF THE
+    ;      BITMAP ALREADY LOADED INTO A LONG SCREEN BUFFER
+    ;      THE TILE BITMAP IS HERE: EncodedTilesSource
+
+    clr.l d5
+
+    swap d3
+    move.w d3,d5                                            ;mapy
+    mulu.w #test_bmp_vtile_offset,d5                        ;mapy * mapwidth
+
+    swap d3
+    add.w d3,d5                                             ;block = mapdata[mapy * mapwidth + mapx]
+	
+    ;divu #tiles_per_row,d5                                  ;block / tiles_per_row
+    ;swap d5                                                 ;block % tiles_per_row   
+	;move.w d5,d3   
+	;asl.w #1,d3                                             ;mapx = (block % BLOCKSPERROW) * (BLOCKWIDTH / 8);
+
+    ;swap d5
+
+    ;move.w d5,d3                                            ;(block / tiles_per_row)
+
+    ;clr.l d5
+    ;move.w d3,d5
+    ;asl.w #6,d5                                             ;(block / tiles_per_row) * (BLOCKPLANELINES)
+    ;mulu #(tile_bytes_per_row*4),d5                         ;mapy = (block / BLOCKSPERROW) * (BLOCKPLANELINES * BLOCKSBYTESPERROW)
+    ;move.w d5,d3                                            ;mapy
+
+    WAITBLIT                                                ;HardWaitBlit();
+
+    lea DecodedGraphic,a3
+    lea Screen,a4                                           ;TODO: CHECK TO SEE IF THIS NEEDS AN OFFSET
+
+    move.l a3,d5                                            ;A source (blocksbuffer)
+    move.l a4,d1                                            ;D dest (frontbuffer)
+
+    clr.l d6
+    move.l d3,d6											;preserve mapx/mapy
+
+    clr.l d2
+
+    swap d3                                                 ;mapy
+
+    add.w d3,d2
+    add.l d2,d5
+    clr.w d3
+    swap d3
+    add.l d3,d5                                             ;blocksbuffer + mapy + mapx
+
+    clr.l d2
+    add.w d4,d2
+    add.l d2,d1
+    clr.w d4
+    swap d4
+    add.l d4,d1                                             ;frontbuffer + y + x
+
+    move.w #$09F0,BLTCON0(a6)                               ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
+    move.w #$0000,BLTCON1(a6)                               ;custom->bltcon1 = 0;
+    move.w #$FFFF,BLTAFWM(a6)                               ;custom->bltafwm = 0xFFFF;
+    move.w #$FFFF,BLTALWM(a6)                               ;custom->bltalwm = 0xFFFF;
+    move.w #tile_bytes_per_row-2,BLTAMOD(a6)                ;custom->bltamod = BLOCKSBYTESPERROW - (BLOCKWIDTH / 8);
+    move.w #screen_bpl_bytes_per_row-2,BLTDMOD(a6)          ;custom->bltdmod = BITMAPBYTESPERROW - (BLOCKWIDTH / 8);
+    move.l d5,BLTAPTH(a6)                                   ;custom->bltapt  = blocksbuffer + mapy + mapx;
+    move.l d1,BLTDPTH(a6)                                   ;custom->bltdpt  = frontbuffer + y + x;
+
+    move.w #(tile_plane_lines*64+1),BLTSIZE(a6)             ;custom->bltsize = BLOCKPLANELINES * 64 + (BLOCKWIDTH / 16);
+    rts
+
+;-----------------------------------------------
