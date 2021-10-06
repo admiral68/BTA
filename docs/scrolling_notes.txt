@@ -1473,3 +1473,82 @@ DrawTile:
     rts
 
 ;-----------------------------------------------
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    bsr TESTGetXYPositionsForScrollRight
+;    bsr CalculateDrawTileRight
+;    addi.l #1,(a1)
+;    addi.l #1,(a2)
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    bsr TESTGetXYPositionsForScrollRight
+;    bsr CalculateDrawTileRight
+
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    move.l #$15F,(a1)
+;    move.l #$15F,(a2)
+;    bsr TESTGetXYPositionsForScrollRight
+;    bsr CalculateDrawTileRight
+;    addi.l #1,(a1)
+;    addi.l #1,(a2)
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    bsr TESTGetXYPositionsForScrollRight
+;    bsr CalculateDrawTileRight
+
+;    REPT 16
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    bsr TESTGetXYPositionsForScrollRight
+;    bsr CalculateDrawTileRight
+;    addi.l #1,(a1)
+;    addi.l #1,(a2)
+;    ENDR
+
+;    ;subi.l #16,(a1)
+
+tile_pal_03:macro
+    dc.w $0180,$,$0182,$,$0184,$,$0186,$
+    dc.w $0188,$,$018a,$,$018c,$,$018e,$
+    dc.w $0190,$,$0192,$,$0194,$,$0196,$
+    dc.w $0198,$,$019a,$,$019c,$,$019e,$
+    endm
+
+
+    lea CopPalPtrs,a3
+    move.w $0b87,2(0)
+    move.w $0754,6(0)
+    move.w $0975,10(0)
+    move.w $0ca8,14(0)
+    move.w $0ed8,18(0)
+    move.w $0fff,22(0)
+    move.w $0060,26(0)
+    move.w $0090,30(0)
+    move.w $00e0,34(0)
+    move.w $0777,38(0)
+    move.w $0aaa,42(0)
+    move.w $0747,46(0)
+    move.w $0868,50(0)
+    move.w $0a8a,54(0)
+    move.w $0cac,58(0)
+    move.w $0111,62(0)
+
+
+    lea CopPalPtrs,a3
+    move.w $000,2(0)
+    move.w $000,6(0)
+    move.w $000,10(0)
+    move.w $000,14(0)
+    move.w $000,18(0)
+    move.w $000,22(0)
+    move.w $000,26(0)
+    move.w $000,30(0)
+    move.w $000,34(0)
+    move.w $000,38(0)
+    move.w $000,42(0)
+    move.w $000,46(0)
+    move.w $000,50(0)
+    move.w $000,54(0)
+    move.w $000,58(0)
+    move.w $000,62(0)
