@@ -1,12 +1,27 @@
 ;    lea MapXYPosition,a1
 ;    lea VideoXYPosition,a2
-;   move.l #$10,(a1)
-;   move.l #$10,(a2)
 ;    bsr TESTGetXYPositionsForScrollRight
 ;    bsr CalculateDrawTileRight
 ;    addi.l #1,(a1)
 ;    addi.l #1,(a2)
-;
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    bsr TESTGetXYPositionsForScrollRight
+;    bsr CalculateDrawTileRight
+
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    move.l #$15F,(a1)
+;    move.l #$15F,(a2)
+;    bsr TESTGetXYPositionsForScrollRight
+;    bsr CalculateDrawTileRight
+;    addi.l #1,(a1)
+;    addi.l #1,(a2)
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    bsr TESTGetXYPositionsForScrollRight
+;    bsr CalculateDrawTileRight
+
 ;    REPT 16
 ;    lea MapXYPosition,a1
 ;    lea VideoXYPosition,a2
@@ -59,6 +74,7 @@ screen_horz_disp_words              = screen_width/16
 screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
 screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
 screen_bplsize                      = screen_width*(screen_height+2)/8
+screen_size                         = screen_bytes_per_row*screen_height
 
 ;"tile" here means 16x16 pixels
 
@@ -741,7 +757,6 @@ TESTGetXYPositionsForScrollLeft:
 
 ;-----------------------------------------------
 TESTScroll:
-
    lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
    lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
    lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
@@ -781,44 +796,48 @@ TESTScroll:
    WAITBLIT                                                 ;HardWaitBlit();
    move.w (a4),(a3)                                         ;*savewordpointer = saveword;
 
+
+
+
 .rupdate_saveword
-   clr.l d1
-   clr.l d2
+;TODO: THIS CODE CAUSES A GURU MEDITATION :---)
 
-   lea Screen,a5                                            ;frontbuffer
-   move.l a5,d2
-   move.w d4,d1                                             ;x
-   asr.w #3,d1                                              ;(x / 8)
-   add.l d1,d2                                              ;frontbuffer + (x / 8)
+;   clr.l d1
+;   clr.l d2
+;
+;   lea Screen,a5                                            ;frontbuffer
+;   move.l a5,d2
+;   move.w d4,d1                                             ;x
+;   asr.w #3,d1                                              ;(x / 8)
+;   add.l d1,d2                                              ;frontbuffer + (x / 8)
+;
+;   clr.l d1
+;
+;   swap d4                                                  ;y
+;   move.w d4,d1
+;   add.w #tile_plane_lines-1,d1                             ;(y + tile_plane_lines - 1)
+;   mulu #screen_width/2,d1                                  ;* bitmap_bytes_per_row
+;   add.l d1,d2
+;   move.l d2,a3                                             ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
+;   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
+;   swap d4                                                  ;x
 
-   clr.l d1
 
-   swap d4                                                  ;y
-   move.w d4,d1
-   add.w #tile_plane_lines-1,d1                             ;(y + tile_plane_lines - 1)
-   mulu #screen_width/2,d1                                  ;* bitmap_bytes_per_row
-   add.l d1,d2
-   move.l d2,a3                                             ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
-   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
-
-   swap d4                                                  ;x
 
    bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
 
    lea MapXYPosition,a3
    lea VideoXYPosition,a4
 
-   cmp.l #(test_cols_to_decode*tile_width),(a3)
-   bne .add
-
-   move.l #0,(a3)
-   bra .update
-
-.add
    addi.l #1,(a3)                                           ;mapposx++;
+   move.l (a3),(a4)                                         ;videoposx = mapposx;
+
+   cmp.l #(test_cols_to_decode*tile_width),(a4)             ;352
+   bne .update
+
+   move.l #0,(a4)                                           ;reset video x to zero
 
 .update
-   move.l (a3),(a4)                                         ;videoposx = mapposx;
    lea PreviousScrollDir,a3
    move.b #0,(a3)                                           ;previous_direction = DIRECTION_RIGHT;
 
@@ -832,12 +851,14 @@ TESTScroll:
 
    ;tile is completely scrolled through; time to move the pointers
 
+   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
+
    move.w #$ff,d0
+
    addi.w #1,2(a2)
    cmp.w #1,2(a2)                                           ;If we're just starting, skip to the end
    beq .end
 
-   addi.w #1,2(a2)
    cmp.w #128,2(a2)
    bne .right_update
 
@@ -846,14 +867,35 @@ TESTScroll:
 
 .rback_to_zero
 
-   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
-   move.b #2,(a0)
-   bra .end
+;   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
+;   move.b #2,(a0)
+;   bra .end
 
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
    lea Screen,a3                                            ;point to column 0 again
-   move #4-1,d1
    lea 2(a3),a3
+
+   add.l #screen_bp_bytes_per_raster_line,a3                ;pointer shifted down one bitplane
+
+;   move.l a3,d4
+;
+;   move.w 2(a2),d3                                          ;hi word
+;   swap d3
+;   move.w 6(a2),d3                                          ;lo word
+;
+;   ;sub.l #screen_bp_bytes_per_raster_line,d3              ;pointer shifted down one bitplane
+;   move.l d3,d5
+;
+;   sub.l d4,d3
+;   cmp.l #screen_size,d3                                   ;past the end of the bitmap?
+;   bne .rupdate_ptr
+;
+;   move.l d4,d5                                                ;reset pointer to screen
+;
+;.rupdate_ptr
+;
+;   move d5,a3
+   move #4-1,d1
 
 .rreset:
    move.l a3,d4
@@ -866,6 +908,10 @@ TESTScroll:
    lea screen_bp_bytes_per_raster_line(a3),a3              ;every 44 bytes we'll have new bitplane data
    dbf d1,.rreset
 
+   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
+   move.b #2,(a0)
+
+
    bra .end
 
 .right_update
@@ -874,13 +920,27 @@ TESTScroll:
 ;   move.b #2,(a0)
 ;   bra .end
 
-   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
-
    ;What we need to do here is check; once we've scrolled through 22 pointers... we need to reset to
    ;the bitplane pointer one rasterline up  screen_buffer_columns
 
-   clr.l d3
+   ;check screen_size
+;   lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
+;   clr.l d3
+;
+;   move.w 2(a2),d3                                          ;hi word
+;   swap d3
+;   move.w 6(a2),d3                                          ;lo word
+;
+;   add.l #2,d3
+;
+;   cmp.l #screen_size,d3
+;   beq .rback_to_zero
+
+
+
+   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
    move.w 2(a2),d3
+   subi.w #1,d3                                             ;we were off by one
 
    divu #screen_buffer_columns,d3
    swap d3
@@ -910,6 +970,10 @@ TESTScroll:
 
    ;lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
    ;move.b #2,(a0)
+
+
+
+
    bra .end
 
 .left
@@ -1268,7 +1332,6 @@ CalculateDrawTileRight:
     move.l d1,d3                                            ;for debugging purposes
 
     WAITBLIT                                                ;HardWaitBlit();
-    ;TODO PUT BACK
 
     lea DecodedGraphic,a3
     lea Screen,a4                                           ;TODO: CHECK TO SEE IF THIS NEEDS AN OFFSET
@@ -1280,8 +1343,6 @@ CalculateDrawTileRight:
 
     move.l a4,d1                                            ;D dest (frontbuffer)
     add.w #screen_bpl_bytes_per_row,d1                      ;always one bitplane pointer down (because of shift)
-
-
 
     clr.l d2
     swap d4                                                 ;y
@@ -1306,8 +1367,6 @@ DrawTile:
     ;I'm probably breaking this code for left scroll...
     bsr CalculateDrawTileRight
 
-    ;add.l #4,d1
-
     move.w #$09F0,BLTCON0(a6)                               ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
     move.w #$0000,BLTCON1(a6)                               ;custom->bltcon1 = 0;
     move.w #$FFFF,BLTAFWM(a6)                               ;custom->bltafwm = 0xFFFF;
@@ -1318,6 +1377,14 @@ DrawTile:
     move.l d1,BLTDPTH(a6)                                   ;custom->bltdpt  = frontbuffer + y + x;
 
     move.w #(tile_plane_lines*64+1),BLTSIZE(a6)             ;custom->bltsize = BLOCKPLANELINES * 64 + (BLOCKWIDTH / 16);
+
+;    cmp.l #$3C056,d3
+;   bne .end
+;
+;    lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
+;    move.b #2,(a0)
+
+.end
     rts
 
 ;-----------------------------------------------
