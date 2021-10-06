@@ -1,3 +1,12 @@
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;   move.l #$10,(a1)
+;   move.l #$10,(a2)
+;    bsr TESTGetXYPositionsForScrollRight
+;    bsr CalculateDrawTileRight
+;    addi.l #1,(a1)
+;    addi.l #1,(a2)
+;
 ;    REPT 16
 ;    lea MapXYPosition,a1
 ;    lea VideoXYPosition,a2
@@ -5,7 +14,6 @@
 ;    bsr CalculateDrawTileRight
 ;    addi.l #1,(a1)
 ;    addi.l #1,(a2)
-;
 ;    ENDR
 
 ;    ;subi.l #16,(a1)
@@ -663,20 +671,26 @@ TESTGetXYPositionsForScrollRight:
     move.w 2(a3),d3                                         ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
-    move.w #screen_bytes_per_row,d4                         ;176
+    move.w #screen_buffer_columns,d4                        ;22
 
     add.w d4,d3                                             ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
+    clr.l d4
+    move.w d3,d4
     swap d3
     and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
 
     ;get dest ptrs
 
-    clr.l d4
-
     ;TODO: IF VERTICAL SCROLLING IS HAPPENING... NEED TO CALCULATE OFFSET FROM MAP (0,0)
 
                                                             ;VideoX for Right Scroll is always 0
                                                             ;always blitting to left column
+    clr.l d5
+    move.w d4,d5
+    divu #screen_buffer_columns,d5                          ;bitplane pointers in screen buffer
+    swap d5
+    move.w d5,d4                                            ;x
+    swap d4                                                 ;y
 
     move.w d3,d4                                            ;Map Position Y (which will need to be fixed)
     asl.w #4,d4                                             ;y = tile_height * y
@@ -1247,8 +1261,8 @@ CalculateDrawTileRight:
 
     swap d3                                                 ;mapx
     move.w d3,d2
-    subi #8,d2                                              ;back one column
-    asr.w #2,d2                                             ;mapx=block;block*2=byte offset;/4=bp byte offset
+    subi #1,d2                                              ;back one column
+    asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
 
     add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
     move.l d1,d3                                            ;for debugging purposes
@@ -1267,10 +1281,15 @@ CalculateDrawTileRight:
     move.l a4,d1                                            ;D dest (frontbuffer)
     add.w #screen_bpl_bytes_per_row,d1                      ;always one bitplane pointer down (because of shift)
 
+
+
     clr.l d2
     swap d4                                                 ;y
     move.w d4,d2
     mulu #screen_bytes_per_row,d2                           ;(y * screen_bytes_per_row)
+    swap d4                                                 ;x
+    asl.w #1,d4                                             ;column # to bytes
+    add.w d4,d2                                             ;destination bit pointer
 
     move.l d2,d4                                            ;(for debugging)
     add.l #screen_bpl_bytes_per_row,d4
