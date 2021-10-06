@@ -1,12 +1,12 @@
-    REPT 16
-    lea MapXYPosition,a1
-    lea VideoXYPosition,a2
-    bsr TESTGetXYPositionsForScrollRight
-    bsr CalculateDrawTileRight
-    addi.l #1,(a1)
-    addi.l #1,(a2)
-
-    ENDR
+;    REPT 16
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    bsr TESTGetXYPositionsForScrollRight
+;    bsr CalculateDrawTileRight
+;    addi.l #1,(a1)
+;    addi.l #1,(a2)
+;
+;    ENDR
 
 ;    ;subi.l #16,(a1)
 
@@ -41,7 +41,7 @@ test_bmp_tiles_height               = 16
 
 screen_width                        = 352
 screen_height                       = 256
-screen_buffer_columns				= screen_width/tile_width
+screen_buffer_columns               = screen_width/tile_width
 screen_bitplanes                    = 4
 screen_bpl_bytes_per_row            = screen_width/8
 screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
@@ -812,24 +812,24 @@ TESTScroll:
 
    sub.w #$0011,d0                                          ;subtracting from BPLCON1 makes more data appear
    and.w #$00ff,d0                                          ;at the right edge
-   
+
    cmp.w #$ef,d0
    bne .end
 
    ;tile is completely scrolled through; time to move the pointers
- 
+
    move.w #$ff,d0
    addi.w #1,2(a2)
-   cmp.w #1,2(a2)											;If we're just starting, skip to the end
+   cmp.w #1,2(a2)                                           ;If we're just starting, skip to the end
    beq .end
- 
+
    addi.w #1,2(a2)
    cmp.w #128,2(a2)
    bne .right_update
-   
+
    move.b #0,d2
    bra .switch_direction
-   
+
 .rback_to_zero
 
    lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
@@ -856,31 +856,31 @@ TESTScroll:
 
 .right_update
    ;Here we're at the start of some column. Need to reset our bitplane pointers
-   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
-   move.b #2,(a0)
-   bra .end
+;   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
+;   move.b #2,(a0)
+;   bra .end
 
    lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
 
-   ;What we need to do here is check; once we've scrolled through 22 pointers... we need to reset to 
+   ;What we need to do here is check; once we've scrolled through 22 pointers... we need to reset to
    ;the bitplane pointer one rasterline up  screen_buffer_columns
 
    clr.l d3
    move.w 2(a2),d3
-   
+
    divu #screen_buffer_columns,d3
    swap d3
    cmp.w #0,d3                                              ;remainder of 0; starting position
    beq .rback_to_zero
- 
+
    ;now we just move our bitplane pointers screen_buffer_columns times!
- 
+
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
    move #4-1,d1
 
 .right_update_loop
    clr.l d3
-   
+
    move.w 2(a2),d3                                          ;hi word
    swap d3
    move.w 6(a2),d3                                          ;lo word
@@ -894,8 +894,8 @@ TESTScroll:
    addq #8,a2                                               ;point to next bpl to poke in copper
    dbf d1,.right_update_loop
 
-   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
-   move.b #2,(a0)
+   ;lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
+   ;move.b #2,(a0)
    bra .end
 
 .left
@@ -1227,6 +1227,10 @@ DecodeTileGraphicToLongBitmap:
 
 ;-----------------------------------------------
 CalculateDrawTileRight:
+;INPUT: mapx/y in d3
+;       x/y in d4
+;       x = in pixels
+;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
 
 ;USE: (y * screen_bp_tile_offset) + screen_bpl_bytes_per_row
 ;for vertical tile offset (destination)
@@ -1243,12 +1247,13 @@ CalculateDrawTileRight:
 
     swap d3                                                 ;mapx
     move.w d3,d2
-	asl.w #2,d2
-	
-    move.l d2,d3                                            ;for debugging purposes
+    subi #8,d2                                              ;back one column
+    asr.w #2,d2                                             ;mapx=block;block*2=byte offset;/4=bp byte offset
+
     add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
-	
-    ;WAITBLIT                                                ;HardWaitBlit();
+    move.l d1,d3                                            ;for debugging purposes
+
+    WAITBLIT                                                ;HardWaitBlit();
     ;TODO PUT BACK
 
     lea DecodedGraphic,a3
@@ -1260,7 +1265,7 @@ CalculateDrawTileRight:
     ;DESTINATION => d1 (d4)
 
     move.l a4,d1                                            ;D dest (frontbuffer)
-    ;add.w #screen_bpl_bytes_per_row,d1                      ;always one bitplane pointer down (because of shift)
+    add.w #screen_bpl_bytes_per_row,d1                      ;always one bitplane pointer down (because of shift)
 
     clr.l d2
     swap d4                                                 ;y
@@ -1275,16 +1280,14 @@ CalculateDrawTileRight:
 
 ;-----------------------------------------------
 DrawTile:
-;INPUT: mapx/y in d3
-;       x/y in d4
-;       x = in pixels
-;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
+;INPUT: source ptr in d5
+;       dest ptr in d1
 ;OUTPUT: mapx in d6
 
     ;I'm probably breaking this code for left scroll...
     bsr CalculateDrawTileRight
-	
-	add.l #8,d1
+
+    ;add.l #4,d1
 
     move.w #$09F0,BLTCON0(a6)                               ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
     move.w #$0000,BLTCON1(a6)                               ;custom->bltcon1 = 0;
