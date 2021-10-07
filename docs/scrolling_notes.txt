@@ -1475,7 +1475,7 @@ DrawTile:
 ;-----------------------------------------------
 ;    lea MapXYPosition,a1
 ;    lea VideoXYPosition,a2
-;    bsr TESTGetXYPositionsForScrollRight
+;    bsr TESTGetXYScrollPositionRight
 ;    bsr CalculateDrawTileRight
 ;    addi.l #1,(a1)
 ;    addi.l #1,(a2)
@@ -1488,7 +1488,7 @@ DrawTile:
 ;    lea VideoXYPosition,a2
 ;    move.l #$15F,(a1)
 ;    move.l #$15F,(a2)
-;    bsr TESTGetXYPositionsForScrollRight
+;    bsr TESTGetXYScrollPositionRight
 ;    bsr CalculateDrawTileRight
 ;    addi.l #1,(a1)
 ;    addi.l #1,(a2)
@@ -1500,7 +1500,7 @@ DrawTile:
 ;    REPT 16
 ;    lea MapXYPosition,a1
 ;    lea VideoXYPosition,a2
-;    bsr TESTGetXYPositionsForScrollRight
+;    bsr TESTGetXYScrollPositionRight
 ;    bsr CalculateDrawTileRight
 ;    addi.l #1,(a1)
 ;    addi.l #1,(a2)
@@ -1552,3 +1552,20 @@ tile_pal_03:macro
     move.w $000,54(0)
     move.w $000,58(0)
     move.w $000,62(0)
+;   move.l #16,MapXYPosition
+;   move.l #16,VideoXYPosition
+;
+;   lea MapXYPosition,a1
+;   lea VideoXYPosition,a2
+;   bsr TESTGetXYScrollPositionRight
+;   bsr CalculateDrawTileRight
+;
+;   REPT 16
+;   addi.l #1,(a1)
+;   addi.l #1,(a2)
+;   lea MapXYPosition,a1
+;   lea VideoXYPosition,a2
+;   bsr TESTGetXYScrollPositionRight
+;   bsr CalculateDrawTileRight
+;   ENDR
+

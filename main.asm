@@ -697,23 +697,26 @@ TESTGetXYScrollPositionLeft:
     move.w 2(a3),d3                                         ;save for mapy
     swap d3
     move.w 2(a3),d3                                         ;mapposx
-    asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
+    asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH
 
-    move.w #screen_buffer_columns,d4                        ;22
-
-    add.w d4,d3                                             ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
     clr.l d4
+    clr.l d6
     move.w d3,d4
     swap d3
     and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
+    move.w d3,d6
 
-    ;get dest ptrs
+    lea TileYBlitPositions,a5
+    move.b (a5,d3.w),d3
 
     ;TODO: IF VERTICAL SCROLLING IS HAPPENING... NEED TO CALCULATE OFFSET FROM MAP (0,0)
 
-                                                            ;VideoX for Left Scroll is always 336
-                                                            ;always blitting to right column
     clr.l d5
+    move.w #(screen_buffer_columns-1)*tile_width,d5         ;VideoX for Left Scroll is always 336
+                                                            ;always blitting to right column
+
+    swap d5                                                 ;y
+
     move.w d4,d5
     add.w #screen_buffer_columns,d5
     divu #screen_buffer_columns,d5                          ;bitplane pointers in screen buffer
@@ -1402,7 +1405,9 @@ CalculateDrawTileRight:
     clr.l d5
 
     swap d3                                                 ;mapy
+    swap d4                                                 ;y
     move.w d3,d1
+    move.w d3,d4
     mulu #test_bmp_vtile_offset,d1                          ;mapy * mapwidth
 
     swap d3                                                 ;mapx
@@ -1429,16 +1434,16 @@ CalculateDrawTileRight:
                                                             ;or zero
 
     clr.l d2
-    swap d4                                                 ;y
-    move.w d4,d2
-    mulu #screen_bytes_per_row,d2                           ;(y * screen_bytes_per_row)
+
+    lea ScrollRightDestOffsets,a3
+    asl.w #1,d4
+    move.w (a3,d4.w),d2
+
     swap d4                                                 ;x
     asl.w #1,d4                                             ;column # to bytes
     add.w d4,d2                                             ;destination bit pointer
 
     move.l d2,d4                                            ;(for debugging)
-    add.l #screen_bpl_bytes_per_row,d4
-
     add.l d2,d1                                             ;frontbuffer + y + x
     rts
 
@@ -1459,7 +1464,9 @@ CalculateDrawTileLeft:
     clr.l d5
 
     swap d3                                                 ;mapy
+    swap d4                                                 ;y
     move.w d3,d1
+    move.w d3,d4
     mulu #test_bmp_vtile_offset,d1                          ;mapy * mapwidth
 
     swap d3                                                 ;mapx
@@ -1482,20 +1489,20 @@ CalculateDrawTileLeft:
     move.l a4,d1                                            ;D dest (frontbuffer)
 
     lea VideoXBitplaneOffset,a3
-    add.w (a3),d1                                           ;always either one bitplane pointer down (because of shift)
+    sub.w (a3),d1                                           ;always either one bitplane pointer up (because of shift)
                                                             ;or zero
 
     clr.l d2
-    swap d4                                                 ;y
-    move.w d4,d2
-    mulu #screen_bytes_per_row,d2                           ;(y * screen_bytes_per_row)
+
+    lea ScrollLeftDestOffsets,a3
+    asl.w #1,d4
+    move.w (a3,d4.w),d2
+
     swap d4                                                 ;x
     asl.w #1,d4                                             ;column # to bytes
     add.w d4,d2                                             ;destination bit pointer
 
     move.l d2,d4                                            ;(for debugging)
-    add.l #screen_bpl_bytes_per_row,d4
-
     add.l d2,d1                                             ;frontbuffer + y + x
     rts
 
@@ -1607,6 +1614,14 @@ DestGraphicVTileOffset:
 ScrollScreen:
     dc.l 0
 
+ScrollRightDestOffsets:
+    dc.w $0000,$0B00,$1600,$2100,$2C00,$3700,$4200,$4D00
+    dc.w $5800,$6300,$6E00,$7900,$8400,$8F00,$9A00,$A500
+
+ScrollLeftDestOffsets:
+    dc.w $A52A,$9A2A,$8F2A,$842A,$792A,$6E2A,$632A,$582A
+    dc.w $4D2A,$422A,$372A,$2C2A,$212A,$162A,$0B2A,$002A
+
 SaveWord:
     dc.w 0
 
@@ -1616,6 +1631,11 @@ VideoXBitplaneOffset:
 ScrollPositions:
     dc.b $FF,$EE,$DD,$CC,$BB,$AA,$99,$88
     dc.b $77,$66,$55,$44,$33,$22,$11,$00
+
+TileYBlitPositions:
+    dc.b $F0,$E0,$D0,$C0,$B0,$A0,$90,$80
+    dc.b $70,$60,$50,$40,$30,$20,$10,$00
+
 
 DecodedBitplaneBytes:
     dc.b 0,0,0,0,0,0,0,0
