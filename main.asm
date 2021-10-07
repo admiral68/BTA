@@ -757,6 +757,9 @@ TESTUpdatePaletteDuringScroll:
 
 .left
 
+    cmp.w #66,2(a2)                                         ;palette switch column
+    bhi .continue
+
     move.w #$0111,2(a2)
     move.w #$0FF9,6(a2)
     move.w #$0EC7,10(a2)
@@ -779,42 +782,7 @@ TESTUpdatePaletteDuringScroll:
     rts
 
 ;-----------------------------------------------
-TESTScroll:
-
-   bsr TESTUpdatePaletteDuringScroll
-
-   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
-   lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
-   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
-
-   move.w 2(a1),d0                                          ;d0=HORIZONTAL SCROLL POS
-   and.w #$00ff,d0
-
-   clr.l d1
-   lea MapXYPosition,a3
-   move.w 2(a3),d1
-
-   cmp.b #2,(a0)
-   bne .continue
-   rts
-
-.continue
-   cmp.b #1,(a0)                                            ;user move left... do left
-   beq .left
-
-.right
-    ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
-    cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width),d1              ;1728 - tile_width
-    blo .right_not_done
-
-    rts
-
-.right_not_done
-
-
-
-   bsr TESTGetXYPositionsForScrollRight
-
+TESTUpdateRightSaveWord:
    lea PtrSaveWord,a3
    lea SaveWord,a4
    lea PreviousScrollDir,a5
@@ -823,9 +791,6 @@ TESTScroll:
 
    WAITBLIT                                                 ;HardWaitBlit();
    move.w (a4),(a3)                                         ;*savewordpointer = saveword;
-
-
-
 
 .rupdate_saveword
 
@@ -852,9 +817,12 @@ TESTScroll:
 ;   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
 ;   swap d4                                                  ;x
 
+    rts
 
-
-   bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
+;-----------------------------------------------
+TESTMoveXYScrollPositionRight:
+;INPUT: mapx/y in d3
+;       x/y in d4
 
    lea MapXYPosition,a3
    lea VideoXYPosition,a4
@@ -871,68 +839,12 @@ TESTScroll:
    lea PreviousScrollDir,a3
    move.b #0,(a3)                                           ;previous_direction = DIRECTION_RIGHT;
 
-;now do the scroll
+   rts
 
-   sub.w #$0011,d0                                          ;subtracting from BPLCON1 makes more data appear
-   and.w #$00ff,d0                                          ;at the right edge
-
-   cmp.w #$ef,d0
-   bne .end
-
-   ;tile is completely scrolled through; time to move the pointers
-
-   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
-
-   move.w #$ff,d0
-
-   addi.w #1,2(a2)
-   cmp.w #1,2(a2)                                           ;If we're just starting, skip to the end
-   beq .end
-
-   cmp.w #128,2(a2)
-   bne .right_update
-
-   move.b #0,d2
-   bra .switch_direction
-
-.rback_to_zero
-
-;   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
-;   move.b #2,(a0)
-;   bra .end
-
-   lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
-
-   move.l ScrollScreen,a3
-   add.l #screen_bp_bytes_per_raster_line,a3                ;pointer shifted down one bitplane
-   move.l a3,ScrollScreen
-
-   lea 2(a3),a3
-
-   move #4-1,d1
-
-.rreset:
-   move.l a3,d4
-   swap d4
-   move.w d4,2(a2)                                         ;hi word
-   swap d4
-   move.w d4,6(a2)                                         ;lo word
-
-   addq #8,a2                                              ;point to next bpl to poke in copper
-   lea screen_bp_bytes_per_raster_line(a3),a3              ;every 44 bytes we'll have new bitplane data
-   dbf d1,.rreset
-
-;   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
-;   move.b #2,(a0)
-
-   bra .end
-
-.right_update
+;-----------------------------------------------
+MoveBitplanePointersForRightScroll:
+;INPUT:a0,d0
    ;Here we're at the start of some column. Need to reset our bitplane pointers
-
-;   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
-;   move.b #2,(a0)
-;   bra .end
 
    ;What we need to do here is check; once we've scrolled through 22 pointers... we need to reset to
    ;the bitplane pointer one rasterline up  screen_buffer_columns
@@ -967,15 +879,131 @@ TESTScroll:
    addq #8,a2                                               ;point to next bpl to poke in copper
    dbf d1,.right_update_loop
 
-   ;lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
-   ;move.b #2,(a0)
+   bra .update_horz_scroll_position
 
-   bra .end
+.switch_direction
 
+   move.b #0,(a2)
+   move.b d2,(a0)
 
+.update_horz_scroll_position
 
+   lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
+   move.w d0,2(a1)                                          ;update copper
 
+   rts
 
+.rback_to_zero
+   lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
+
+   move.l ScrollScreen,a3
+   add.l #screen_bp_bytes_per_raster_line,a3                ;pointer shifted down one bitplane
+   move.l a3,ScrollScreen
+
+   lea 2(a3),a3
+
+   move #4-1,d1
+
+.rreset:
+   move.l a3,d4
+   swap d4
+   move.w d4,2(a2)                                         ;hi word
+   swap d4
+   move.w d4,6(a2)                                         ;lo word
+
+   addq #8,a2                                              ;point to next bpl to poke in copper
+   lea screen_bp_bytes_per_raster_line(a3),a3              ;every 44 bytes we'll have new bitplane data
+   dbf d1,.rreset
+
+   bra .update_horz_scroll_position
+
+;-----------------------------------------------
+TESTScrollRight:
+;INPUT:d2,a0
+   lea MapXYPosition,a3
+
+   clr.l d1
+   move.w 2(a3),d1
+   and.w #$000F,d1
+
+   clr.l d0
+
+   lea ScrollPositions,a3
+   add.l d1,a3
+   move.b (a3),d0
+   lea MapXYPosition,a3
+
+   cmp.w #0,d1
+   bne .update_horz_scroll_position
+
+   ;tile is completely scrolled through; time to move the pointers
+
+   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
+
+   addi.w #1,2(a2)
+   cmp.w #1,2(a2)                                           ;If we're just starting, skip to the end
+   beq .update_horz_scroll_position
+
+   cmp.w #128,2(a2)
+   beq .no_right_update
+
+   bsr MoveBitplanePointersForRightScroll
+   rts
+
+.no_right_update
+   move.b #0,d2
+
+.switch_direction
+
+   move.b #0,(a2)
+   move.b d2,(a0)
+
+.update_horz_scroll_position
+
+   lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
+   move.w d0,2(a1)                                          ;update copper
+
+   rts
+
+;-----------------------------------------------
+TESTScroll:
+
+   bsr TESTUpdatePaletteDuringScroll
+
+   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
+   lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
+   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
+
+   move.w 2(a1),d0                                          ;d0=HORIZONTAL SCROLL POS
+   and.w #$00ff,d0
+
+   clr.l d1
+   lea MapXYPosition,a3
+   move.w 2(a3),d1
+
+   cmp.b #2,(a0)
+   bne .continue
+   rts
+
+.continue
+   cmp.b #1,(a0)                                            ;user move left... do left
+   beq .left
+
+.right
+    ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
+    cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width),d1              ;1728 - tile_width
+    blo .right_not_done
+
+    rts
+
+.right_not_done
+
+   bsr TESTScrollRight;INPUT:d2,a0 (d1)
+   bsr TESTGetXYPositionsForScrollRight
+   bsr TESTUpdateRightSaveWord;OUTPUT: mapx/y in d3; video x/y in d4
+   bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
+   bsr TESTMoveXYScrollPositionRight;INPUT: mapx/y in d3; x/y in d4;OUTPUT: d1 (x pixel pos in tile)
+   rts
 
 .left
     cmp.w #-1,d1
@@ -1336,7 +1364,6 @@ CalculateDrawTileRight:
 
     lea DecodedGraphic,a3
     move.l ScrollScreen,a4
-    ;lea Screen,a4                                           ;TODO: CHECK TO SEE IF THIS NEEDS AN OFFSET
 
     move.l a3,d5                                            ;A source (blocksbuffer)
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
@@ -1364,12 +1391,13 @@ CalculateDrawTileRight:
 
 ;-----------------------------------------------
 DrawTile:
-;INPUT: source ptr in d5
-;       dest ptr in d1
-;OUTPUT: mapx in d6
+;INPUT: mapx/y in d3
+;       x/y in d4
+;OUTPUT: source ptr in d5; dest ptr in d1
 
     ;I'm probably breaking this code for left scroll...
-    bsr CalculateDrawTileRight
+    bsr CalculateDrawTileRight  ;OUTPUT: source ptr in d5; dest ptr in d1
+
 
     move.w #$09F0,BLTCON0(a6)                               ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
     move.w #$0000,BLTCON1(a6)                               ;custom->bltcon1 = 0;
@@ -1382,8 +1410,8 @@ DrawTile:
 
     move.w #(tile_plane_lines*64+1),BLTSIZE(a6)             ;custom->bltsize = BLOCKPLANELINES * 64 + (BLOCKWIDTH / 16);
 
-;    cmp.l #$3C056,d3
-;   bne .end
+;    cmp.l #$3C056,d3                                       ;can stop after a particular tile is blitted by
+;   bne .end                                                ;doing something like this
 ;
 ;    lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
 ;    move.b #2,(a0)
@@ -1468,6 +1496,10 @@ SaveWord:
 
 VideoXBitplaneOffset:
     dc.w screen_bpl_bytes_per_row
+
+ScrollPositions:
+    dc.b $FF,$EE,$DD,$CC,$BB,$AA,$99,$88
+    dc.b $77,$66,$55,$44,$33,$22,$11,$00
 
 DecodedBitplaneBytes:
     dc.b 0,0,0,0,0,0,0,0
