@@ -637,7 +637,7 @@ TESTDecodeRowOf16Pixels:
     rts
 
 ;-----------------------------------------------
-TESTGetXYPositionsForScrollRight:
+TESTGetXYScrollPositionRight:
     ;returns mapx/y in d3
     ;returns x/y in d4
 
@@ -685,7 +685,7 @@ TESTGetXYPositionsForScrollRight:
     rts
 
 ;-----------------------------------------------
-TESTGetXYPositionsForScrollLeft:
+TESTGetXYScrollPositionLeft:
     ;returns mapx/y in d3
     ;returns x/y in d4
 
@@ -782,7 +782,7 @@ TESTUpdatePaletteDuringScroll:
     rts
 
 ;-----------------------------------------------
-TESTUpdateRightSaveWord:
+UpdateSaveWordRightScroll:
    lea PtrSaveWord,a3
    lea SaveWord,a4
    lea PreviousScrollDir,a5
@@ -820,7 +820,7 @@ TESTUpdateRightSaveWord:
     rts
 
 ;-----------------------------------------------
-TESTMoveXYScrollPositionRight:
+IncrementXYScrollPosition:
 ;INPUT: mapx/y in d3
 ;       x/y in d4
 
@@ -992,27 +992,27 @@ TESTScroll:
 .right
     ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
     cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width),d1              ;1728 - tile_width
-    blo .right_not_done
+    blo .scroll_right
 
     rts
 
-.right_not_done
+.scroll_right
 
-   bsr TESTScrollRight;INPUT:d2,a0 (d1)
-   bsr TESTGetXYPositionsForScrollRight
-   bsr TESTUpdateRightSaveWord;OUTPUT: mapx/y in d3; video x/y in d4
-   bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
-   bsr TESTMoveXYScrollPositionRight;INPUT: mapx/y in d3; x/y in d4;OUTPUT: d1 (x pixel pos in tile)
+   bsr TESTScrollRight                                      ;INPUT:d2,a0 (d1)
+   bsr TESTGetXYScrollPositionRight
+   bsr UpdateSaveWordRightScroll                            ;OUTPUT: mapx/y in d3; video x/y in d4
+   bsr DrawTile
+   bsr IncrementXYScrollPosition                            ;INPUT: mapx/y in d3; x/y in d4
    rts
 
 .left
-    cmp.w #-1,d1
-    bgt .left_not_done
+    cmp.w #0,d1
+    bhi .scroll_left
     rts                                                     ;if (mapposx < 1) return;
 
-.left_not_done
+.scroll_left
 
-   bsr TESTGetXYPositionsForScrollLeft
+   bsr TESTGetXYScrollPositionLeft
 
    lea PtrSaveWord,a3
    lea SaveWord,a4
