@@ -1682,3 +1682,88 @@ CopyScreenFromDecodedLongBitmap2:
     rts
 
 ;-----------------------------------------------
+MoveBitplanePointersForRightScroll:
+;INPUT:a0,d0
+   lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
+   move #4-1,d1
+   move.l ScrollScreen,d3
+   add.l #2,d3                                              ;forward one column
+   move.l d3,ScrollScreen
+
+.loop
+   move.w d3,6(a2)                                          ;lo word
+   swap d3
+   move.w d3,2(a2)                                          ;hi word
+   swap d3
+   add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
+   addq #8,a2                                               ;point to next bpl to poke in copper
+   dbf d1,.loop
+
+   lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
+   move.w d0,2(a1)                                          ;update copper
+
+   rts
+
+;-----------------------------------------------
+MoveBitplanePointersForLeftScroll:
+;INPUT:a0,d0
+   lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
+   move #4-1,d1
+   move.l ScrollScreen,d3
+   sub.l #2,d3                                              ;back one column
+   move.l d3,ScrollScreen
+
+.loop
+   move.w d3,6(a2)                                          ;lo word
+   swap d3
+   move.w d3,2(a2)                                          ;hi word
+   swap d3
+   add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
+   addq #8,a2                                               ;point to next bpl to poke in copper
+   dbf d1,.loop
+
+   lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
+   move.w d0,2(a1)                                          ;update copper
+
+   rts
+;-----------------------------------------------
+MoveBitplanePointersForDownScroll:
+;INPUT:a0,d0
+   lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
+   move #4-1,d1
+   move.l ScrollScreen,d3
+   add.l #screen_bytes_per_row,d3                           ;down one row
+   move.l d3,ScrollScreen
+
+.loop
+   move.w d3,6(a2)                                          ;lo word
+   swap d3
+   move.w d3,2(a2)                                          ;hi word
+   swap d3
+   add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
+   addq #8,a2                                               ;point to next bpl to poke in copper
+   dbf d1,.loop
+   
+   rts
+
+;-----------------------------------------------
+MoveBitplanePointersForUpScroll:
+;INPUT:a0,d0
+   lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
+   move #4-1,d1
+   move.l ScrollScreen,d3
+   sub.l #screen_bytes_per_row,d3                           ;up one row
+   move.l d3,ScrollScreen
+
+.loop
+   move.w d3,6(a2)                                          ;lo word
+   swap d3
+   move.w d3,2(a2)                                          ;hi word
+   swap d3
+   add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
+   addq #8,a2                                               ;point to next bpl to poke in copper
+   dbf d1,.loop
+   
+   rts
+
+;-----------------------------------------------
