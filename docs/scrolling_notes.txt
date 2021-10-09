@@ -1569,3 +1569,75 @@ tile_pal_03:macro
 ;   bsr CalculateDrawTileRight
 ;   ENDR
 
+
+
+
+
+
+;    lea Screen,a1
+;    move.l a1,ScrollScreen
+
+;    move.l #$160,MapXYPosition
+;    move.l #$160,VideoXYPosition
+;
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    bsr TESTGetXYScrollPositionLeft
+;    bsr CalculateDrawTileLeft
+;
+;    REPT 16
+;    subi.l #1,(a1)
+;    subi.l #1,(a2)
+;    lea MapXYPosition,a1
+;    lea VideoXYPosition,a2
+;    bsr TESTGetXYScrollPositionLeft
+;    bsr CalculateDrawTileLeft
+;    ENDR
+
+
+
+
+;    lea Screen,a1
+;    move.l a1,ScrollScreen
+;
+;    move.l #$10,MapXYPosition
+;    move.l #$10,VideoXYPosition
+;    bsr TESTGetXYScrollPositionLeft
+;    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
+;    bsr CalculateDrawTileLeft
+;
+;    move.l #$20,MapXYPosition
+;    move.l #$20,VideoXYPosition
+;    bsr TESTGetXYScrollPositionLeft
+;    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
+;    bsr CalculateDrawTileLeft
+;
+;    move.l #$160,MapXYPosition
+;    move.l #$160,VideoXYPosition
+;    bsr TESTGetXYScrollPositionLeft
+;    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
+;    bsr CalculateDrawTileLeft
+;
+;    REPT 16
+;    bsr TESTScrollLeft
+;    bsr DecrementXScrollPosition
+;    bsr TESTGetXYScrollPositionLeft
+;    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
+;    bsr CalculateDrawTileLeft
+;    ENDR
+
+;    clr.w $100.w
+;    lea DecodedGraphic,a0
+;    lea TileXYPosition,a1
+;    lea MapXYPosition,a2
+;    lea ScrollScreen,a3
+;    lea Screen,a4
+;    move.l ScrollScreen,d0
+    clr.w $100.w
+    lea DecodedGraphic,a0
+    lea TileXYPosition,a1
+    lea MapXYPosition,a2
+    lea ScrollScreen,a3
+    lea Screen,a4
+
+

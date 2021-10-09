@@ -344,6 +344,8 @@ Init:
 
     lea Screen,a0                                           ;ptr to first bitplane of image
     lea 2(a0),a0                                            ;+2 because we're scrollin' (Skip first column)
+    move.l a0,ScrollPtr
+
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
     move #4-1,d0
 
@@ -847,78 +849,25 @@ IncrementXScrollPosition:
 ;-----------------------------------------------
 MoveBitplanePointersForRightScroll:
 ;INPUT:a0,d0
-   ;Here we're at the start of some column. Need to reset our bitplane pointers
-
-   ;What we need to do here is check; once we've scrolled through 22 pointers... we need to reset to
-   ;the bitplane pointer one rasterline up  screen_buffer_columns
-
-   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
-   move.w 2(a2),d3
-   subi.w #1,d3                                             ;we were off by one
-
-   divu #screen_buffer_columns,d3
-   swap d3
-   cmp.w #0,d3                                              ;remainder of 0; starting position
-   beq .rback_to_zero
-
-   ;now we just move our bitplane pointers screen_buffer_columns times!
-
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
    move #4-1,d1
-
-.right_update_loop
-   clr.l d3
-
-   move.w 2(a2),d3                                          ;hi word
-   swap d3
-   move.w 6(a2),d3                                          ;lo word
-
+   move.l ScrollPtr,d3
    add.l #2,d3
+   move.l d3,ScrollPtr
 
+.loop
    move.w d3,6(a2)                                          ;lo word
    swap d3
    move.w d3,2(a2)                                          ;hi word
-
+   swap d3
+   add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
    addq #8,a2                                               ;point to next bpl to poke in copper
-   dbf d1,.right_update_loop
-
-   bra .update_horz_scroll_position
-
-.switch_direction
-
-   move.b #0,(a2)
-   move.b d2,(a0)
-
-.update_horz_scroll_position
+   dbf d1,.loop
 
    lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
    move.w d0,2(a1)                                          ;update copper
 
    rts
-
-.rback_to_zero
-   lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
-
-   move.l ScrollScreen,a3
-   add.l #screen_bp_bytes_per_raster_line,a3                ;pointer shifted down one bitplane
-   move.l a3,ScrollScreen
-
-   lea 2(a3),a3
-
-   move #4-1,d1
-
-.rreset:
-   move.l a3,d4
-   swap d4
-   move.w d4,2(a2)                                         ;hi word
-   swap d4
-   move.w d4,6(a2)                                         ;lo word
-
-   addq #8,a2                                              ;point to next bpl to poke in copper
-   lea screen_bp_bytes_per_raster_line(a3),a3              ;every 44 bytes we'll have new bitplane data
-   dbf d1,.rreset
-
-   bra .update_horz_scroll_position
 
 ;-----------------------------------------------
 MoveBitplanePointersForLeftScroll:
@@ -954,7 +903,13 @@ MoveBitplanePointersForLeftScroll:
    move.w 6(a2),d3                                          ;lo word
 
    sub.l #2,d3
+   cmp.w #3,d1
+   bne .cont_left_loop
 
+   ;graeme_special
+   move.l d3,ScrollPtr
+
+.cont_left_loop
    move.w d3,6(a2)                                          ;lo word
    swap d3
    move.w d3,2(a2)                                          ;hi word
@@ -977,10 +932,11 @@ MoveBitplanePointersForLeftScroll:
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
 
    move.l ScrollScreen,a3
-   ;sub.l #screen_bp_bytes_per_raster_line,a3                ;pointer shifted up one bitplane
-   ;move.l a3,ScrollScreen
+   sub.l #screen_bp_bytes_per_raster_line,a3                ;pointer shifted up one bitplane
+   move.l a3,ScrollScreen
 
    lea 2(a3),a3
+   move.l a3,ScrollPtr
 
    move #4-1,d1
 
@@ -1138,7 +1094,7 @@ TESTScroll:
 .right
     ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
     move.b #1,d3
-    cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width),d2              ;2048-352-tile_width
+    cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width*2),d2              ;2048-352-tile_width*2
     blo .scroll_right
     bra .switch_direction
 
@@ -1148,6 +1104,7 @@ TESTScroll:
    bsr TESTGetXYScrollPositionRight
    bsr UpdateSaveWordRightScroll                            ;OUTPUT: mapx/y in d3; video x/y in d4
    bsr CalculateDrawTileRight
+   ;graeme_special
    bsr DrawTile
    bsr IncrementXScrollPosition                             ;INPUT: mapx/y in d3; x/y in d4
    rts
@@ -1165,8 +1122,9 @@ TESTScroll:
    bsr TESTGetXYScrollPositionLeft
    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
    bsr CalculateDrawTileLeft
-   graeme_special
+   ;graeme_special
    bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
+   ;graeme_special
 
 ;   lea TestScrollCommand,a0                                 ;0=user move right;1=user move left
 ;   move.b #2,(a0)
@@ -1175,8 +1133,16 @@ TESTScroll:
 
 .switch_direction
 
-   lea Screen,a1
-   move.l a1,ScrollScreen
+   ;graeme_special
+;   lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
+;   clr.l d1
+;
+;   move.w 2(a1),d1                                         ;hi word
+;   swap d1
+;   move.w 6(a1),d1                                         ;lo word
+   move.l ScrollPtr,d1
+   sub.l #2,d1                                             ;start of buffer
+   move.l d1,ScrollScreen
 
    move.b d3,(a0)
    rts
@@ -1461,7 +1427,7 @@ CalculateDrawTileRight:
     WAITBLIT                                                ;HardWaitBlit();
 
     lea DecodedGraphic,a3
-    move.l ScrollScreen,a4
+    move.l ScrollPtr,a4
 
     move.l a3,d5                                            ;A source (blocksbuffer)
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
@@ -1479,11 +1445,9 @@ CalculateDrawTileRight:
     asl.w #1,d4
     move.w (a3,d4.w),d2
 
-    swap d4                                                 ;x
-    asl.w #1,d4                                             ;column # to bytes
-    add.w d4,d2                                             ;destination bit pointer
-
     move.l d2,d4                                            ;(for debugging)
+    lea VideoXBitplaneOffset,a3
+    add.w (a3),d4
     add.l d2,d1                                             ;frontbuffer + y + x
     rts
 
@@ -1521,6 +1485,9 @@ CalculateDrawTileLeft:
     swap d3                                                 ;mapx
     move.w d3,d2
     asl.w #1,d2                                             ;mapx*2=bp byte offset
+
+
+    ;FOR DEBUGGING: COMMENT THIS OUT; it will always choose the same source tile
     add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
 
     move.l d1,d3                                            ;for debugging purposes
@@ -1548,12 +1515,12 @@ CalculateDrawTileLeft:
     lea ScrollRightDestOffsets,a3
     asl.w #1,d4
     move.w (a3,d4.w),d2
-    add.w #21*2,d2                                          ;right fill column
+    add.w #screen_bpl_bytes_per_row,d2                      ;right fill column
     ;add.w #2,d2
 
     swap d4                                                 ;x
     asl.w #1,d4                                             ;column # to bytes
-    add.w d4,d2                                             ;destination bit pointer
+    ;add.w d4,d2                                             ;destination bit pointer
 
     move.l d2,d4                                            ;(for debugging)
     add.l d2,d1                                             ;frontbuffer + y + x
@@ -1666,6 +1633,9 @@ DestGraphicVTileOffset:
 ScrollScreen:
     dc.l 0
 
+ScrollPtr:
+    dc.l 0
+
 ScrollRightDestOffsets:
     dc.w $0000,$0B00,$1600,$2100,$2C00,$3700,$4200,$4D00
     dc.w $5800,$6300,$6E00,$7900,$8400,$8F00,$9A00,$A500
@@ -1678,7 +1648,7 @@ SaveWord:
     dc.w 0
 
 VideoXBitplaneOffset:
-    dc.w screen_bpl_bytes_per_row
+    dc.w screen_bpl_bytes_per_row-2
 
 ScrollPositions:
     dc.b $FF,$EE,$DD,$CC,$BB,$AA,$99,$88
