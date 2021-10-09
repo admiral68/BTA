@@ -14,14 +14,13 @@ test_tilesrc_bp_offset              = $20000
 test_tilesrc_upr_px_b_off           = $20
 
 test_cols_to_decode                 = 128
-test_rows_to_decode                 = 16                                                ;TODO: Make it possible to decode more than 16 rows
+test_rows_to_decode                 = 32                                                ;TODO: Make it possible to decode more than 16 rows
 
 test_bmp_width_pixels               = 2048
 test_bmp_horz_disp_words            = test_bmp_width_pixels/tile_width
 test_bmp_bp_bytes_per_raster_line   = test_bmp_horz_disp_words*2
 test_bmp_bytes_per_raster_line      = test_bmp_bp_bytes_per_raster_line*tile_bitplanes
 test_bmp_vtile_offset               = test_bmp_bytes_per_raster_line*tile_height
-test_bmp_tiles_height               = 16
 
     *-----------------*
     * constants:video *
@@ -29,17 +28,15 @@ test_bmp_tiles_height               = 16
 
 screen_width                        = 352
 screen_height                       = 256
+screen_buffer_height                = 288
 screen_buffer_columns               = screen_width/tile_width
 screen_bitplanes                    = 4
 screen_bpl_bytes_per_row            = screen_width/8
 screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
-screen_blit_size                    = screen_height*tile_bitplanes*64+screen_width/16
 screen_modulo                       = (screen_width/8)*3                                ;offset by 3 bitplanes
 screen_horz_disp_words              = screen_width/16
 screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
 screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
-screen_bplsize                      = screen_width*(screen_height+2)/8
-screen_size                         = screen_bytes_per_row*screen_height
 
 ;"tile" here means 16x16 pixels
 
@@ -331,6 +328,7 @@ Init:
     movem.l d0-a6,-(sp)
 
     lea Screen,a1
+    lea screen_bytes_per_row*tile_height(a1),a1
     bsr.w ClearScreen
 
 ; some test code
@@ -341,7 +339,7 @@ Init:
     bsr CopyScreenFromDecodedLongBitmap
 
     lea Screen,a0                                           ;ptr to first bitplane of image
-    lea 2(a0),a0                                            ;+2 because we're scrollin' (Skip first column)
+    lea 2+screen_bytes_per_row*tile_height(a0),a0           ;+2 because we're scrollin' (Skip first column)
     move.l a0,ScrollScreen
 
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
@@ -1089,6 +1087,7 @@ CopyScreenFromDecodedLongBitmap:
     lea Screen,a4
     move.l a3,d3
     move.l a4,d4
+    add.l #screen_bytes_per_row*tile_height,d4
 
     add.l #127*2,d3                                         ;move source to last column
 
@@ -1103,7 +1102,7 @@ CopyScreenFromDecodedLongBitmap:
 
     lea DecodedGraphic,a3
     lea Screen,a4
-    lea 2(a4),a4                                            ;initially skip first column of pixels
+    lea 2+screen_bytes_per_row*tile_height(a4),a4           ;initially skip first column of pixels
     move.l a3,d3
     move.l a4,d4
 
@@ -1310,12 +1309,12 @@ CalculateDrawTile:
 
     swap d3                                                 ;mapx
     move.w d3,d2
-    
+
     cmp.b #0,(a0)
     bne .left
-    
+
     subi #1,d2                                              ;back one column
-    
+
 .left
     asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
 
@@ -1543,13 +1542,13 @@ CopperE:
     SECTION AllBuffers,BSS_C
 
 Screen:
-    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_height+2)
+    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2)
 ScreenE:
 
     EVEN
 
 DecodedGraphic:
-    ds.b $40000                                             ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
+    ds.b $80000                                             ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
 DecodedGraphicE:
 
 
