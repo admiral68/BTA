@@ -880,7 +880,7 @@ MoveBitplanePointersForLeftScroll:
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
    move #4-1,d1
    move.l ScrollScreen,d3
-   graeme_special
+   ;graeme_special
    sub.l #2,d3                                              ;back one column
    move.l d3,ScrollScreen
 
@@ -945,13 +945,14 @@ TESTScrollLeft:
 
 .update
    bsr MoveBitplanePointersForLeftScroll
-   rts
+   bra .update_horz_scroll_position
 
 .no_update
    move.w #127,(a2)
 
 .update_horz_scroll_position
 
+   graeme_special
    lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
    move.w d0,2(a1)                                          ;update copper
 
@@ -1013,6 +1014,9 @@ DecrementXScrollPosition:                                   ;INPUT: mapx/y in d3
    clr.l d1
    move.w 2(a3),d1
    and.w #$000F,d1
+
+   lea ScrollPositions,a3
+   move.b (a3,d1.w),d0
 
    rts
 
@@ -1444,7 +1448,6 @@ CalculateDrawTileLeft:
     lea ScrollRightDestOffsets,a3
     asl.w #1,d4
     move.w (a3,d4.w),d2
-    add.w #screen_bpl_bytes_per_row,d2                      ;right fill column
 
     move.l d2,d4                                            ;(for debugging)
     add.l d2,d1                                             ;frontbuffer + y + x
