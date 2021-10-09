@@ -1,3 +1,10 @@
+    clr.w $100.w
+    lea DecodedGraphic,a0
+    lea TileXYPosition,a1
+    lea MapXYPosition,a2
+    lea ScrollScreen,a3
+    lea Screen,a4
+
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"
@@ -850,7 +857,7 @@ MoveBitplanePointersForRightScroll:
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
    move #4-1,d1
    move.l ScrollScreen,d3
-   add.l #2,d3
+   add.l #2,d3                                              ;forward one column
    move.l d3,ScrollScreen
 
 .loop
@@ -873,7 +880,8 @@ MoveBitplanePointersForLeftScroll:
    lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
    move #4-1,d1
    move.l ScrollScreen,d3
-   sub.l #2,d3
+   graeme_special
+   sub.l #2,d3                                              ;back one column
    move.l d3,ScrollScreen
 
 .loop
@@ -922,6 +930,7 @@ TESTScrollRight:
 ;-----------------------------------------------
 TESTScrollLeft:
 ;INPUT:a0
+   graeme_special
    cmp.w #15,d1
    bne .update_horz_scroll_position
 
@@ -934,6 +943,7 @@ TESTScrollLeft:
    cmp.w #-1,2(a2)
    beq .no_update
 
+.update
    bsr MoveBitplanePointersForLeftScroll
    rts
 
@@ -999,6 +1009,11 @@ DecrementXScrollPosition:                                   ;INPUT: mapx/y in d3
    move.l #(test_cols_to_decode*tile_width-1),(a4)          ;reset video x to 351
 
 .end
+
+   clr.l d1
+   move.w 2(a3),d1
+   and.w #$000F,d1
+
    rts
 
 ;-----------------------------------------------
@@ -1052,8 +1067,8 @@ TESTScroll:
 
 .scroll_left
 
-   bsr TESTScrollLeft
    bsr DecrementXScrollPosition
+   bsr TESTScrollLeft
    bsr TESTGetXYScrollPositionLeft
    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
    bsr CalculateDrawTileLeft
