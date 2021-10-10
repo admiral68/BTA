@@ -213,41 +213,40 @@ ScrollUpdateBitplanePointers:
 
    beq .update_pointer
 
+   clr.l d2
+   move.w v_map_y_position(a0),d2
+   divu #screen_buffer_height,d2                           ;bitplane pointers in screen buffer
+   swap d2
 
+; calculate raster line of display split
+   move.w #v_display_start,d0
+   moveq #-2*16,d1
+   add.w d2,d1                             ;d1 = d1 + (ypos % screen_buffer_height)
+   bmi .no_split
+   sub.w d1,d0                             ;d0 = d0 - (-2*16)
 
-;	; calculate raster line of display split
-;	move.w	#v_display_start,d0
-;	moveq	#-2*16,d1							;
-;	add.w	d4,d1								;d1 = d1 + (ypos % screen_buffer_height)
-;	bmi	.2			; no split
-;	sub.w	d1,d0								;d0 = d0 - (-2*16)
+; write WAIT command for split line
+.no_split:
+   move.b d0,c_split(a0)                   ;d0 is the second one
+   and.w #$ff00,d0
+   sne c_split_stop(a0)                    ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
 
+;   ; write updated bitplane pointers for top and split section
 
-;	; write WAIT command for split line
-;.2:	move.b	d0,Cl_waitsplit+4(a2)				;d0 is the second one
-;	and.w	#$ff00,d0
-;	sne	Cl_waitsplit(a2);                       ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
-;
-;	; write updated bitplane pointers for top and split section
-;	lea	Cl_bpltop+2(a2),a0
-
-;	moveq	#screen_bitplanes-1,d0
-;	move.w	#screen_bpl_bytes_per_row,a1
-;.3:	swap	d6
-;	move.w	d6,(a0)
-;	swap	d6
-;	move.w	d6,4(a0)
-;	swap	d7
-;	move.w	d7,Cl_bplsplit-Cl_bpltop(a0)
-;	swap	d7
-;	move.w	d7,4+Cl_bplsplit-Cl_bpltop(a0)
-;	addq.l	#8,a0
-;	add.l	a1,d6
-;	add.l	a1,d7
-;	dbf	d0,.3
-
-
-
+;   moveq   #screen_bitplanes-1,d0
+;.3:
+;   swap    d6
+;   move.w  d6,c_bitplane_pointers_01(a0)
+;   swap    d6
+;   move.w  d6,4+c_bitplane_pointers_01(a0)
+;   swap    d7
+;   move.w  d7,c_bitplane_pointers_02(a0)
+;   swap    d7
+;   move.w  d7,4+c_bitplane_pointers_02(a0)
+;   addq.l  #8,a0
+;   add.l   #screen_bpl_bytes_per_row,d6
+;   add.l   #screen_bpl_bytes_per_row,d7
+;   dbf d0,.3
 
    btst #15,d5
    beq .positive_y
@@ -256,7 +255,7 @@ ScrollUpdateBitplanePointers:
    subi #1,d5
 
 .loop_sub_y
-   sub.l #screen_bp_bytes_per_raster_line,d6
+   sub.l #screen_bpl_bytes_per_row,d6
    dbf.w d5,.loop_sub_y
    bra .update_pointer
 
@@ -264,7 +263,7 @@ ScrollUpdateBitplanePointers:
    subi #1,d5
 
 .loop_add_y
-   add.l #screen_bp_bytes_per_raster_line,d6
+   add.l #screen_bpl_bytes_per_row,d6
    dbf.w d5,.loop_add_y
 
 .update_pointer

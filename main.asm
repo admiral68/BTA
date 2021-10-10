@@ -364,7 +364,7 @@ TESTScroll:
 .down
     move.b #16,d3
     swap d2
-    cmp.w #screen_height,d2
+    cmp.w #1024-256-16,d2
     blo .scroll_down
     bra .switch_direction
 
@@ -585,10 +585,10 @@ FastData:
     dc.b 0
 
 ;v_scroll_command
-    dc.b 0
+    dc.b 2
 
 ;v_scroll_previous_direction
-    dc.b 0
+    dc.b 2
 
     EVEN
 
