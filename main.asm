@@ -93,6 +93,7 @@ Main:
 * TEST ROUTINES
 *******************************************************************************
 TESTVBCode:
+    lea FastData,a0
     bsr TESTScroll
     rts
 
@@ -271,7 +272,6 @@ TESTScrollUp:
 ;-----------------------------------------------
 TESTScroll:
 
-   lea FastData,a0
    bsr TESTUpdatePaletteDuringScroll
    bsr ScrollGetStepAndDelay
 
@@ -310,18 +310,13 @@ TESTScroll:
     ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
     move.b #1,d3
     cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width*2),d2              ;2048-352-tile_width*2
-    ;cmp.w #129,d2
     blo .scroll_right
     bra .switch_direction
 
 .scroll_right
 
-   lea FastData,a0
    bsr TESTScrollRight                                      ;INPUT:d2,a0 (d1)
    bsr ScrollGetXYPositionRight
-
-   lea Screen,a2                                            ;frontbuffer
-   bsr ScrollUpdateSaveWordRight                            ;OUTPUT: mapx/y in d3; video x/y in d4
 
    lea DecodedGraphic,a3
    bsr ScrollGetHTileOffsets
@@ -332,19 +327,14 @@ TESTScroll:
 .left
     move.b #0,d3
     cmp.w #tile_width,d2
-    ;cmp.w #95,d2
     bhi .scroll_left
     bra .switch_direction
 
 .scroll_left
 
-   lea FastData,a0
    bsr ScrollDecrementXPosition
    bsr TESTScrollLeft
    bsr ScrollGetXYPositionLeft
-
-   lea Screen,a2
-   bsr ScrollUpdateSaveWordLeft                             ;OUTPUT: mapx/y in d3; video x/y in d4
 
    lea DecodedGraphic,a3
    bsr ScrollGetHTileOffsets
@@ -355,7 +345,6 @@ TESTScroll:
    rts
 
 .scroll_up
-   lea FastData,a0
 ;   bsr ScrollDecrementYPosition
 
    bsr TESTScrollUp
@@ -375,7 +364,6 @@ TESTScroll:
 
 .scroll_down
 
-   lea FastData,a0
    bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
    bsr ScrollGetXYPositionDown
 ;   bsr CalculateDrawVTile

@@ -3,14 +3,14 @@
 * TEST ROUTINES
 *******************************************************************************
 TESTLoadLevel1Tiles:
+;lea TilesToDecode,a2
+;lea ScrollDataLev1,a1
     ;THIS DECODES THE TILES IN MAP LAYOUT (16x16 TILES). 128 tiles horizontally
     ;then wrap to the next row of tiles
 
     move.l #0,d2
     move.l #0,d3
 
-    ;lea TilesToDecode,a2
-    ;lea ScrollDataLev1,a1
     move.l a1,a4                                            ;row
     move.l #test_rows_to_decode-1,d0
 

@@ -3,10 +3,6 @@ ScrollGetXYPositionRight:
     ;returns mapx/y in d3
     ;returns x/y in d4
 
-;BLOCKSWIDTH        = bitmapwidth
-;BLOCKSBYTESPERROW  = screen_bytes_per_row
-;BLOCKSPERROW       = tiles_per_row
-
     ;get source ptrs
 
     move.w v_map_x_position(a0),d3                          ;save for mapy
@@ -51,12 +47,9 @@ ScrollGetXYPositionLeft:
 ;returns mapx/y in d3
 ;returns x/y in d4
 
-;BLOCKSWIDTH        = bitmapwidth
-;BLOCKSBYTESPERROW  = tile_bytes_per_row
-;BLOCKSPERROW       = tiles_per_row
-    move.w v_map_x_position(a0),d3                                         ;save for mapy
+    move.w v_map_x_position(a0),d3                          ;save for mapy
     swap d3
-    move.w v_map_x_position(a0),d3                                         ;mapposx
+    move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH
     subi.w #1,d3                                            ;because we have one blank column to the left
 
@@ -317,74 +310,5 @@ ScrollGetHTileOffsets:
     move.l d2,d4                                            ;(for debugging)
     add.l d2,d1                                             ;frontbuffer + y + x
     rts
-
-;-----------------------------------------------
-ScrollUpdateSaveWordRight:
-   cmp.b #1,v_scroll_previous_direction(a0)                 ;if (previous_direction == DIRECTION_LEFT)
-   bne .rupdate_saveword
-
-   WAITBLIT                                                 ;HardWaitBlit();
-   move.w v_scroll_saveword(a0),v_scroll_ptr_saveword(a0)   ;*savewordpointer = saveword;
-
-.rupdate_saveword
-
-
-;TODO: THIS CODE CAUSES A GURU MEDITATION :---)
-
-;   clr.l d1
-;   clr.l d2
-;
-;   lea Screen,a2                                            ;frontbuffer
-;   move.l a2,d2
-;   move.w d4,d1                                             ;x
-;   asr.w #3,d1                                              ;(x / 8)
-;   add.l d1,d2                                              ;frontbuffer + (x / 8)
-;
-;   clr.l d1
-;
-;   swap d4                                                  ;y
-;   move.w d4,d1
-;   add.w #tile_plane_lines-1,d1                             ;(y + tile_plane_lines - 1)
-;   mulu #screen_width/2,d1                                  ;* bitmap_bytes_per_row
-;   add.l d1,d2
-;   move.l d2,a4                                             ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
-;   move.w (a4),v_scroll_saveword(a3)                        ;saveword = *savewordpointer;
-;   swap d4                                                  ;x
-
-    rts
-
-;-----------------------------------------------
-ScrollUpdateSaveWordLeft:                                   ;OUTPUT: mapx/y in d3; video x/y in d4
-   cmp.b #0,v_scroll_previous_direction(a0)                 ;if (previous_direction == DIRECTION_RIGHT)
-   bne .lupdate_saveword
-
-   WAITBLIT                                                 ;HardWaitBlit();
-   move.w v_scroll_saveword(a0),v_scroll_ptr_saveword(a0)   ;*savewordpointer = saveword;
-
-.lupdate_saveword
-
-;TODO: THIS CODE CAUSES A GURU MEDITATION :---)
-
-;   clr.l d1
-;   clr.l d2
-;   lea Screen,a2
-;   move.l a2,d2                                             ;frontbuffer
-;   move.w d4,d1                                             ;x
-;   asr.w #3,d1                                              ;(x / 8)
-;   add.l d1,d2                                              ;frontbuffer + (x / 8)
-;
-;;TODO: CONVERT y (in d4) TO SCREEN BUFFER COORDS; RIGHT NOW IT IS IN BIG BITMAP COORDS
-;   clr.l d1
-;   swap d4                                                  ;y
-;   move.w d1,d4
-;   mulu #screen_width/2,d1                                  ;* bitmap_bytes_per_row
-;   add.l d1,d2
-;   move.l d2,a4                                             ;savewordpointer = (WORD *)(frontbuffer + y * bitmap_bytes_per_row + (x / 8));
-;   move.w (a4),v_scroll_saveword(a0)                        ;saveword = *savewordpointer;
-;   swap d4                                                  ;x
-
-   move.b #1,v_scroll_previous_direction(a0)                 ;previous_direction = DIRECTION_LEFT;
-
-   rts
 
 ;-----------------------------------------------
