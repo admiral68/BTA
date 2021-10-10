@@ -2,324 +2,14 @@
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"
 
+    INCLUDE "common.s"
+    INCLUDE "tile.s"
+    INCLUDE "test.asm"
+    INCLUDE "scroll.asm"
+
 *******************************************************************************
 * DEFINES
 *******************************************************************************
-
-    *-----------------*
-    * test stuff      *
-    *-----------------*
-
-test_tilesrc_bp_offset              = $20000
-test_tilesrc_upr_px_b_off           = $20
-
-test_cols_to_decode                 = 128
-test_rows_to_decode                 = 32                                                ;TODO: Make it possible to decode more than 16 rows
-
-test_bmp_width_pixels               = 2048
-test_bmp_horz_disp_words            = test_bmp_width_pixels/tile_width
-test_bmp_bp_bytes_per_raster_line   = test_bmp_horz_disp_words*2
-test_bmp_bytes_per_raster_line      = test_bmp_bp_bytes_per_raster_line*tile_bitplanes
-test_bmp_vtile_offset               = test_bmp_bytes_per_raster_line*tile_height
-
-    *-----------------*
-    * constants:video *
-    *-----------------*
-
-screen_width                        = 352
-screen_height                       = 256
-screen_buffer_height                = 288
-screen_buffer_columns               = screen_width/tile_width
-screen_bitplanes                    = 4
-screen_bpl_bytes_per_row            = screen_width/8
-screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
-screen_modulo                       = (screen_width/8)*3                                ;offset by 3 bitplanes
-screen_horz_disp_words              = screen_width/16
-screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
-screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
-
-;"tile" here means 16x16 pixels
-
-tile_bitplanes                      = screen_bitplanes
-tile_height                         = 16
-tile_width                          = 16
-tile_plane_lines                    = tile_bitplanes*tile_height
-tile_blit_size                      = tile_plane_lines*64+(tile_width/8)
-
-tile_bytes_per_row                  = test_cols_to_decode*2
-tiles_per_row                       = test_cols_to_decode
-
-tile_index_mask                     = $07ff
-
-DMA_fetch_start                     = $28                                   ;$28 for 22 columns;$38 for 20 columns
-display_start                       = $71                                   ;$81 for non-scrolling display; $91 otherwise
-display_stop                        = $c1                                   ;$c1 for non-scrolling display
-
-bpls                                = 3                                     ;handy values:
-
-vlines_per_graphic                  = 48                                    ;32
-
-    *-----------------*
-    * palettes        *
-    *-----------------*
-
-
-    *-----------------*
-    * registers       *
-    *-----------------*
-
-
-INTREQR         = $1F
-COP1LCH         = $80
-DIWSTRT         = $8E                                                       ;Start of the screen window
-DIWSTOP         = $90                                                       ;End of the screen window
-DDFSTRT         = $92                                                       ;Bit=plane DMA Start
-DDFSTOP         = $94                                                       ;Bit-Plane DMA Stop
-INTENA          = $9A
-INTREQ          = $9C
-
-BPLCON0         = $100                                                      ;Bitplane control register 0
-BPLCON1         = $102                                                      ;1 (Scroll value)
-BPLCON2         = $104                                                      ;2 (Sprite <> Playfield priority)
-BPL1MOD         = $108                                                      ;Modulo-Value for odd bit-planes
-BPL2MOD         = $10A                                                      ;Modulo-Value for even bit-planes
-
-*******************************************************************************
-* MACROS
-*******************************************************************************
-graeme_special:macro
-    clr.w $100.w
-    endm
-
-tile_pal_00:macro
-    dc.w $0180,$0000,$0182,$0000,$0184,$0000,$0186,$0000
-    dc.w $0188,$0000,$018a,$0000,$018c,$0000,$018e,$0000
-    dc.w $0190,$0000,$0192,$0000,$0194,$0000,$0196,$0000
-    dc.w $0198,$0000,$019a,$0000,$019c,$0000,$019e,$0110
-    endm
-
-tile_pal_01:macro
-    dc.w $0180,$0b87,$0182,$0433,$0184,$0842,$0186,$0a53
-    dc.w $0188,$0c64,$018a,$0db8,$018c,$0974,$018e,$0754
-    dc.w $0190,$0644,$0192,$0c95,$0194,$0f85,$0196,$0ffa
-    dc.w $0198,$0cca,$019a,$0998,$019c,$0666,$019e,$0111
-    endm
-
-tile_pal_02:macro
-    dc.w $0180,$0b87,$0182,$0544,$0184,$0754,$0186,$0975
-    dc.w $0188,$0ca8,$018a,$0eea,$018c,$0fc4,$018e,$0653
-    dc.w $0190,$0974,$0192,$0c84,$0194,$0eef,$0196,$0aaa
-    dc.w $0198,$0889,$019a,$0778,$019c,$0556,$019e,$0111
-    endm
-
-tile_pal_03:macro
-    dc.w $0180,$0b87,$0182,$0754,$0184,$0975,$0186,$0ca8
-    dc.w $0188,$0ed8,$018a,$0fff,$018c,$0060,$018e,$0090
-    dc.w $0190,$00e0,$0192,$0777,$0194,$0aaa,$0196,$0747
-    dc.w $0198,$0868,$019a,$0a8a,$019c,$0cac,$019e,$0111
-    endm
-
-tile_pal_04:macro
-    dc.w $0180,$0000,$0182,$0000,$0184,$0000,$0186,$0000
-    dc.w $0188,$0000,$018a,$0000,$018c,$0000,$018e,$0000
-    dc.w $0190,$0520,$0192,$0730,$0194,$0940,$0196,$0b50
-    dc.w $0198,$0d60,$019a,$0f80,$019c,$0000,$019e,$0111
-    endm
-
-tile_pal_05:macro
-    dc.w $0180,$0000,$0182,$0000,$0184,$0000,$0186,$0000
-    dc.w $0188,$0000,$018a,$0000,$018c,$0000,$018e,$0455
-    dc.w $0190,$0600,$0192,$0900,$0194,$0986,$0196,$0a97
-    dc.w $0198,$0000,$019a,$0000,$019c,$0000,$019e,$0000
-    endm
-
-tile_pal_06:macro
-    dc.w $0180,$0046,$0182,$089c,$0184,$0789,$0186,$0678
-    dc.w $0188,$0567,$018a,$0456,$018c,$0345,$018e,$0540
-    dc.w $0190,$0753,$0192,$0864,$0194,$0a75,$0196,$0c86
-    dc.w $0198,$0ea7,$019a,$0fc8,$019c,$0ffa,$019e,$0000
-    endm
-
-tile_pal_07:macro
-    dc.w $0180,$0000,$0182,$0afd,$0184,$07ec,$0186,$00c9
-    dc.w $0188,$00a7,$018a,$0086,$018c,$0064,$018e,$0050
-    dc.w $0190,$0040,$0192,$0000,$0194,$0000,$0196,$0000
-    dc.w $0198,$0000,$019a,$0000,$019c,$0000,$019e,$0000
-    endm
-
-tile_pal_08:macro
-    dc.w $0180,$0000,$0182,$0fb9,$0184,$0e98,$0186,$0d86
-    dc.w $0188,$0c75,$018a,$0a64,$018c,$0853,$018e,$0640
-    dc.w $0190,$0435,$0192,$0857,$0194,$0b75,$0196,$0b5a
-    dc.w $0198,$089c,$019a,$0789,$019c,$0046,$019e,$0000
-    endm
-
-tile_pal_09:macro
-    dc.w $0180,$0000,$0182,$0cb8,$0184,$0ba7,$0186,$0a96
-    dc.w $0188,$0985,$018a,$0874,$018c,$0763,$018e,$0650
-    dc.w $0190,$0540,$0192,$0430,$0194,$0dd0,$0196,$0d90
-    dc.w $0198,$0c70,$019a,$0900,$019c,$0700,$019e,$0000
-    endm
-
-tile_pal_0a:macro
-    dc.w $0180,$0000,$0182,$0540,$0184,$0750,$0186,$0940
-    dc.w $0188,$0e70,$018a,$0340,$018c,$0450,$018e,$0560
-    dc.w $0190,$0670,$0192,$0780,$0194,$0990,$0196,$0aa0
-    dc.w $0198,$0cc0,$019a,$0de0,$019c,$0ef0,$019e,$0000
-    endm
-
-tile_pal_0b:macro
-    dc.w $0180,$0000,$0182,$0000,$0184,$0000,$0186,$0000
-    dc.w $0188,$0000,$018a,$0000,$018c,$0000,$018e,$0455
-    dc.w $0190,$0566,$0192,$0776,$0194,$0986,$0196,$0a97
-    dc.w $0198,$0000,$019a,$0000,$019c,$0000,$019e,$0000
-    endm
-
-tile_pal_0c:macro
-    dc.w $0180,$0000,$0182,$0899,$0184,$0aaa,$0186,$0998
-    dc.w $0188,$0887,$018a,$0776,$018c,$0665,$018e,$0554
-    dc.w $0190,$0440,$0192,$0000,$0194,$0000,$0196,$0000
-    dc.w $0198,$089c,$019a,$0789,$019c,$0046,$019e,$0000
-    endm
-
-tile_pal_0d:macro
-    dc.w $0180,$0000,$0182,$0000,$0184,$0000,$0186,$0000
-    dc.w $0188,$0000,$018a,$0000,$018c,$0000,$018e,$0000
-    dc.w $0190,$0000,$0192,$0000,$0194,$0000,$0196,$0000
-    dc.w $0198,$0000,$019a,$0000,$019c,$0000,$019e,$0000
-    endm
-
-tile_pal_0e:macro
-    dc.w $0180,$0000,$0182,$0000,$0184,$0000,$0186,$0000
-    dc.w $0188,$0000,$018a,$0000,$018c,$0000,$018e,$0000
-    dc.w $0190,$0035,$0192,$0146,$0194,$0257,$0196,$0368
-    dc.w $0198,$0479,$019a,$058a,$019c,$0abc,$019e,$0000
-    endm
-
-tile_pal_0f:macro
-    dc.w $0180,$0111,$0182,$0FF9,$0184,$0EC7,$0186,$0DA6
-    dc.w $0188,$0C85,$018a,$0A74,$018c,$0864,$018e,$0753
-    dc.w $0190,$0641,$0192,$0533,$0194,$0431,$0196,$0111
-    dc.w $0198,$0111,$019a,$0111,$019c,$0111,$019e,$0110
-    endm
-
-obj_pal_00:macro
-    dc.w $0180,$0000,$0182,$0343,$0184,$0565,$0186,$0797
-    dc.w $0188,$0aca,$018a,$0fff,$018c,$0950,$018e,$0b74
-    dc.w $0190,$0da6,$0192,$0fc8,$0194,$0555,$0196,$0777
-    dc.w $0198,$0aaa,$019a,$0ccc,$019c,$0000,$019e,$0111
-    endm
-
-obj_pal_01:macro
-    dc.w $0180,$0000,$0182,$0005,$0184,$0007,$0186,$000a
-    dc.w $0188,$006c,$018a,$008d,$018c,$00dd,$018e,$0800
-    dc.w $0190,$0555,$0192,$0777,$0194,$0999,$0196,$0bbb
-    dc.w $0198,$0600,$019a,$0b00,$019c,$0fff,$019e,$0111
-    endm
-
-obj_pal_02:macro
-    dc.w $0180,$0000,$0182,$0600,$0184,$0800,$0186,$0a40
-    dc.w $0188,$0c60,$018a,$0d90,$018c,$0555,$018e,$0777
-    dc.w $0190,$0999,$0192,$0bbb,$0194,$0eee,$0196,$0960
-    dc.w $0198,$0b84,$019a,$0da6,$019c,$0fc8,$019e,$0111
-    endm
-
-obj_pal_03:macro
-    dc.w $0180,$0000,$0182,$0700,$0184,$0a00,$0186,$0c60
-    dc.w $0188,$0d90,$018a,$0dd0,$018c,$0666,$018e,$0888
-    dc.w $0190,$09aa,$0192,$0bdd,$0194,$0eff,$0196,$0960
-    dc.w $0198,$0b84,$019a,$0da6,$019c,$0fc8,$019e,$0111
-    endm
-
-obj_pal_04:macro
-    dc.w $0180,$0000,$0182,$0700,$0184,$0946,$0186,$0b59
-    dc.w $0188,$0e7d,$018a,$0faf,$018c,$0666,$018e,$0888
-    dc.w $0190,$09aa,$0192,$0bdd,$0194,$0eff,$0196,$0960
-    dc.w $0198,$0b84,$019a,$0da6,$019c,$0fc8,$019e,$0111
-    endm
-
-obj_pal_05:macro
-    dc.w $0180,$0000,$0182,$0630,$0184,$0950,$0186,$0c85
-    dc.w $0188,$0da7,$018a,$0fc9,$018c,$0333,$018e,$0666
-    dc.w $0190,$0999,$0192,$0ccc,$0194,$0fff,$0196,$0800
-    dc.w $0198,$0b40,$019a,$0e70,$019c,$0fa0,$019e,$0111
-    endm
-
-obj_pal_06:macro
-    dc.w $0180,$0000,$0182,$0700,$0184,$0a00,$0186,$0c40
-    dc.w $0188,$0d60,$018a,$0e90,$018c,$0fe0,$018e,$0555
-    dc.w $0190,$0777,$0192,$0999,$0194,$0bbb,$0196,$0060
-    dc.w $0198,$0080,$019a,$00b0,$019c,$0eee,$019e,$0111
-    endm
-
-obj_pal_07:macro
-    dc.w $0180,$0000,$0182,$0610,$0184,$0820,$0186,$0b40
-    dc.w $0188,$0e80,$018a,$0fc0,$018c,$0555,$018e,$0777
-    dc.w $0190,$0999,$0192,$0bbb,$0194,$0fff,$0196,$0760
-    dc.w $0198,$0974,$019a,$0c96,$019c,$0fc8,$019e,$0110
-    endm
-
-obj_pal_08:macro
-    dc.w $0180,$0000,$0182,$0f00,$0184,$00f0,$0186,$0ff0
-    dc.w $0188,$000f,$018a,$0f0f,$018c,$00ff,$018e,$0fff
-    dc.w $0190,$0000,$0192,$0f00,$0194,$00f0,$0196,$0ff0
-    dc.w $0198,$000f,$019a,$0f0f,$019c,$00ff,$019e,$0fff
-    endm
-
-hud_pal_00:macro
-    dc.w $0180,$007d,$0182,$0ddd,$0184,$0d00,$0186,$0000
-    dc.w $0188,$0000,$018a,$0dd0,$018c,$007f,$018e,$0000
-    dc.w $0190,$0111,$0192,$0880,$0194,$0dd0,$0196,$0000
-    dc.w $0198,$0111,$019a,$0049,$019c,$009d,$019e,$0000
-    endm
-
-hud_pal_01:macro
-    dc.w $0180,$0111,$0182,$0a50,$0184,$0e80,$0186,$0000
-    dc.w $0188,$0111,$018a,$0880,$018c,$0cc6,$018e,$0000
-    dc.w $0190,$0111,$0192,$000c,$0194,$00ce,$0196,$0000
-    dc.w $0198,$009e,$019a,$0ddd,$019c,$005d,$019e,$0000
-    endm
-
-hud_pal_02:macro
-    dc.w $0180,$0ff9,$0182,$0880,$0184,$0cc5,$0186,$0000
-    dc.w $0188,$0ddd,$018a,$0d00,$018c,$0009,$018e,$0000
-    dc.w $0190,$0ddd,$0192,$0d70,$0194,$004b,$0196,$0000
-    dc.w $0198,$0ddd,$019a,$0dd0,$019c,$007f,$019e,$0000
-    endm
-
-hud_pal_03:macro
-    dc.w $0180,$0111,$0182,$0ddd,$0184,$0d00,$0186,$0d00
-    dc.w $0188,$0111,$018a,$0ddd,$018c,$000d,$018e,$000d
-    dc.w $0190,$0111,$0192,$0dd6,$0194,$0880,$0196,$0000
-    dc.w $0198,$0111,$019a,$0ccc,$019c,$007c,$019e,$0000
-    endm
-
-hud_pal_04:macro
-    dc.w $0180,$0000,$0182,$0ee0,$0184,$0770,$0186,$0000
-    dc.w $0188,$0550,$018a,$0dd0,$018c,$0880,$018e,$0000
-    dc.w $0190,$008b,$0192,$00be,$0194,$0008,$0196,$0000
-    dc.w $0198,$0111,$019a,$0ddd,$019c,$0000,$019e,$0000
-    endm
-
-hud_pal_05:macro
-    dc.w $0180,$0555,$0182,$0999,$0184,$0eee,$0186,$0000
-    dc.w $0188,$000d,$018a,$0ddd,$018c,$0008,$018e,$0000
-    dc.w $0190,$0111,$0192,$0fd4,$0194,$000b,$0196,$0000
-    dc.w $0198,$0111,$019a,$0fd4,$019c,$0b00,$019e,$0000
-    endm
-
-hud_pal_06:macro
-    dc.w $0180,$0fd0,$0182,$0fff,$0184,$0ff8,$0186,$0000
-    dc.w $0188,$0111,$018a,$0008,$018c,$000d,$018e,$0000
-    dc.w $0190,$0111,$0192,$0808,$0194,$0d0d,$0196,$0000
-    dc.w $0198,$0111,$019a,$0884,$019c,$0dd8,$019e,$0000
-    endm
-
-WAITBLIT:macro
-    tst DMACONR(a6)                                         ;for compatibility
-    btst #6,DMACONR(a6)
-    bne.s *-6
-    endm
 
 *******************************************************************************
 * GAME
@@ -416,342 +106,9 @@ TESTCode:
     lea TileSource,a1
     move.l a0,(a1)
 
-    bsr TESTLoadLevel1Tiles
-    rts
-
-;-----------------------------------------------
-TESTLoadLevel1Tiles:
-    ;THIS DECODES THE TILES IN MAP LAYOUT (16x16 TILES). 128 tiles horizontally
-    ;then wrap to the next row of tiles
-
-    move.l #0,d2
-    move.l #0,d3
-
     lea TilesToDecode,a2
     lea ScrollDataLev1,a1
-    move.l a1,a4                                            ;row
-    move.l #test_rows_to_decode-1,d0
-
-.outer_loop
-    move.l #test_cols_to_decode-1,d1
-    move.l #0,d4
-
-.inner_loop
-    move.w (a1)+,d2                                         ;load "scroll word" into d2 from a1
-    ror #8,d2                                               ;swap bytes; source is little endian
-    move.w d2,d3
-    and.w #tile_index_mask,d3
-
-    btst #15,d2
-    beq .finish_inner_loop
-
-    or.w #$8000,d3                                          ;set "flipped" tile index
-
-.finish_inner_loop
-    move.w d3,(a2)+                                         ;poke this into the tile list
-
-    ;Here we need a counter, because every 16 tiles, Black Tiger wraps down
-
-    addi #1,d4
-    move.l d4,d6
-    divu #16,d6                                             ;test_cols_to_decode/16 = 128
-    swap d6
-    cmp.w #0,d6
-    bne .end_inner_loop
-
-    lea $1E0(a1),a1                                         ;down to next 16x16 block of tile indexes
-
-.end_inner_loop
-    dbf d1,.inner_loop
-
-    lea $20(a4),a4                                          ;down one row of 16 tile indexes in src
-    movea.l a4,a1
-
-    dbf d0,.outer_loop
-
-    rts
-
-;-----------------------------------------------
-TESTExtract8BitplaneBytesFromTwoSourceBytes:
-    ;INPUT:  d2 - source word (packed bytes) ;d2.w = zeroAndOneByte1 & zeroAndOneByte2 OR twoAndThreeByte1 & twoAndThreeByte2
-    ;        a2 - 8 decoded palette indexes ptr
-    ;OUTPUT: a2 - decoded bitplane bytes (1 & 0 or 3 & 2)
-
-    ;first byte of d2   => bitToSet => 0x10 and higher
-    ;second byte of d2  => bitToSet => 0x01 and higher
-
-    ;BITS 0-7  are in srcByte2
-    ;BITS 8-15 are in srcByte1
-
-    ;BPL 1
-    btst #0,d2
-    beq .byte_1_bit_1
-
-    or.b #$01,(a2)
-
-.byte_1_bit_1
-    btst #1,d2
-    beq .byte_1_bit_2
-
-    or.b #$02,(a2)
-
-.byte_1_bit_2
-    btst #2,d2
-    beq .byte_1_bit_3
-
-    or.b #$04,(a2)
-
-.byte_1_bit_3
-    btst #3,d2
-    beq .byte_2_bit_0
-
-    or.b #$08,(a2)
-
-.byte_2_bit_0
-    btst #8,d2
-    beq .byte_2_bit_1
-
-    or.b #$10,(a2)
-
-.byte_2_bit_1
-    btst #9,d2
-    beq .byte_2_bit_2
-
-    or.b #$20,(a2)
-
-.byte_2_bit_2
-    btst #10,d2
-    beq .byte_2_bit_3
-
-    or.b #$40,(a2)
-
-.byte_2_bit_3
-    btst #11,d2
-    beq .byte_1_bit_4
-
-    or.b #$80,(a2)
-
-    ;BPL 0
-
-.byte_1_bit_4
-    btst #4,d2
-    beq .byte_1_bit_5
-
-    or.b #$01,1(a2)
-
-.byte_1_bit_5
-    btst #5,d2
-    beq .byte_1_bit_6
-
-    or.b #$02,1(a2)
-
-.byte_1_bit_6
-    btst #6,d2
-    beq .byte_1_bit_7
-
-    or.b #$04,1(a2)
-
-.byte_1_bit_7
-    btst #7,d2
-    beq .byte_2_bit_4
-
-    or.b #$08,1(a2)
-
-.byte_2_bit_4
-    btst #12,d2
-    beq .byte_2_bit_5
-
-    or.b #$10,1(a2)
-
-.byte_2_bit_5
-    btst #13,d2
-    beq .byte_2_bit_6
-
-    or.b #$20,1(a2)
-
-.byte_2_bit_6
-    btst #14,d2
-    beq .byte_2_bit_7
-
-    or.b #$40,1(a2)
-
-.byte_2_bit_7
-    btst #15,d2
-    beq .end
-
-    or.b #$80,1(a2)
-
-.end
-    rts
-
-;-----------------------------------------------
-TESTDecodeRowOf16Pixels:
-    ;INPUT: a1 - source bytes ptr
-    ;USES:  d2,a4
-    ;OUTPUT: a2 - bitplane data
-
-    move.l 0,0(a2)                                          ;leftmost column destinations
-    move.l 0,4(a2)                                          ;rightmost column destinations
-
-    move.l a1,d2
-    add.l #test_tilesrc_bp_offset,d2                        ;test_tilesrc_bp_offset = offset to bitplanes 0 and 1 in source
-    move.l d2,a4
-
-                                                            ;leftmost columns of 8 pixels
-    move.l #0,d2
-    move.w (a4),d2
-
-                                                            ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
-                                                            ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
-    bsr TESTExtract8BitplaneBytesFromTwoSourceBytes         ;returns DecodedBitplaneBytes in a2
-
-    lea 2(a2),a2
-    move.l #0,d2
-    move.w (a1),d2                                          ;d2.w = twoAndThreeByte1 & twoAndThreeByte2
-
-
-                                                            ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
-    bsr TESTExtract8BitplaneBytesFromTwoSourceBytes         ;returns DecodedBitplaneBytes in a2
-
-
-                                                            ;rightmost columns of 8 pixels
-
-    lea 2(a2),a2
-    move.l #0,d2
-    move.w test_tilesrc_upr_px_b_off(a4),d2                 ;add $20 to get to the src of the rightmost 8 pixel columns
-
-
-                                                            ;d2.w = zeroAndOneByte1 & zeroAndOneByte2
-                                                            ;a2 => Bitplane 01 - lower byte; Bitplane 00 - upper byte
-
-    bsr TESTExtract8BitplaneBytesFromTwoSourceBytes
-
-    lea 2(a2),a2
-    move.l #0,d2
-    move.w test_tilesrc_upr_px_b_off(a1),d2                 ;d2.w = twoAndThreeByte1 & twoAndThreeByte2
-
-
-                                                            ;a2 => Bitplane 03 - lower byte; Bitplane 02 - upper byte
-
-    bsr TESTExtract8BitplaneBytesFromTwoSourceBytes
-    lea -6(a2),a2
-    rts
-
-;-----------------------------------------------
-GetScrollStepAndDelay:
-;USES: d1,d2,a3,d0
-;OUTPUT:d0(delay),d1(scroll step),d2(map x)
-   clr.l d1
-   clr.l d2
-   lea MapXYPosition,a3
-   move.w 2(a3),d1
-   move.w 2(a3),d2
-
-   and.w #$000F,d1
-   clr.l d0
-
-   lea ScrollPositions,a3
-   move.b (a3,d1.w),d0
-
-   rts
-
-;-----------------------------------------------
-TESTGetXYScrollPositionRight:
-    ;returns mapx/y in d3
-    ;returns x/y in d4
-
-;BLOCKSWIDTH        = bitmapwidth
-;BLOCKSBYTESPERROW  = screen_bytes_per_row
-;BLOCKSPERROW       = tiles_per_row
-
-    ;get source ptrs
-    lea MapXYPosition,a3
-
-    move.w 2(a3),d3                                         ;save for mapy
-    swap d3
-    move.w 2(a3),d3                                         ;mapposx
-    asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
-
-    move.w #screen_buffer_columns,d4                        ;22
-
-    add.w d4,d3                                             ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
-    clr.l d4
-    move.w d3,d4
-    swap d3
-    and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
-
-    ;get dest ptrs
-
-    ;TODO: IF VERTICAL SCROLLING IS HAPPENING... NEED TO CALCULATE OFFSET FROM MAP (0,0)
-
-                                                            ;VideoX for Right Scroll is always 0
-                                                            ;always blitting to left column
-    clr.l d5
-    move.w d4,d5
-    divu #screen_buffer_columns,d5                          ;bitplane pointers in screen buffer
-    swap d5
-    move.w d5,d4                                            ;x
-    swap d4                                                 ;y
-
-    move.w d3,d4                                            ;Map Position Y (which will need to be fixed)
-    asl.w #4,d4                                             ;y = tile_height * y
-
-    swap d3                                                 ;mapx
-    swap d4                                                 ;x
-
-    move.l d3,d6                                            ;preserve mapx/mapy
-
-    rts
-
-;-----------------------------------------------
-TESTGetXYScrollPositionLeft:
-;INPUT: map pos ptr (a3); video pos ptr (a4)
-;returns mapx/y in d3
-;returns x/y in d4
-
-;BLOCKSWIDTH        = bitmapwidth
-;BLOCKSBYTESPERROW  = tile_bytes_per_row
-;BLOCKSPERROW       = tiles_per_row
-
-    lea MapXYPosition,a3
-
-    move.w 2(a3),d3                                         ;save for mapy
-    swap d3
-    move.w 2(a3),d3                                         ;mapposx
-    asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH
-    subi.w #1,d3                                            ;because we have one blank column to the left
-
-    clr.l d4
-    swap d3
-    and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
-
-    lea TileYBlitPositions,a5
-    move.b (a5,d3.w),d4                                     ;y
-    swap d4                                                 ;x
-
-    ;TODO: IF VERTICAL SCROLLING IS HAPPENING... NEED TO CALCULATE OFFSET FROM MAP (0,0)
-
-    move.w #(screen_buffer_columns-1)*tile_width,d4         ;VideoX for Left Scroll is always 336
-                                                            ;always blitting to right column
-
-
-    swap d3                                                 ;mapx
-    rts
-
-;-----------------------------------------------
-TESTGetXYScrollPositionDown:
-;INPUT: map pos ptr (a3); video pos ptr (a4)
-;returns mapx/y in d3
-;returns x/y in d4
-
-    rts
-
-;-----------------------------------------------
-TESTGetXYScrollPositionUp:
-;INPUT: map pos ptr (a3); video pos ptr (a4)
-;returns mapx/y in d3
-;returns x/y in d4
-
+    bsr TESTLoadLevel1Tiles
     rts
 
 ;-----------------------------------------------
@@ -858,99 +215,6 @@ UpdateSaveWordRightScroll:
     rts
 
 ;-----------------------------------------------
-IncrementXScrollPosition:
-;INPUT: mapx/y in d3
-;       x/y in d4
-
-   lea MapXYPosition,a3
-   lea VideoXYPosition,a4
-
-   addi.l #1,(a3)                                           ;mapposx++;
-   move.l (a3),(a4)                                         ;videoposx = mapposx;
-
-   cmp.l #(test_cols_to_decode*tile_width),(a4)             ;352
-   bne .update
-
-   move.l #0,(a4)                                           ;reset video x to zero
-
-.update
-   lea PreviousScrollDir,a3
-   move.b #0,(a3)                                           ;previous_direction = DIRECTION_RIGHT;
-
-   rts
-
-;-----------------------------------------------
-ScrollUpdateBitplanePointers:
-;INPUT:d4=(dx=lw;dy=hw)
-
-   move.l ScrollScreen,d3
-
-   clr.l d5
-   move.w d4,d5
-
-   beq .check_y
-
-   btst #15,d5
-   beq .positive_x
-
-   neg.w d5
-   sub.l d5,d3
-   sub.l d5,d3
-   bra .update_scroll_delay
-
-.positive_x
-   add.l d5,d3
-   add.l d5,d3
-
-.update_scroll_delay
-
-   lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
-   move.w d0,2(a1)                                          ;update copper
-
-.check_y
-   swap d4
-   clr.l d5
-   move.w d4,d5
-
-   beq .update_pointer
-
-   btst #15,d5
-   beq .positive_y
-
-   neg.w d5
-   subi #1,d5
-
-.loop_sub_y
-   sub.l #screen_bp_bytes_per_raster_line,d3
-   dbf.w d5,.loop_sub_y
-   bra .update_pointer
-
-.positive_y
-   subi #1,d5
-
-.loop_add_y
-   add.l #screen_bp_bytes_per_raster_line,d3
-   dbf.w d5,.loop_add_y
-
-.update_pointer
-   move.l d3,ScrollScreen
-   move #4-1,d1
-
-   lea CopBplP,a2                                           ;where to poke the bitplane pointer words.
-
-.loop
-   move.w d3,6(a2)                                          ;lo word
-   swap d3
-   move.w d3,2(a2)                                          ;hi word
-   swap d3
-   add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
-   addq #8,a2                                               ;point to next bpl to poke in copper
-   dbf.w d1,.loop
-
-.end
-   rts
-
-;-----------------------------------------------
 TESTScrollRight:
 ;INPUT:a0
    cmp.w #0,d1
@@ -968,6 +232,9 @@ TESTScrollRight:
    beq .no_update
 
    move.l #1,d4
+   move.l ScrollScreen,d3
+   lea CopHorzScrollPos,a1
+   lea CopBplP,a2
    bsr ScrollUpdateBitplanePointers
    rts
 
@@ -998,6 +265,9 @@ TESTScrollLeft:
 
 .update
    move.l #$0000FFFF,d4
+   move.l ScrollScreen,d3
+   lea CopHorzScrollPos,a1
+   lea CopBplP,a2
    bsr ScrollUpdateBitplanePointers
    bra .update_horz_scroll_position
 
@@ -1022,6 +292,9 @@ TESTScrollDown:
    beq .no_update
 
    move.l #$10000,d4
+   move.l ScrollScreen,d3
+   lea CopHorzScrollPos,a1
+   lea CopBplP,a2
    bsr ScrollUpdateBitplanePointers
    rts
 
@@ -1040,6 +313,9 @@ TESTScrollUp:
    beq .no_update
 
    move.l #$FFFF0000,d4
+   move.l ScrollScreen,d3
+   lea CopHorzScrollPos,a1
+   lea CopBplP,a2
    bsr ScrollUpdateBitplanePointers
    rts
 
@@ -1086,28 +362,12 @@ UpdateSaveWordLeftScroll:                                   ;OUTPUT: mapx/y in d
    rts
 
 ;-----------------------------------------------
-DecrementXScrollPosition:                                   ;INPUT: mapx/y in d3; x/y in d4
-   lea MapXYPosition,a3
-   lea VideoXYPosition,a4
-
-   subi.l #1,(a3)                                           ;mapposx--;
-   move.l (a3),(a4)                                         ;videoposx = mapposx;
-
-   cmp.l #-1,(a4)                                           ;-1
-   bne .end
-
-   move.l #(test_cols_to_decode*tile_width-1),(a4)          ;reset video x to 351
-
-.end
-
-   bsr GetScrollStepAndDelay
-   rts
-
-;-----------------------------------------------
 TESTScroll:
 
    bsr TESTUpdatePaletteDuringScroll
-   bsr GetScrollStepAndDelay
+   lea MapXYPosition,a3
+   lea ScrollPositions,a5
+   bsr ScrollGetStepAndDelay
 
    lea TestScrollCommand,a0                                 ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
 
@@ -1146,48 +406,82 @@ TESTScroll:
     ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
     move.b #1,d3
     cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width*2),d2              ;2048-352-tile_width*2
+    ;cmp.w #129,d2
     blo .scroll_right
     bra .switch_direction
 
 .scroll_right
 
    bsr TESTScrollRight                                      ;INPUT:d2,a0 (d1)
-   bsr TESTGetXYScrollPositionRight
+   lea MapXYPosition,a3
+   bsr ScrollGetXYPositionRight
    bsr UpdateSaveWordRightScroll                            ;OUTPUT: mapx/y in d3; video x/y in d4
    bsr CalculateDrawHTile
-   bsr DrawHTile
-   bsr IncrementXScrollPosition                             ;INPUT: mapx/y in d3; x/y in d4
+   bsr DrawTile
+   
+   lea MapXYPosition,a3
+   lea VideoXYPosition,a4
+   lea PreviousScrollDir,a5
+   bsr ScrollIncrementXPosition                             ;INPUT: mapx/y in d3; x/y in d4
    rts
 
 .left
     move.b #0,d3
     cmp.w #tile_width,d2
+    ;cmp.w #95,d2
     bhi .scroll_left
     bra .switch_direction
 
 .scroll_left
 
-   bsr DecrementXScrollPosition
+   lea MapXYPosition,a3
+   lea VideoXYPosition,a4
+   lea ScrollPositions,a5
+   bsr ScrollDecrementXPosition
    bsr TESTScrollLeft
-   bsr TESTGetXYScrollPositionLeft
+
+   lea MapXYPosition,a3
+   lea TileYBlitPositions,a5
+   bsr ScrollGetXYPositionLeft
    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
    bsr CalculateDrawHTile
-   bsr DrawHTile                                             ;DrawBlock(x,y,mapx,mapy);
+   bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
    rts
 
 .up
    rts
+   
+.scroll_up
+;   lea MapXYPosition,a3
+;   lea VideoXYPosition,a4
+;   lea ScrollPositions,a5
+;   bsr ScrollDecrementYPosition
+   bsr TESTScrollUp
+
+;   lea MapXYPosition,a3
+;   lea TileXBlitPositions,a5
+;   bsr ScrollGetXYPositionUp
+;   bsr CalculateDrawVTile
+;   bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
+   rts
 
 .down
-
+    move.b #16,d3
+    swap d2
+    cmp.w #screen_height,d2
+    blo .scroll_down
+    bra .switch_direction
 
 .scroll_down
 
    bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
-   bsr TESTGetXYScrollPositionDown
+   bsr ScrollGetXYPositionDown
 ;   bsr CalculateDrawVTile
-;   bsr DrawVTile
-;   bsr IncrementYScrollPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;   bsr DrawTile
+;   lea MapXYPosition,a3
+;   lea VideoXYPosition,a4
+;   lea PreviousScrollDir,a5
+;;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
    rts
 
 .rightup
@@ -1502,7 +796,7 @@ CalculateDrawHTile:
     rts
 
 ;-----------------------------------------------
-DrawHTile:
+DrawTile:
 ;INPUT: mapx/y in d3
 ;       x/y in d4
 ;OUTPUT: source ptr in d5; dest ptr in d1
@@ -1525,6 +819,25 @@ DrawHTile:
 ;    lea TestScrollCommand,a0                                ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
 ;    move.b #16,(a0)
 
+.end
+    rts
+
+;-----------------------------------------------
+DrawTwoHorizontalTiles:
+;INPUT: mapx/y in d3
+;       x/y in d4
+;OUTPUT: source ptr in d5; dest ptr in d1
+
+    move.w #$09F0,BLTCON0(a6)                               ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
+    move.w #$0000,BLTCON1(a6)                               ;custom->bltcon1 = 0;
+    move.w #$FFFF,BLTAFWM(a6)                               ;custom->bltafwm = 0xFFFF;
+    move.w #$FFFF,BLTALWM(a6)                               ;custom->bltalwm = 0xFFFF;
+    move.w #tile_bytes_per_row-4,BLTAMOD(a6)                ;custom->bltamod = BLOCKSBYTESPERROW - (BLOCKWIDTH / 8);
+    move.w #screen_bpl_bytes_per_row-4,BLTDMOD(a6)          ;custom->bltdmod = BITMAPBYTESPERROW - (BLOCKWIDTH / 8);
+    move.l d5,BLTAPTH(a6)                                   ;custom->bltapt  = blocksbuffer + mapy + mapx;
+    move.l d1,BLTDPTH(a6)                                   ;custom->bltdpt  = frontbuffer + y + x;
+
+    move.w #(tile_plane_lines*64+2),BLTSIZE(a6)             ;custom->bltsize = BLOCKPLANELINES * 64 + (BLOCKWIDTH / 16);
 .end
     rts
 
