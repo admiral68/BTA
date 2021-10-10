@@ -345,21 +345,6 @@ TESTCopyScreenFromDecodedLongBitmap:
     move.l d4,BLTDPTH(a6)
 
     move.w #(screen_width-tile_width)/16,BLTSIZE(a6)        ;no "h" term needed since it's 1024. Thanks ross @eab!
-;
-;    WAITBLIT
-;
-;    lea DecodedGraphic,a3
-;    lea Screen,a4
-;    add.l #2+screen_bytes_per_row*(screen_height+tile_height),a4
-;    move.l a3,d3
-;    move.l a4,d4
-;
-;    move.w #214,BLTAMOD(a6)                                 ;skip 107 columns (copy 21)
-;    move.w #2,BLTDMOD(a6)                                   ;skip 1 column (copy 21)
-;    move.l d3,BLTAPTH(a6)
-;    move.l d4,BLTDPTH(a6)
-;
-;    move.w #tile_plane_lines*64+(screen_width-tile_width)/16,BLTSIZE(a6)
     rts
 
 ;-----------------------------------------------

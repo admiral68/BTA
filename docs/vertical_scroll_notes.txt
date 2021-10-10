@@ -1,0 +1,116 @@
+	; write a copper wait instruction
+	; arguments: vpos,hpos,<ea>
+	macro	COPWAIT
+	move.l	#((\1)&$ff)<<24|(((\2)&$fe)|1)<<16|$fffe,\3
+	endm
+
+
+
+
+	move.w	#$24,BPLCON2(a6)
+
+	; Fetch an additional word before the normal DFETCHSTART to allow
+	; horizontal playfield scrolling.
+	move.w	#DFETCHSTART-(16/2),DDFSTRT(a6)
+	move.w	#DFETCHSTOP,DDFSTOP(a6)
+
+	; set the display window location and dimensions
+	move.w	#(VSTART&$ff)<<8|(HSTART&$ff),DIWSTRT(a6)
+	move.w	#(VEND&$ff)<<8|((HSTART+DISPW)&$ff),DIWSTOP(a6)
+
+	; The bitplanes are interleaved, so we have to skip the words from
+	; PLANES-1 rows, and the non-dispayed extra words from the current
+	; row.
+	move.w	#(PLANES-1)*BPR+(BPR-DISPW/8-2),d1
+	move.w	d1,BPL1MOD(a6)
+	move.w	d1,BPL2MOD(a6)
+
+
+
+
+
+	lea	Sprites(a4),a1
+
+; a0 = copperlist
+; a1 = sprite list
+; -> a0 = updated copperlist ptr
+
+	moveq	#8-1,d1
+	move.w	#SPR0PTH,d2
+.1:	move.l	(a1)+,d0
+	move.w	d2,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d2
+	move.w	d2,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d2
+	dbf	d1,.1
+
+;;;
+
+
+	; Cl_illcolors: write two colors to illuminate during the game
+	move.l	#(COLOR00+2*ILLUMCOLOR1)<<16,(a0)+
+	move.l	#(COLOR00+2*ILLUMCOLOR2)<<16,(a0)+
+
+	; Cl_scroll: set scrolling delay for the scroll display
+	move.l	#BPLCON1<<16,(a0)+
+
+	; Cl_bpltop: write bitplane pointers for top of scroll display
+	move.l	Vbitmap(a2),d0
+	subq.l	#2,d0		; invisible extra word for scrolling (DDFSTRT)
+
+; Write interleaved bitplane pointers for all planes into the copperlist.
+; d2 gets destroyed!
+; a0 = copperlist
+; d0 = bitmap
+; -> a0 = updated copperlist ptr
+
+	moveq	#PLANES-1,d1
+	move.w	#BPL1PTH,d2
+	move.w	#BPR,a1
+.1:	move.w	d2,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d2
+	move.w	d2,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d2
+	add.l	a1,d0
+	dbf	d1,.1
+
+	; Cl_waitsplit: write WAIT instructions for split location
+	COPWAIT	$ff,$de,(a0)+
+	COPWAIT	VEND,$01,(a0)+   ;VEND = VSTART+DISPH = 44 +  240
+
+	; Cl_bplsplit: write bitplane pointers for the split
+	move.l	Vbitmap(a2),d0
+	subq.l	#2,d0		; invisible extra word for scrolling (DDFSTRT)
+
+; Write interleaved bitplane pointers for all planes into the copperlist.
+; d2 gets destroyed!
+; a0 = copperlist
+; d0 = bitmap
+; -> a0 = updated copperlist ptr
+
+	moveq	#PLANES-1,d1
+	move.w	#BPL1PTH,d2
+	move.w	#BPR,a1
+.1:	move.w	d2,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d2
+	move.w	d2,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d2
+	add.l	a1,d0
+	dbf	d1,.1
+
+
+	; end of copper list
+	moveq	#-2,d0
+	move.l	d0,(a0)

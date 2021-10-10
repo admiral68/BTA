@@ -176,7 +176,7 @@ ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3
 
 ;-----------------------------------------------
 ScrollUpdateBitplanePointers:
-;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=CopHorzScrollPos;a2=CopBplP
+;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=CopHorzScrollPos;a2=CopBplPtrsTop;a3=CopBplPtrsBottom
 
    move.l v_scroll_screen(a0),d3
 
@@ -232,11 +232,14 @@ ScrollUpdateBitplanePointers:
 
 .loop
    move.w d3,6(a2)                                          ;lo word
+   ;move.w d3,6(a3)                                          ;lo word
    swap d3
    move.w d3,2(a2)                                          ;hi word
+   ;move.w d3,2(a3)                                          ;hi word
    swap d3
    add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
    addq #8,a2                                               ;point to next bpl to poke in copper
+   ;addq #8,a3                                               ;point to next bpl to poke in copper
    dbf.w d1,.loop
 
 .end
@@ -281,7 +284,7 @@ ScrollGetHTileOffsets:
 .left
     asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
 
-    ;FOR DEBUGGING: COMMENT THIS OUT; it will always choose the same source tile
+    ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
     add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
     move.l d1,d3                                            ;for debugging purposes
 

@@ -81,8 +81,14 @@ BPL2MOD         = $10A                                                      ;Mod
 *******************************************************************************
 * MACROS
 *******************************************************************************
-graeme_special:macro
+mcgeezer_special:macro
     clr.w $100.w
+    endm
+
+; write a copper wait instruction
+; arguments: vpos,hpos,<ea>
+COPWAIT:macro
+    move.l  #((\1)&$ff)<<24|(((\2)&$fe)|1)<<16|$fffe,\3
     endm
 
 tile_pal_00:macro

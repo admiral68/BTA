@@ -9,10 +9,6 @@
     INCLUDE "scroll.asm"
 
 *******************************************************************************
-* DEFINES
-*******************************************************************************
-
-*******************************************************************************
 * GAME
 *******************************************************************************
 Init:
@@ -37,17 +33,21 @@ Init:
     lea 2+screen_bytes_per_row*tile_height(a0),a0           ;+2 because we're scrollin' (Skip first column)
     move.l a0,v_scroll_screen(a1)
 
-    lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
+    lea CopBplPtrsTop,a1                                    ;where to poke the bitplane pointer words.
+    lea CopBplPtrsBottom,a2                                 ;where to poke the bitplane pointer words.
     move #4-1,d0
 
 .bpl7:
     move.l a0,d1
     swap d1
     move.w d1,2(a1)                                         ;hi word
+    move.w d1,2(a2)                                         ;hi word
     swap d1
     move.w d1,6(a1)                                         ;lo word
+    move.w d1,6(a2)                                         ;lo word
 
     addq #8,a1                                              ;point to next bpl to poke in copper
+    addq #8,a2                                              ;point to next bpl to poke in copper
     lea screen_bp_bytes_per_raster_line(a0),a0              ;every 44 bytes we'll have new bitplane data
     dbf d0,.bpl7
 
@@ -65,6 +65,16 @@ StartGame:
 
     lea $DFF000,a6
     move.w #$87C0,DMACON(a6)                                ;SET+BLTPRI+DMAEN+BPLEN+COPEN+BLTEN
+
+    move.w #0,$01fc(a6)                                     ;slow fetch mode, AGA compatibility
+    move.w #$200,BPLCON0(a6)
+    move.w #$2c<<8+display_start,DIWSTRT(a6)
+    move.w #$2c<<8+display_stop,DIWSTOP(a6)
+    move.w #DMA_fetch_start,DDFSTRT(a6)                     ;$28 for 22 columns; $38 for 20 columns (etc)
+    move.w #$d0,DDFSTOP(a6)
+
+    move.w #screen_modulo,BPL1MOD(a6)
+    move.w #screen_modulo,BPL2MOD(a6)
 
     move.l #Copper,COP1LCH(a6)
     move.l #VBint,$6c(a4)                                   ;set vertb interrupt vector compatibly.
@@ -192,7 +202,8 @@ TESTScrollRight:
 
    move.l #1,d4
    lea CopHorzScrollPos,a1
-   lea CopBplP,a2
+   lea CopBplPtrsTop,a2
+   lea CopBplPtrsBottom,a3
    bsr ScrollUpdateBitplanePointers
    rts
 
@@ -221,7 +232,8 @@ TESTScrollLeft:
 .update
    move.l #$0000FFFF,d4
    lea CopHorzScrollPos,a1
-   lea CopBplP,a2
+   lea CopBplPtrsTop,a2
+   lea CopBplPtrsBottom,a3
    bsr ScrollUpdateBitplanePointers
    bra .update_horz_scroll_position
 
@@ -244,7 +256,8 @@ TESTScrollDown:
 
    move.l #$10000,d4
    lea CopHorzScrollPos,a1
-   lea CopBplP,a2
+   lea CopBplPtrsTop,a2
+   lea CopBplPtrsBottom,a3
    bsr ScrollUpdateBitplanePointers
    rts
 
@@ -261,7 +274,8 @@ TESTScrollUp:
 
    move.l #$FFFF0000,d4
    lea CopHorzScrollPos,a1
-   lea CopBplP,a2
+   lea CopBplPtrsTop,a2
+   lea CopBplPtrsBottom,a3
    bsr ScrollUpdateBitplanePointers
    rts
 
@@ -486,6 +500,14 @@ VBint:                                                      ;Blank template VERT
     move.w d0,INTREQ(a6)
     move.w d0,INTREQ(a6)
 
+    move.w #$2c<<8+display_start,DIWSTRT(a6)
+    move.w #$2c<<8+display_stop,DIWSTOP(a6)
+    move.w #DMA_fetch_start,DDFSTRT(a6)                     ;$28 for 22 columns; $38 for 20 columns (etc)
+    move.w #$d0,DDFSTOP(a6)
+
+    move.w #screen_modulo,BPL1MOD(a6)
+    move.w #screen_modulo,BPL2MOD(a6)
+
     bsr TESTVBCode
     bsr VBCode
 
@@ -584,25 +606,26 @@ FastData:
 
     SECTION AllData,DATA_C
 
-Copper:
-    dc.w $01fc,0                                            ;slow fetch mode, AGA compatibility
-    dc.w BPLCON0,$0200
-    dc.b 0,DIWSTRT,$2c,display_start
-    dc.b 0,DIWSTOP,$2c,display_stop
-    dc.w DDFSTRT,DMA_fetch_start                            ;$28 for 22 columns; $38 for 20 columns (etc)
-    dc.w DDFSTOP,$d0
+    ;move.w #$01a0,DMACON(a6)
+    ;move.w #$0200,BPLCON0(a6)   ;disables it
 
-    dc.w BPL1MOD,screen_modulo
-    dc.w BPL2MOD,screen_modulo
+    ;bsr    waitvertb
+    ;move.w #PLANES<<12|$200,BPLCON0(a6)  ;shows it
+
+Copper:
 
 CopHorzScrollPos:
     dc.w BPLCON1,$00
-    dc.w BPLCON2,0
+CopSpritesEnable:
+    dc.w BPLCON2,0                                          ;move.w #$24,BPLCON2(a6)
 
 CopPalPtrs:
     tile_pal_0f
 
-CopBplP:
+CopDisplEnable:
+    dc.w BPLCON0,$4200
+
+CopBplPtrsTop:
     dc.w $00e0,0                                            ;1
     dc.w $00e2,0
     dc.w $00e4,0                                            ;2
@@ -616,11 +639,28 @@ CopBplP:
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
-    dc.w BPLCON0,$4200
+CopSplitBottom:
+    dc.w $ffdf,$fffe
 
-    ;dc.w $9207,$fffe
+CopSplitTop:
+    dc.w $2c01,$fffe
+
+CopBplPtrsBottom:
+    dc.w $00e0,0                                            ;1
+    dc.w $00e2,0
+    dc.w $00e4,0                                            ;2
+    dc.w $00e6,0
+    dc.w $00e8,0                                            ;3
+    dc.w $00ea,0
+    dc.w $00ec,0                                            ;4
+    dc.w $00ee,0
+;   dc.w $00f0,0                                            ;5
+;   dc.w $00f2,0
+;   dc.w $00f4,0                                            ;6
+;   dc.w $00f6,0
 
     dc.w $ffff,$fffe
+
 CopperE:
 
     EVEN

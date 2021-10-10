@@ -38210,7 +38210,7 @@ FFFF766000000000
 0000000000000000
 0000000000000000
 -----------------------------------------------------------------
- 
+
 ------------------------------------------ [BITPLANE 1] ------------------------------------------
 TILE 0x000
 FF FF
@@ -85316,7 +85316,7 @@ F8 00 F0 00 00 00 00 00 00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 
 -----------------------------------------------------------------
- 
+
 ------------------------------------------ [BITPLANE 0] ------------------------------------------
 TILE 0x000
 FF FF
@@ -132422,7 +132422,7 @@ FF 00 FE 00 FC 00 F0 00 00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 
 -----------------------------------------------------------------
- 
+
 ------------------------------------------ [BITPLANE 3] ------------------------------------------
 TILE 0x000
 FF FF
@@ -179528,7 +179528,7 @@ FF 00 FE 00 FC 00 F0 00 00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 
 -----------------------------------------------------------------
- 
+
 ------------------------------------------ [BITPLANE 2] ------------------------------------------
 TILE 0x000
 FF FF
@@ -226677,19 +226677,19 @@ DrawTile:
 ;OUTPUT: mapx in d6
 
     ;calc destination offsets into d4
-	;I'm probably breaking this code for left scroll...
+    ;I'm probably breaking this code for left scroll...
 
-	
+
     ;move.w d4,d5
     ;asr.w #3,d5                                             ;(x / 8)
     ;and.w #$fffe,d5                                         ;x = (x / 8) & 0xFFFE;
-	;
+    ;
     ;swap d5
     ;swap d4
-	;
+    ;
     ;move.w d4,d5                                            ;y
     ;mulu #screen_width/2,d1                                 ;* bitmap_bytes_per_row
-	;
+    ;
     ;move.l d5,d4
 
 
@@ -226706,11 +226706,11 @@ DrawTile:
 
     swap d3
     add.w d3,d5                                             ;block = mapdata[mapy * mapwidth + mapx]
-	
+
     ;divu #tiles_per_row,d5                                  ;block / tiles_per_row
-    ;swap d5                                                 ;block % tiles_per_row   
-	;move.w d5,d3   
-	;asl.w #1,d3                                             ;mapx = (block % BLOCKSPERROW) * (BLOCKWIDTH / 8);
+    ;swap d5                                                 ;block % tiles_per_row
+    ;move.w d5,d3
+    ;asl.w #1,d3                                             ;mapx = (block % BLOCKSPERROW) * (BLOCKWIDTH / 8);
 
     ;swap d5
 
@@ -226731,7 +226731,7 @@ DrawTile:
     move.l a4,d1                                            ;D dest (frontbuffer)
 
     clr.l d6
-    move.l d3,d6											;preserve mapx/mapy
+    move.l d3,d6                                            ;preserve mapx/mapy
 
     clr.l d2
 
@@ -227033,7 +227033,7 @@ MoveBitplanePointersForDownScroll:
    add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
    addq #8,a2                                               ;point to next bpl to poke in copper
    dbf d1,.loop
-   
+
    rts
 
 ;-----------------------------------------------
@@ -227053,7 +227053,364 @@ MoveBitplanePointersForUpScroll:
    add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
    addq #8,a2                                               ;point to next bpl to poke in copper
    dbf d1,.loop
-   
+
    rts
 
 ;-----------------------------------------------
+
+
+; game copper list
+        rsreset
+Cl_sprites              rs.l    2*8         ; SPRxPT
+Cl_illcolors            rs.l    2           ; two colors which may be illuminated
+Cl_scroll               rs.l    1           ; BPLCON1, scroll delay
+Cl_bpltop               rs.l    2*PLANES    ; BPLxPT
+Cl_waitsplit            rs.l    2           ; WAIT until split
+Cl_bplsplit             rs.l    2*PLANES    ; BPLxPT
+                        rs.l    1           ; $ffff,$fffe end of copper list
+sizeof_GameCL           rs.b    0
+
+set_scroll_pos:
+; Set the map position of the top-left display edge.
+; Warning: Needs to be followed by copper_scroll() and draw_tiles(),
+; which redraws the whole bitmap. scroll() is for small movements only!
+; d0 = xpos.w
+; d1 = ypos.w
+
+	move.l	d2,a0
+	moveq	#0,d2
+	move.w	d1,d2
+	divu	#BMAPH,d2
+	swap	d2
+	movem.w	d0-d2,Xpos(a4)		; initialize Xpos, Ypos, Ymod
+	move.l	a0,d2
+
+	; determine our position on the copper background
+	move.l	CopperbarTab(a4),a1
+	subq.l	#4,a1
+	asr.w	#1,d1
+	move.w	d1,CbackPos(a4)
+.1:	addq.l	#4,a1
+	move.w	(a1),d0
+	sub.w	d0,d1
+	bpl	.1
+	move.l	a1,CbackPtr(a4)
+	add.w	d0,d1
+	move.w	d1,CbackOffs(a4)
+	rts
+
+
+copper_scroll:
+; Change BPLPTx and BPLCON1 to view the requested position.
+; a5 = View
+; -> d2 = xpos
+; -> d3 = ypos
+; -> d4 = ypos % BMAPH
+; Registers, except a4 - a6, are not preserved!
+
+    movem.w Xpos(a4),d2-d4
+    move.l  Vclist(a5),a2
+
+    ; write fine scrolling code for (xpos & 15)
+    moveq   #15,d0
+    and.w   d2,d0
+    add.w   d0,d0
+    move.w  ScrollTab(pc,d0.w),Cl_scroll+2(a2)
+
+
+
+    ; calculate xoffset on bitplanes
+    move.l  Vbitmap(a5),a0
+    move.w  d2,d0
+    subq.w  #1,d0           ; prefetch, when xpos&15 is 0
+    and.w   #$fff0,d0
+    asr.w   #3,d0
+    add.w   d0,a0
+
+    ; calculate a second bitplane pointer with xoffset and ymodulo
+    lea YOffTab(a4),a1
+    move.w  d4,d0
+    add.w   d0,d0
+    add.w   d0,d0
+    move.l  (a1,d0.w),d6
+    add.l   a0,d6           ; d6 (top): bitmap + xoffset + ymodulo
+    move.l  a0,d7           ; d7 (split): bitmap + xoffset
+
+    ; determine real Vtop and Vsplit bitmap pointer for rendering
+    move.l  d6,a0
+    move.l  d7,a1
+    moveq   #15,d0
+    and.w   d2,d0
+    bne .1
+    addq.l  #2,a0
+    addq.l  #2,a1
+.1: movem.l a0-a1,Vtop(a5)
+
+    ; calculate current y-offset of split
+    move.w  #BMAPH,d1
+    sub.w   d4,d1
+    move.w  d1,Vsplyoff(a5)
+
+    ; calculate raster line of display split
+    move.w  #VSTART+DISPH,d0  ; 44 +  240
+    moveq   #-EXTRAROWS*16,d1
+    add.w   d4,d1
+    bmi .2          ; no split
+    sub.w   d1,d0
+
+
+
+    ; write WAIT command for split line
+.2: move.b  d0,Cl_waitsplit+4(a2)
+    and.w   #$ff00,d0
+    sne Cl_waitsplit(a2)
+
+    ; write updated bitplane pointers for top and split section
+    lea Cl_bpltop+2(a2),a0
+    moveq   #PLANES-1,d0
+    move.w  #BPR,a1
+.3: swap    d6
+    move.w  d6,(a0)
+    swap    d6
+    move.w  d6,4(a0)
+    swap    d7
+    move.w  d7,Cl_bplsplit-Cl_bpltop(a0)
+    swap    d7
+    move.w  d7,4+Cl_bplsplit-Cl_bpltop(a0)
+    addq.l  #8,a0
+    add.l   a1,d6
+    add.l   a1,d7
+    dbf d0,.3
+    rts
+
+write_clist_spriteptrs:
+; Write pointers to sprite descriptors from a list for all 8 sprites.
+; d2 gets destroyed!
+; a0 = copperlist
+; a1 = sprite list
+; -> a0 = updated copperlist ptr
+
+	moveq	#8-1,d1
+	move.w	#SPR0PTH,d2
+.1:	move.l	(a1)+,d0
+	move.w	d2,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d2
+	move.w	d2,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d2
+	dbf	d1,.1
+	rts
+
+
+init_scrollview_clist:
+; Write initial copper list. Reset bitmap pointers to the top-left edge
+; and set the split below the visible display.
+; a1 = View
+; a0 = copper list
+; d0 = bitmap
+
+	movem.l	d2/a2,-(sp)
+	move.l	a1,a2
+
+	; reset scroll coordinates
+	clr.w	Vxpos(a2)
+	clr.w	Vypos(a2)
+
+	; set copper list and bitmap pointer
+	move.l	a0,Vclist(a2)
+	move.l	d0,Vbitmap(a2)
+
+	; Cl_sprites: write sprite pointers
+	lea	Sprites(a4),a1
+	bsr	write_clist_spriteptrs
+
+	; Cl_illcolors: write two colors to illuminate during the game
+	move.l	#(COLOR00+2*ILLUMCOLOR1)<<16,(a0)+
+	move.l	#(COLOR00+2*ILLUMCOLOR2)<<16,(a0)+
+
+	; Cl_scroll: set scrolling delay for the scroll display
+	move.l	#BPLCON1<<16,(a0)+
+
+	; Cl_bpltop: write bitplane pointers for top of scroll display
+	move.l	Vbitmap(a2),d0
+	subq.l	#2,d0		; invisible extra word for scrolling (DDFSTRT)
+	bsr	write_clist_planeptrs
+
+	; Cl_waitsplit: write WAIT instructions for split location
+	COPWAIT	$ff,$de,(a0)+
+	COPWAIT	VEND,$01,(a0)+
+
+	; Cl_bplsplit: write bitplane pointers for the split
+	move.l	Vbitmap(a2),d0
+	subq.l	#2,d0		; invisible extra word for scrolling (DDFSTRT)
+	bsr	write_clist_planeptrs
+
+	; end of copper list
+	moveq	#-2,d0
+	move.l	d0,(a0)
+
+	movem.l	(sp)+,d2/a2
+	rts
+
+
+write_clist_planeptrs:
+; Write interleaved bitplane pointers for all planes into the copperlist.
+; d2 gets destroyed!
+; a0 = copperlist
+; d0 = bitmap
+; -> a0 = updated copperlist ptr
+
+	moveq	#PLANES-1,d1
+	move.w	#BPL1PTH,d2
+	move.w	#BPR,a1
+.1:	move.w	d2,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d2
+	move.w	d2,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d2
+	add.l	a1,d0
+	dbf	d1,.1
+	rts
+
+
+write_clist_wait:
+; Write Copper WAIT instructions for a specific vpos (0 .. VEND).
+; a0 = copper list pointer
+; d0 = VPOS to wait for
+; d2 = true, when vpos for last WAIT already passed $100.
+; -> a0 = updated copper list pointer
+; -> d2 = true, when vpos passed $100.
+
+	cmp.w	#$100,d0
+	blo	.1
+	bset	#0,d2
+	bne	.1
+	COPWAIT	$ff,$de,(a0)+
+.1:	lsl.w	#8,d0
+	addq.w	#1,d0
+	move.w	d0,(a0)+
+	move.w	#$fffe,(a0)+
+	rts
+
+
+startclist:
+; Start copperlist of first View.
+
+	; Work around the COPJMPx strobe bug, which may erroneously load
+	; the COPxLC into a BLTxPT register when the blitter is using
+	; DMA slots at the same time.
+	WAITBLIT
+
+	; set CurrentView to first View
+	lea	View(a4),a1
+	move.l	a1,CurrentView(a4)
+	move.l	(a1),a1
+
+	; start the View's copper list
+	ifd	DEBUG
+	move.l	Vclist(a1),CurrentClist(a4)
+	endif
+	move.l	Vclist(a1),COP1LC(a6)
+
+	; enable bitplane, copper and sprite DMA
+	move.w	#$83a0,DMACON(a6)
+	tst.w	COPJMP1(a6)
+
+	; wait for next VERTB and enable bitplanes
+	bsr	waitvertb
+	move.w	#PLANES<<12|$200,BPLCON0(a6)
+	rts
+
+make_scrollviews:
+; Initialize the main display registers.
+; PLANES bitplanes, interleaved. Sprites before playfields.
+; Set DISPWxDISPH display window and fetch an additional word at the
+; beginning of each line for fine scrolling.
+
+	; Sprites appear on top of all playfields.
+	move.w	#$24,BPLCON2(a6)
+
+	; Fetch an additional word before the normal DFETCHSTART to allow
+	; horizontal playfield scrolling.
+	move.w	#DFETCHSTART-(16/2),DDFSTRT(a6)
+	move.w	#DFETCHSTOP,DDFSTOP(a6)
+
+	; set the display window location and dimensions
+	move.w	#(VSTART&$ff)<<8|(HSTART&$ff),DIWSTRT(a6)
+	move.w	#(VEND&$ff)<<8|((HSTART+DISPW)&$ff),DIWSTOP(a6)
+
+	; The bitplanes are interleaved, so we have to skip the words from
+	; PLANES-1 rows, and the non-dispayed extra words from the current
+	; row.
+	move.w	#(PLANES-1)*BPR+(BPR-DISPW/8-2),d1
+	move.w	d1,BPL1MOD(a6)
+	move.w	d1,BPL2MOD(a6)
+
+	; Reset the Views and their copper lists to an initial state with
+	; scroll position at 0,0.
+
+	lea	View1(a4),a1
+	moveq	#0,d0
+	bsr	clear_view
+	move.l	Clist1(a4),a0
+	move.l	Bitmap1(a4),d0
+	bsr	init_scrollview_clist
+    rts
+
+init_scrollview_clist:
+; Write initial copper list. Reset bitmap pointers to the top-left edge
+; and set the split below the visible display.
+; a1 = View
+; a0 = copper list
+; d0 = bitmap
+
+	movem.l	d2/a2,-(sp)
+	move.l	a1,a2
+
+	; reset scroll coordinates
+	clr.w	Vxpos(a2)
+	clr.w	Vypos(a2)
+
+	; set copper list and bitmap pointer
+	move.l	a0,Vclist(a2)
+	move.l	d0,Vbitmap(a2)
+
+	; Cl_sprites: write sprite pointers
+	lea	Sprites(a4),a1
+	bsr	write_clist_spriteptrs
+
+	; Cl_illcolors: write two colors to illuminate during the game
+	move.l	#(COLOR00+2*ILLUMCOLOR1)<<16,(a0)+
+	move.l	#(COLOR00+2*ILLUMCOLOR2)<<16,(a0)+
+
+	; Cl_scroll: set scrolling delay for the scroll display
+	move.l	#BPLCON1<<16,(a0)+
+
+	; Cl_bpltop: write bitplane pointers for top of scroll display
+	move.l	Vbitmap(a2),d0
+	subq.l	#2,d0		; invisible extra word for scrolling (DDFSTRT)
+	bsr	write_clist_planeptrs
+
+	IFND	COPPERBACK
+	; Cl_waitsplit: write WAIT instructions for split location
+	COPWAIT	$ff,$de,(a0)+
+	COPWAIT	VEND,$01,(a0)+
+
+	; Cl_bplsplit: write bitplane pointers for the split
+	move.l	Vbitmap(a2),d0
+	subq.l	#2,d0		; invisible extra word for scrolling (DDFSTRT)
+	bsr	write_clist_planeptrs
+
+	; end of copper list
+	moveq	#-2,d0
+	move.l	d0,(a0)
+	ENDIF	; !COPPERBACK
+
+	movem.l	(sp)+,d2/a2
+	rts
