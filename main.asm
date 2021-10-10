@@ -177,44 +177,6 @@ TESTUpdatePaletteDuringScroll:
     rts
 
 ;-----------------------------------------------
-UpdateSaveWordRightScroll:
-   lea PtrSaveWord,a3
-   lea SaveWord,a4
-   lea PreviousScrollDir,a5
-   cmp.b #1,(a5)                                            ;if (previous_direction == DIRECTION_LEFT)
-   bne .rupdate_saveword
-
-   WAITBLIT                                                 ;HardWaitBlit();
-   move.w (a4),(a3)                                         ;*savewordpointer = saveword;
-
-.rupdate_saveword
-
-
-;TODO: THIS CODE CAUSES A GURU MEDITATION :---)
-
-;   clr.l d1
-;   clr.l d2
-;
-;   lea Screen,a5                                            ;frontbuffer
-;   move.l a5,d2
-;   move.w d4,d1                                             ;x
-;   asr.w #3,d1                                              ;(x / 8)
-;   add.l d1,d2                                              ;frontbuffer + (x / 8)
-;
-;   clr.l d1
-;
-;   swap d4                                                  ;y
-;   move.w d4,d1
-;   add.w #tile_plane_lines-1,d1                             ;(y + tile_plane_lines - 1)
-;   mulu #screen_width/2,d1                                  ;* bitmap_bytes_per_row
-;   add.l d1,d2
-;   move.l d2,a3                                             ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
-;   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
-;   swap d4                                                  ;x
-
-    rts
-
-;-----------------------------------------------
 TESTScrollRight:
 ;INPUT:a0
    cmp.w #0,d1
@@ -239,7 +201,7 @@ TESTScrollRight:
    rts
 
 .no_update
-   move.w #0,2(a2)                                          ;Tile position
+   move.w #127,2(a2)                                        ;Tile position (current level max x)
 
 .update_horz_scroll_position
 
@@ -272,7 +234,7 @@ TESTScrollLeft:
    bra .update_horz_scroll_position
 
 .no_update
-   move.w #127,(a2)
+   move.w #0,(a2)
 
 .update_horz_scroll_position
 
@@ -321,44 +283,6 @@ TESTScrollUp:
 
 .no_update
    move.w #0,(a2)                                          ;Tile position
-   rts
-
-;-----------------------------------------------
-UpdateSaveWordLeftScroll:                                   ;OUTPUT: mapx/y in d3; video x/y in d4
-   lea PtrSaveWord,a3
-   lea SaveWord,a4
-   lea PreviousScrollDir,a5
-   cmp.b #0,(a5)                                            ;if (previous_direction == DIRECTION_RIGHT)
-   bne .lupdate_saveword
-
-   WAITBLIT                                                 ;HardWaitBlit();
-   move.w (a4),(a3)                                         ;*savewordpointer = saveword;
-
-.lupdate_saveword
-
-;TODO: THIS CODE CAUSES A GURU MEDITATION :---)
-
-;   clr.l d1
-;   clr.l d2
-;   lea Screen,a5
-;   move.l a5,d2                                             ;frontbuffer
-;   move.w d4,d1                                             ;x
-;   asr.w #3,d1                                              ;(x / 8)
-;   add.l d1,d2                                              ;frontbuffer + (x / 8)
-;
-;;TODO: CONVERT y (in d4) TO SCREEN BUFFER COORDS; RIGHT NOW IT IS IN BIG BITMAP COORDS
-;   clr.l d1
-;   swap d4                                                  ;y
-;   move.w d1,d4
-;   mulu #screen_width/2,d1                                  ;* bitmap_bytes_per_row
-;   add.l d1,d2
-;   move.l d2,a3                                             ;savewordpointer = (WORD *)(frontbuffer + y * bitmap_bytes_per_row + (x / 8));
-;   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
-;   swap d4                                                  ;x
-
-   lea PreviousScrollDir,a3
-   move.b #1,(a3)                                           ;previous_direction = DIRECTION_LEFT;
-
    rts
 
 ;-----------------------------------------------
@@ -415,10 +339,15 @@ TESTScroll:
    bsr TESTScrollRight                                      ;INPUT:d2,a0 (d1)
    lea MapXYPosition,a3
    bsr ScrollGetXYPositionRight
-   bsr UpdateSaveWordRightScroll                            ;OUTPUT: mapx/y in d3; video x/y in d4
+
+   lea Screen,a2                                            ;frontbuffer
+   lea PtrSaveWord,a3
+   lea SaveWord,a4
+   lea PreviousScrollDir,a5
+   bsr ScrollUpdateSaveWordRight                            ;OUTPUT: mapx/y in d3; video x/y in d4
    bsr CalculateDrawHTile
    bsr DrawTile
-   
+
    lea MapXYPosition,a3
    lea VideoXYPosition,a4
    lea PreviousScrollDir,a5
@@ -443,14 +372,19 @@ TESTScroll:
    lea MapXYPosition,a3
    lea TileYBlitPositions,a5
    bsr ScrollGetXYPositionLeft
-   bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
+
+   lea Screen,a2
+   lea PtrSaveWord,a3
+   lea SaveWord,a4
+   lea PreviousScrollDir,a5
+   bsr ScrollUpdateSaveWordLeft                             ;OUTPUT: mapx/y in d3; video x/y in d4
    bsr CalculateDrawHTile
    bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
    rts
 
 .up
    rts
-   
+
 .scroll_up
 ;   lea MapXYPosition,a3
 ;   lea VideoXYPosition,a4

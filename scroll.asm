@@ -103,12 +103,12 @@ ScrollGetStepAndDelay:
 
    move.w (a3),d2
    move.w (a3),d1
-   
+
    and.w #$000F,d1
-   
+
    swap d1
    swap d2
-   
+
    move.w 2(a3),d1
    move.w 2(a3),d2
 
@@ -250,6 +250,76 @@ ScrollUpdateBitplanePointers:
    dbf.w d1,.loop
 
 .end
+   rts
+
+;-----------------------------------------------
+ScrollUpdateSaveWordRight:
+   cmp.b #1,(a5)                                            ;if (previous_direction == DIRECTION_LEFT)
+   bne .rupdate_saveword
+
+   WAITBLIT                                                 ;HardWaitBlit();
+   move.w (a4),(a3)                                         ;*savewordpointer = saveword;
+
+.rupdate_saveword
+
+
+;TODO: THIS CODE CAUSES A GURU MEDITATION :---)
+
+;   clr.l d1
+;   clr.l d2
+;
+;   lea Screen,a2                                            ;frontbuffer
+;   move.l a2,d2
+;   move.w d4,d1                                             ;x
+;   asr.w #3,d1                                              ;(x / 8)
+;   add.l d1,d2                                              ;frontbuffer + (x / 8)
+;
+;   clr.l d1
+;
+;   swap d4                                                  ;y
+;   move.w d4,d1
+;   add.w #tile_plane_lines-1,d1                             ;(y + tile_plane_lines - 1)
+;   mulu #screen_width/2,d1                                  ;* bitmap_bytes_per_row
+;   add.l d1,d2
+;   move.l d2,a3                                             ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
+;   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
+;   swap d4                                                  ;x
+
+    rts
+
+;-----------------------------------------------
+ScrollUpdateSaveWordLeft:                                   ;OUTPUT: mapx/y in d3; video x/y in d4
+   cmp.b #0,(a5)                                            ;if (previous_direction == DIRECTION_RIGHT)
+   bne .lupdate_saveword
+
+   WAITBLIT                                                 ;HardWaitBlit();
+   move.w (a4),(a3)                                         ;*savewordpointer = saveword;
+
+.lupdate_saveword
+
+;TODO: THIS CODE CAUSES A GURU MEDITATION :---)
+
+;   clr.l d1
+;   clr.l d2
+;   lea Screen,a2
+;   move.l a2,d2                                             ;frontbuffer
+;   move.w d4,d1                                             ;x
+;   asr.w #3,d1                                              ;(x / 8)
+;   add.l d1,d2                                              ;frontbuffer + (x / 8)
+;
+;;TODO: CONVERT y (in d4) TO SCREEN BUFFER COORDS; RIGHT NOW IT IS IN BIG BITMAP COORDS
+;   clr.l d1
+;   swap d4                                                  ;y
+;   move.w d1,d4
+;   mulu #screen_width/2,d1                                  ;* bitmap_bytes_per_row
+;   add.l d1,d2
+;   move.l d2,a3                                             ;savewordpointer = (WORD *)(frontbuffer + y * bitmap_bytes_per_row + (x / 8));
+;   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
+;   swap d4                                                  ;x
+
+;   lea PreviousScrollDir,a5
+   move.b #1,(a5)                                           ;previous_direction = DIRECTION_LEFT;
+
    rts
 
 ;-----------------------------------------------

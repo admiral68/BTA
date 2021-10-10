@@ -226893,26 +226893,26 @@ tile_pal_03:macro
 ;    move.l #$10,MapXYPosition
 ;    move.l #$10,VideoXYPosition
 ;    bsr ScrollGetXYPositionLeft
-;    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
+;    bsr ScrollUpdateSaveWordLeft                             ;OUTPUT: mapx/y in d3; video x/y in d4
 ;    bsr CalculateDrawTileLeft
 ;
 ;    move.l #$20,MapXYPosition
 ;    move.l #$20,VideoXYPosition
 ;    bsr ScrollGetXYPositionLeft
-;    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
+;    bsr ScrollUpdateSaveWordLeft                             ;OUTPUT: mapx/y in d3; video x/y in d4
 ;    bsr CalculateDrawTileLeft
 ;
 ;    move.l #$160,MapXYPosition
 ;    move.l #$160,VideoXYPosition
 ;    bsr ScrollGetXYPositionLeft
-;    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
+;    bsr ScrollUpdateSaveWordLeft                             ;OUTPUT: mapx/y in d3; video x/y in d4
 ;    bsr CalculateDrawTileLeft
 ;
 ;    REPT 16
 ;    bsr TESTScrollLeft
 ;    bsr DecrementXScrollPosition
 ;    bsr ScrollGetXYPositionLeft
-;    bsr UpdateSaveWordLeftScroll                             ;OUTPUT: mapx/y in d3; video x/y in d4
+;    bsr ScrollUpdateSaveWordLeft                             ;OUTPUT: mapx/y in d3; video x/y in d4
 ;    bsr CalculateDrawTileLeft
 ;    ENDR
 
