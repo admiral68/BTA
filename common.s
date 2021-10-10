@@ -15,9 +15,9 @@ v_map_y_position            = 20
 v_map_x_position            = 22
 v_video_y_position          = 24
 v_video_x_position          = 26
-v_scroll_ptr_saveword       = 28
-v_dest_graphic_vtile_offset = 32
-v_scroll_screen             = 36
+v_dest_graphic_vtile_offset = 28
+v_scroll_screen             = 32
+v_scroll_screen_split       = 36
 v_scroll_dest_offset_table  = 40
 v_scroll_saveword           = 72
 v_video_x_bitplane_offset   = 74
@@ -28,6 +28,15 @@ v_tile_columns_to_decode    = 116
 v_tile_rows_to_decode       = 117
 v_scroll_command            = 118
 v_scroll_previous_direction = 119
+
+c_horizontal_scroll_pos_01  = 2
+c_sprites_enable_01         = 6
+c_palette_01                = 10
+c_display_enable_01         = 74
+c_bitplane_pointers_01      = 78
+c_split_stop                = 110
+c_split                     = 114
+c_bitplane_pointers_02      = 118
 
     *-----------------*
     * constants:video *

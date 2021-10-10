@@ -1,116 +1,81 @@
-	; write a copper wait instruction
-	; arguments: vpos,hpos,<ea>
-	macro	COPWAIT
-	move.l	#((\1)&$ff)<<24|(((\2)&$fe)|1)<<16|$fffe,\3
-	endm
+copper_scroll:
+	lea v_scroll_screen(a0),a0
+	; calculate xoffset on bitplanes
+
+	
+	;a2 clist
+	lea v_scroll_screen(a0),a0
+
+	; calculate a second bitplane pointer with xoffset and ymodulo
+	lea	YOffTab(a4),a1
+	move.w	d4,d0			;d4 = ypos & BMAPH
+	add.w	d0,d0
+	add.w	d0,d0
+	move.l	(a1,d0.w),d6
+	add.l	a0,d6			; d6 (top):   bitmap + xoffset + ymodulo
+	move.l	a0,d7			; d7 (split): bitmap + xoffset
+
+
+	; determine real Vtop and Vsplit bitmap pointer for rendering
+	move.l	d6,a0
+	move.l	d7,a1
+	moveq	#15,d0
+	and.w	d2,d0			;d2 = xpos
+	bne	.1
+	addq.l	#2,a0
+	addq.l	#2,a1
+
+
+.1:	
+    movem.l	a0-a1,Vtop(a5)						;save ptrs
+
+	; calculate current y-offset of split
+	move.w	#screen_buffer_height,d1
+	sub.w	d4,d1								;d1 = d1 - (ypos % screen_buffer_height)
+	move.w	d1,Vsplyoff(a5)						;save?
 
 
 
 
-	move.w	#$24,BPLCON2(a6)
-
-	; Fetch an additional word before the normal DFETCHSTART to allow
-	; horizontal playfield scrolling.
-	move.w	#DFETCHSTART-(16/2),DDFSTRT(a6)
-	move.w	#DFETCHSTOP,DDFSTOP(a6)
-
-	; set the display window location and dimensions
-	move.w	#(VSTART&$ff)<<8|(HSTART&$ff),DIWSTRT(a6)
-	move.w	#(VEND&$ff)<<8|((HSTART+DISPW)&$ff),DIWSTOP(a6)
-
-	; The bitplanes are interleaved, so we have to skip the words from
-	; PLANES-1 rows, and the non-dispayed extra words from the current
-	; row.
-	move.w	#(PLANES-1)*BPR+(BPR-DISPW/8-2),d1
-	move.w	d1,BPL1MOD(a6)
-	move.w	d1,BPL2MOD(a6)
 
 
 
 
 
-	lea	Sprites(a4),a1
-
-; a0 = copperlist
-; a1 = sprite list
-; -> a0 = updated copperlist ptr
-
-	moveq	#8-1,d1
-	move.w	#SPR0PTH,d2
-.1:	move.l	(a1)+,d0
-	move.w	d2,(a0)+
-	swap	d0
-	move.w	d0,(a0)+
-	addq.w	#2,d2
-	move.w	d2,(a0)+
-	swap	d0
-	move.w	d0,(a0)+
-	addq.w	#2,d2
-	dbf	d1,.1
-
-;;;
 
 
-	; Cl_illcolors: write two colors to illuminate during the game
-	move.l	#(COLOR00+2*ILLUMCOLOR1)<<16,(a0)+
-	move.l	#(COLOR00+2*ILLUMCOLOR2)<<16,(a0)+
-
-	; Cl_scroll: set scrolling delay for the scroll display
-	move.l	#BPLCON1<<16,(a0)+
-
-	; Cl_bpltop: write bitplane pointers for top of scroll display
-	move.l	Vbitmap(a2),d0
-	subq.l	#2,d0		; invisible extra word for scrolling (DDFSTRT)
-
-; Write interleaved bitplane pointers for all planes into the copperlist.
-; d2 gets destroyed!
-; a0 = copperlist
-; d0 = bitmap
-; -> a0 = updated copperlist ptr
-
-	moveq	#PLANES-1,d1
-	move.w	#BPL1PTH,d2
-	move.w	#BPR,a1
-.1:	move.w	d2,(a0)+
-	swap	d0
-	move.w	d0,(a0)+
-	addq.w	#2,d2
-	move.w	d2,(a0)+
-	swap	d0
-	move.w	d0,(a0)+
-	addq.w	#2,d2
-	add.l	a1,d0
-	dbf	d1,.1
-
-	; Cl_waitsplit: write WAIT instructions for split location
-	COPWAIT	$ff,$de,(a0)+
-	COPWAIT	VEND,$01,(a0)+   ;VEND = VSTART+DISPH = 44 +  240
-
-	; Cl_bplsplit: write bitplane pointers for the split
-	move.l	Vbitmap(a2),d0
-	subq.l	#2,d0		; invisible extra word for scrolling (DDFSTRT)
-
-; Write interleaved bitplane pointers for all planes into the copperlist.
-; d2 gets destroyed!
-; a0 = copperlist
-; d0 = bitmap
-; -> a0 = updated copperlist ptr
-
-	moveq	#PLANES-1,d1
-	move.w	#BPL1PTH,d2
-	move.w	#BPR,a1
-.1:	move.w	d2,(a0)+
-	swap	d0
-	move.w	d0,(a0)+
-	addq.w	#2,d2
-	move.w	d2,(a0)+
-	swap	d0
-	move.w	d0,(a0)+
-	addq.w	#2,d2
-	add.l	a1,d0
-	dbf	d1,.1
 
 
-	; end of copper list
-	moveq	#-2,d0
-	move.l	d0,(a0)
+
+	; calculate raster line of display split
+	move.w	#$2c,d0
+	moveq	#-2*16,d1							;
+	add.w	d4,d1								;d1 = d1 + (ypos % screen_buffer_height)
+	bmi	.2			; no split
+	sub.w	d1,d0								;d0 = d0 - (-2*16)
+
+
+
+	; write WAIT command for split line
+.2:	move.b	d0,Cl_waitsplit+4(a2)				;d0 is the second one
+	and.w	#$ff00,d0
+	sne	Cl_waitsplit(a2);                       ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
+
+	; write updated bitplane pointers for top and split section
+	lea	Cl_bpltop+2(a2),a0
+
+	moveq	#screen_bitplanes-1,d0
+	move.w	#screen_bpl_bytes_per_row,a1
+.3:	swap	d6
+	move.w	d6,(a0)
+	swap	d6
+	move.w	d6,4(a0)
+	swap	d7
+	move.w	d7,Cl_bplsplit-Cl_bpltop(a0)
+	swap	d7
+	move.w	d7,4+Cl_bplsplit-Cl_bpltop(a0)
+	addq.l	#8,a0
+	add.l	a1,d6
+	add.l	a1,d7
+	dbf	d0,.3
+	rts

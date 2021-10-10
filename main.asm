@@ -31,23 +31,23 @@ Init:
     lea FastData,a1
     lea Screen,a0                                           ;ptr to first bitplane of image
     lea 2+screen_bytes_per_row*tile_height(a0),a0           ;+2 because we're scrollin' (Skip first column)
-    move.l a0,v_scroll_screen(a1)
 
-    lea CopBplPtrsTop,a1                                    ;where to poke the bitplane pointer words.
-    lea CopBplPtrsBottom,a2                                 ;where to poke the bitplane pointer words.
+    move.l a0,v_scroll_screen(a1)
+    move.l a0,v_scroll_screen_split(a1)
+
+    lea Copper,a1                                           ;where to poke the bitplane pointer words.
     move #4-1,d0
 
 .bpl7:
     move.l a0,d1
     swap d1
-    move.w d1,2(a1)                                         ;hi word
-    move.w d1,2(a2)                                         ;hi word
+    move.w d1,c_bitplane_pointers_01(a1)                    ;hi word
+    move.w d1,c_bitplane_pointers_02(a1)                    ;hi word
     swap d1
-    move.w d1,6(a1)                                         ;lo word
-    move.w d1,6(a2)                                         ;lo word
+    move.w d1,4+c_bitplane_pointers_01(a1)                  ;lo word
+    move.w d1,4+c_bitplane_pointers_02(a1)                  ;lo word
 
     addq #8,a1                                              ;point to next bpl to poke in copper
-    addq #8,a2                                              ;point to next bpl to poke in copper
     lea screen_bp_bytes_per_raster_line(a0),a0              ;every 44 bytes we'll have new bitplane data
     dbf d0,.bpl7
 
@@ -133,24 +133,24 @@ TESTUpdatePaletteDuringScroll:
     cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
     blo .continue
 
-    lea CopPalPtrs,a2
+    lea Copper,a2
 
-    move.w #$0b87,2(a2)
-    move.w #$0754,6(a2)
-    move.w #$0975,10(a2)
-    move.w #$0ca8,14(a2)
-    move.w #$0ed8,18(a2)
-    move.w #$0fff,22(a2)
-    move.w #$0060,26(a2)
-    move.w #$0090,30(a2)
-    move.w #$00e0,34(a2)
-    move.w #$0777,38(a2)
-    move.w #$0aaa,42(a2)
-    move.w #$0747,46(a2)
-    move.w #$0868,50(a2)
-    move.w #$0a8a,54(a2)
-    move.w #$0cac,58(a2)
-    move.w #$0111,62(a2)
+    move.w #$0b87,c_palette_01(a2)
+    move.w #$0754,c_palette_01+4(a2)
+    move.w #$0975,c_palette_01+8(a2)
+    move.w #$0ca8,c_palette_01+12(a2)
+    move.w #$0ed8,c_palette_01+16(a2)
+    move.w #$0fff,c_palette_01+20(a2)
+    move.w #$0060,c_palette_01+24(a2)
+    move.w #$0090,c_palette_01+28(a2)
+    move.w #$00e0,c_palette_01+32(a2)
+    move.w #$0777,c_palette_01+36(a2)
+    move.w #$0aaa,c_palette_01+40(a2)
+    move.w #$0747,c_palette_01+44(a2)
+    move.w #$0868,c_palette_01+48(a2)
+    move.w #$0a8a,c_palette_01+52(a2)
+    move.w #$0cac,c_palette_01+56(a2)
+    move.w #$0111,c_palette_01+60(a2)
 
     bra .continue
 
@@ -162,24 +162,24 @@ TESTUpdatePaletteDuringScroll:
     cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
     bhi .continue
 
-    lea CopPalPtrs,a2
+    lea Copper,a2
 
-    move.w #$0111,2(a2)
-    move.w #$0FF9,6(a2)
-    move.w #$0EC7,10(a2)
-    move.w #$0DA6,14(a2)
-    move.w #$0C85,18(a2)
-    move.w #$0A74,22(a2)
-    move.w #$0864,26(a2)
-    move.w #$0753,30(a2)
-    move.w #$0641,34(a2)
-    move.w #$0533,38(a2)
-    move.w #$0431,42(a2)
-    move.w #$0111,46(a2)
-    move.w #$0111,50(a2)
-    move.w #$0111,54(a2)
-    move.w #$0111,58(a2)
-    move.w #$0110,62(a2)
+    move.w #$0111,c_palette_01(a2)
+    move.w #$0FF9,c_palette_01+4(a2)
+    move.w #$0EC7,c_palette_01+8(a2)
+    move.w #$0DA6,c_palette_01+12(a2)
+    move.w #$0C85,c_palette_01+16(a2)
+    move.w #$0A74,c_palette_01+20(a2)
+    move.w #$0864,c_palette_01+24(a2)
+    move.w #$0753,c_palette_01+28(a2)
+    move.w #$0641,c_palette_01+32(a2)
+    move.w #$0533,c_palette_01+36(a2)
+    move.w #$0431,c_palette_01+40(a2)
+    move.w #$0111,c_palette_01+44(a2)
+    move.w #$0111,c_palette_01+48(a2)
+    move.w #$0111,c_palette_01+52(a2)
+    move.w #$0111,c_palette_01+56(a2)
+    move.w #$0110,c_palette_01+60(a2)
 
 .continue
     movem.l (sp)+,d0-a6
@@ -201,9 +201,7 @@ TESTScrollRight:
    beq .no_update
 
    move.l #1,d4
-   lea CopHorzScrollPos,a1
-   lea CopBplPtrsTop,a2
-   lea CopBplPtrsBottom,a3
+   lea Copper,a1
    bsr ScrollUpdateBitplanePointers
    rts
 
@@ -212,8 +210,8 @@ TESTScrollRight:
 
 .update_horz_scroll_position
 
-   lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
-   move.w d0,2(a1)                                          ;update copper
+   lea Copper,a1                                  ;Copper Horizontal Scroll pos
+   move.w d0,c_horizontal_scroll_pos_01(a1)       ;update copper
 
    rts
 
@@ -231,9 +229,7 @@ TESTScrollLeft:
 
 .update
    move.l #$0000FFFF,d4
-   lea CopHorzScrollPos,a1
-   lea CopBplPtrsTop,a2
-   lea CopBplPtrsBottom,a3
+   lea Copper,a1
    bsr ScrollUpdateBitplanePointers
    bra .update_horz_scroll_position
 
@@ -242,8 +238,8 @@ TESTScrollLeft:
 
 .update_horz_scroll_position
 
-   lea CopHorzScrollPos,a1                                  ;Copper Horizontal Scroll pos (ptr + 2)
-   move.w d0,2(a1)                                          ;update copper
+   lea Copper,a1                                  ;Copper Horizontal Scroll pos
+   move.w d0,c_horizontal_scroll_pos_01(a1)       ;update copper
 
    rts
 
@@ -255,9 +251,7 @@ TESTScrollDown:
    beq .no_update
 
    move.l #$10000,d4
-   lea CopHorzScrollPos,a1
-   lea CopBplPtrsTop,a2
-   lea CopBplPtrsBottom,a3
+   lea Copper,a1
    bsr ScrollUpdateBitplanePointers
    rts
 
@@ -273,9 +267,7 @@ TESTScrollUp:
    beq .no_update
 
    move.l #$FFFF0000,d4
-   lea CopHorzScrollPos,a1
-   lea CopBplPtrsTop,a2
-   lea CopBplPtrsBottom,a3
+   lea Copper,a1
    bsr ScrollUpdateBitplanePointers
    rts
 
@@ -382,7 +374,7 @@ TESTScroll:
    bsr ScrollGetXYPositionDown
 ;   bsr CalculateDrawVTile
 ;   bsr TileDraw
-;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
    rts
 
 .rightup
@@ -556,13 +548,13 @@ FastData:
 ;v_video_x_position
     dc.l 0
 
-;v_scroll_ptr_saveword
-    dc.l 0
-
 ;v_dest_graphic_vtile_offset
     dc.l 0
 
 ;v_scroll_screen
+    dc.l 0
+
+;v_scroll_screen_split
     dc.l 0
 
 ;v_scroll_dest_offset_table
@@ -614,18 +606,19 @@ FastData:
 
 Copper:
 
-CopHorzScrollPos:
+;c_horizontal_scroll_pos_01
     dc.w BPLCON1,$00
-CopSpritesEnable:
+
+;c_sprites_enable_01
     dc.w BPLCON2,0                                          ;move.w #$24,BPLCON2(a6)
 
-CopPalPtrs:
+;c_palette_01
     tile_pal_0f
 
-CopDisplEnable:
+;c_display_enable_01
     dc.w BPLCON0,$4200
 
-CopBplPtrsTop:
+;c_bitplane_pointers_01
     dc.w $00e0,0                                            ;1
     dc.w $00e2,0
     dc.w $00e4,0                                            ;2
@@ -639,13 +632,13 @@ CopBplPtrsTop:
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
-CopSplitBottom:
+;c_split_stop
     dc.w $ffdf,$fffe
 
-CopSplitTop:
+;c_split
     dc.w $2c01,$fffe
 
-CopBplPtrsBottom:
+;c_bitplane_pointers_02
     dc.w $00e0,0                                            ;1
     dc.w $00e2,0
     dc.w $00e4,0                                            ;2

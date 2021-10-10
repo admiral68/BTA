@@ -176,9 +176,10 @@ ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3
 
 ;-----------------------------------------------
 ScrollUpdateBitplanePointers:
-;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=CopHorzScrollPos;a2=CopBplPtrsTop;a3=CopBplPtrsBottom
+;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
    move.l v_scroll_screen(a0),d3
+   move.l v_scroll_screen_split(a0),d6
 
    clr.l d5
    move.w d4,d5
@@ -191,15 +192,19 @@ ScrollUpdateBitplanePointers:
    neg.w d5
    sub.l d5,d3
    sub.l d5,d3
+   sub.l d5,d6
+   sub.l d5,d6
    bra .update_scroll_delay
 
 .positive_x
    add.l d5,d3
    add.l d5,d3
+   add.l d5,d6
+   add.l d5,d6
 
 .update_scroll_delay
 
-   move.w d0,2(a1)                                          ;update copper
+   move.w d0,c_horizontal_scroll_pos_01(a1)                 ;update copper
 
 .check_y
    swap d4
@@ -215,7 +220,7 @@ ScrollUpdateBitplanePointers:
    subi #1,d5
 
 .loop_sub_y
-   sub.l #screen_bp_bytes_per_raster_line,d3
+   sub.l #screen_bp_bytes_per_raster_line,d6
    dbf.w d5,.loop_sub_y
    bra .update_pointer
 
@@ -223,23 +228,26 @@ ScrollUpdateBitplanePointers:
    subi #1,d5
 
 .loop_add_y
-   add.l #screen_bp_bytes_per_raster_line,d3
+   add.l #screen_bp_bytes_per_raster_line,d6
    dbf.w d5,.loop_add_y
 
 .update_pointer
    move.l d3,v_scroll_screen(a0)
+   move.l d6,v_scroll_screen_split(a0)
    move #4-1,d1
 
 .loop
-   move.w d3,6(a2)                                          ;lo word
-   ;move.w d3,6(a3)                                          ;lo word
+   move.w d3,4+c_bitplane_pointers_01(a1)                    ;lo word
+   move.w d3,4+c_bitplane_pointers_02(a1)                   ;lo word
    swap d3
-   move.w d3,2(a2)                                          ;hi word
-   ;move.w d3,2(a3)                                          ;hi word
+   swap d6
+   move.w d3,c_bitplane_pointers_01(a1)                      ;hi word
+   move.w d3,c_bitplane_pointers_02(a1)                     ;hi word
    swap d3
+   swap d6
    add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
-   addq #8,a2                                               ;point to next bpl to poke in copper
-   ;addq #8,a3                                               ;point to next bpl to poke in copper
+   add.l #screen_bp_bytes_per_raster_line,d6                ;every 44 bytes we'll have new bitplane data
+   addq #8,a1                                               ;point to next bpl to poke in copper
    dbf.w d1,.loop
 
 .end
