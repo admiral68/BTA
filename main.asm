@@ -1,3 +1,21 @@
+;    move.l #$160,MapXYPosition
+;    move.l #$160,VideoXYPosition
+
+;  lea FastData,a0
+;  bsr ScrollGetStepAndDelay
+;  
+;  bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
+;  bsr ScrollGetXYPositionDown
+;  bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;
+;  REPT 16
+;  bsr ScrollGetStepAndDelay
+;  bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
+;  bsr ScrollGetXYPositionDown
+;  bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;;  bsr CalculateDrawTileLeft
+;  ENDR
+
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"

@@ -255,7 +255,7 @@ ScrollUpdateBitplanePointers:
    subi #1,d5
 
 .loop_sub_y
-   sub.l #screen_bpl_bytes_per_row,d6
+   sub.l #screen_bytes_per_row,d6
    dbf.w d5,.loop_sub_y
    bra .update_pointer
 
@@ -263,7 +263,7 @@ ScrollUpdateBitplanePointers:
    subi #1,d5
 
 .loop_add_y
-   add.l #screen_bpl_bytes_per_row,d6
+   add.l #screen_bytes_per_row,d6
    dbf.w d5,.loop_add_y
 
 .update_pointer
@@ -273,15 +273,15 @@ ScrollUpdateBitplanePointers:
 
 .loop
    move.w d3,4+c_bitplane_pointers_01(a1)                    ;lo word
-   move.w d3,4+c_bitplane_pointers_02(a1)                   ;lo word
+   move.w d6,4+c_bitplane_pointers_02(a1)                   ;lo word
    swap d3
    swap d6
    move.w d3,c_bitplane_pointers_01(a1)                      ;hi word
-   move.w d3,c_bitplane_pointers_02(a1)                     ;hi word
+   move.w d6,c_bitplane_pointers_02(a1)                     ;hi word
    swap d3
    swap d6
-   add.l #screen_bp_bytes_per_raster_line,d3                ;every 44 bytes we'll have new bitplane data
-   add.l #screen_bp_bytes_per_raster_line,d6                ;every 44 bytes we'll have new bitplane data
+   add.l #screen_bpl_bytes_per_row,d3                       ;every 44 bytes we'll have new bitplane data
+   add.l #screen_bpl_bytes_per_row,d6                       ;every 44 bytes we'll have new bitplane data
    addq #8,a1                                               ;point to next bpl to poke in copper
    dbf.w d1,.loop
 
