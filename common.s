@@ -55,8 +55,9 @@ screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
 screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
 
 DMA_fetch_start                     = $28                                   ;$28 for 22 columns;$38 for 20 columns
-display_start                       = $71                                   ;$81 for non-scrolling display; $91 otherwise
-display_stop                        = $c1                                   ;$c1 for non-scrolling display
+v_display_start                     = $2c
+h_display_start                     = $71                                   ;$81 for non-scrolling display; $91 otherwise
+h_display_stop                      = $c1                                   ;$c1 for non-scrolling display
 
 bpls                                = 3                                     ;handy values:
 

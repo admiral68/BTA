@@ -68,8 +68,8 @@ StartGame:
 
     move.w #0,$01fc(a6)                                     ;slow fetch mode, AGA compatibility
     move.w #$200,BPLCON0(a6)
-    move.w #$2c<<8+display_start,DIWSTRT(a6)
-    move.w #$2c<<8+display_stop,DIWSTOP(a6)
+    move.w #v_display_start<<8+h_display_start,DIWSTRT(a6)
+    move.w #v_display_start<<8+h_display_stop,DIWSTOP(a6)
     move.w #DMA_fetch_start,DDFSTRT(a6)                     ;$28 for 22 columns; $38 for 20 columns (etc)
     move.w #$d0,DDFSTOP(a6)
 
@@ -492,8 +492,8 @@ VBint:                                                      ;Blank template VERT
     move.w d0,INTREQ(a6)
     move.w d0,INTREQ(a6)
 
-    move.w #$2c<<8+display_start,DIWSTRT(a6)
-    move.w #$2c<<8+display_stop,DIWSTOP(a6)
+    move.w #v_display_start<<8+h_display_start,DIWSTRT(a6)
+    move.w #v_display_start<<8+h_display_stop,DIWSTOP(a6)
     move.w #DMA_fetch_start,DDFSTRT(a6)                     ;$28 for 22 columns; $38 for 20 columns (etc)
     move.w #$d0,DDFSTOP(a6)
 

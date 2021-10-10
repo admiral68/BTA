@@ -48,7 +48,7 @@ copper_scroll:
 
 
 	; calculate raster line of display split
-	move.w	#$2c,d0
+	move.w	#v_display_start,d0
 	moveq	#-2*16,d1							;
 	add.w	d4,d1								;d1 = d1 + (ypos % screen_buffer_height)
 	bmi	.2			; no split
