@@ -220,4 +220,147 @@ TESTDecodeRowOf16Pixels:
     rts
 
 ;-----------------------------------------------
+TESTExtractTile:
+    ;INPUT:  a1 - source bytes ptr
+    ;        a3 - destination ptr
+    ;        a5 - DecodedBitplaneBytes
+    ;        d1 - flipped = 1.b, not flipped = 0.b
+    ;USES:   a2
+    ;OUTPUT: a3 - destination
+
+    move #$0F,d0                                            ;16 rasterlines at a time; rightmost byte done too
+
+.extract_tile:
+
+    move.l a5,a2                                            ;DecodedBitplaneBytes;stores intermediate decoded bitplane bytes
+    bsr TESTDecodeRowOf16Pixels                             ;This can be changed for a version where we decode differently
+
+    ;    0  1  2  3   4  5  6  7
+    ;a2: 3, 2, 1, 0 | 3, 2, 1, 0
+
+    ;To flip the tile horizontally, we need to reverse the 4 bit color indexes,
+    ;which means reversing the NYBBLES--not the bits. Reversing the bits gives
+    ;us swapping of the odd bitplanes, which messes up the colors
+
+    cmp.b #1,d1
+    bne .no_flip
+
+    swap d1
+
+    move.b 3(a2),d6
+    move.b 7(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,3(a2)
+    move.b d1,7(a2)
+
+    move.b 2(a2),d6
+    move.b 6(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,2(a2)
+    move.b d1,6(a2)
+
+    move.b 1(a2),d6
+    move.b 5(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,1(a2)
+    move.b d1,5(a2)
+
+    move.b (a2),d6
+    move.b 4(a2),d1
+    REPT 8
+    roxr.b #1,d1
+    addx.b d6,d6
+    ENDR
+    roxr.b #1,d1
+    move.b d6,(a2)
+    move.b d1,4(a2)
+
+    swap d1
+
+.no_flip
+
+    ;this interleaves the bytes. Maybe we can do something that doesn't
+    ;interleave the bytes
+
+    move.b, 3(a2),test_bmp_bp_bytes_per_raster_line*0(a3)           ;bitplane 0
+    move.b, 2(a2),test_bmp_bp_bytes_per_raster_line*1(a3)           ;bitplane 1
+    move.b, 1(a2),test_bmp_bp_bytes_per_raster_line*2(a3)           ;bitplane 2
+    move.b, (a2),test_bmp_bp_bytes_per_raster_line*3(a3)            ;bitplane 3
+    move.b, 7(a2),test_bmp_bp_bytes_per_raster_line*0+1(a3)         ;bitplane 0
+    move.b, 6(a2),test_bmp_bp_bytes_per_raster_line*1+1(a3)         ;bitplane 1
+    move.b, 5(a2),test_bmp_bp_bytes_per_raster_line*2+1(a3)         ;bitplane 2
+    move.b, 4(a2),test_bmp_bp_bytes_per_raster_line*3+1(a3)         ;bitplane 3
+
+    lea test_bmp_bp_bytes_per_raster_line*tile_bitplanes(a3),a3     ;move down one rasterline ($400 = $100 * 4 bitplanes; $100 = bytes in one rasterline for one bitplane)
+    lea $02(a1),a1                                                  ;source bytes per rasterline are 2 bytes apart
+
+    dbf d0,.extract_tile
+    rts
+
+;-----------------------------------------------
+TESTCopyScreenFromDecodedLongBitmap:
+;Does a rectangular blit to the the visible screen, then a strip blit from the edge
+    ;lea DecodedGraphic,a3
+    ;lea Screen,a4
+    move.l a3,d3
+    move.l a4,d4
+    add.l #screen_bytes_per_row*tile_height,d4
+
+    add.l #127*2,d3                                         ;move source to last column
+
+    move.w #$09F0,BLTCON0(a6)                               ;use A and D. Op: D = A
+    move.w #$0000,BLTCON1(a6)
+    move.w #$FFFF,BLTAFWM(a6)
+    move.w #$FFFF,BLTALWM(a6)
+    move.w #254,BLTAMOD(a6)                                 ;skip 127 columns (copy 1)
+    move.w #42,BLTDMOD(a6)                                  ;skip 21 columns (copy 1)
+    move.l d3,BLTAPTH(a6)
+    move.l d4,BLTDPTH(a6)
+
+    move.w #1,BLTSIZE(a6)                                   ;one column
+
+    WAITBLIT
+
+    ;lea DecodedGraphic,a3
+    ;lea Screen,a4
+    lea 2+screen_bytes_per_row*tile_height(a4),a4           ;initially skip first column of pixels
+    move.l a3,d3
+    move.l a4,d4
+
+    move.w #214,BLTAMOD(a6)                                 ;skip 107 columns (copy 21)
+    move.w #2,BLTDMOD(a6)                                   ;skip 1 column (copy 21)
+    move.l d3,BLTAPTH(a6)
+    move.l d4,BLTDPTH(a6)
+
+    move.w #(screen_width-tile_width)/16,BLTSIZE(a6)        ;no "h" term needed since it's 1024. Thanks ross @eab!
+;
+;    WAITBLIT
+;
+;    lea DecodedGraphic,a3
+;    lea Screen,a4
+;    add.l #2+screen_bytes_per_row*(screen_height+tile_height),a4
+;    move.l a3,d3
+;    move.l a4,d4
+;
+;    move.w #214,BLTAMOD(a6)                                 ;skip 107 columns (copy 21)
+;    move.w #2,BLTDMOD(a6)                                   ;skip 1 column (copy 21)
+;    move.l d3,BLTAPTH(a6)
+;    move.l d4,BLTDPTH(a6)
+;
+;    move.w #tile_plane_lines*64+(screen_width-tile_width)/16,BLTSIZE(a6)
+    rts
+
+;-----------------------------------------------
 

@@ -2,6 +2,34 @@
 * DEFINES
 *******************************************************************************
     *-----------------*
+    * pointer offsets *
+    *-----------------*
+
+v_tile_y_position           = 0
+v_tile_x_position           = 2
+v_tile_decode_dest          = 4
+v_tile_decode_row_dest      = 8
+v_tile_image_stride         = 12
+v_tile_source               = 16
+v_map_y_position            = 20
+v_map_x_position            = 22
+v_video_y_position          = 24
+v_video_x_position          = 26
+v_scroll_ptr_saveword       = 28
+v_dest_graphic_vtile_offset = 32
+v_scroll_screen             = 36
+v_scroll_dest_offset_table  = 40
+v_scroll_saveword           = 72
+v_video_x_bitplane_offset   = 74
+v_scroll_positions          = 76
+v_tile_y_blit_positions     = 92
+v_decoded_bitplane_bytes    = 108
+v_tile_columns_to_decode    = 116
+v_tile_rows_to_decode       = 117
+v_scroll_command            = 118
+v_scroll_previous_direction = 119
+
+    *-----------------*
     * constants:video *
     *-----------------*
 

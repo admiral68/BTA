@@ -1,4 +1,5 @@
 ScrollGetXYPositionRight:
+;INPUT: fast data (a0)
     ;returns mapx/y in d3
     ;returns x/y in d4
 
@@ -7,11 +8,10 @@ ScrollGetXYPositionRight:
 ;BLOCKSPERROW       = tiles_per_row
 
     ;get source ptrs
-    ;lea MapXYPosition,a3
 
-    move.w 2(a3),d3                                         ;save for mapy
+    move.w v_map_x_position(a0),d3                          ;save for mapy
     swap d3
-    move.w 2(a3),d3                                         ;mapposx
+    move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
     move.w #screen_buffer_columns,d4                        ;22
@@ -47,16 +47,16 @@ ScrollGetXYPositionRight:
 
 ;-----------------------------------------------
 ScrollGetXYPositionLeft:
-;INPUT: map pos ptr (a3); TileYBlitPositions (a5)
+;INPUT: fast data (a0)
 ;returns mapx/y in d3
 ;returns x/y in d4
 
 ;BLOCKSWIDTH        = bitmapwidth
 ;BLOCKSBYTESPERROW  = tile_bytes_per_row
 ;BLOCKSPERROW       = tiles_per_row
-    move.w 2(a3),d3                                         ;save for mapy
+    move.w v_map_x_position(a0),d3                                         ;save for mapy
     swap d3
-    move.w 2(a3),d3                                         ;mapposx
+    move.w v_map_x_position(a0),d3                                         ;mapposx
     asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH
     subi.w #1,d3                                            ;because we have one blank column to the left
 
@@ -64,8 +64,7 @@ ScrollGetXYPositionLeft:
     swap d3
     and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
 
-    ;lea TileYBlitPositions,a5
-    move.b (a5,d3.w),d4                                     ;y
+    move.b v_tile_y_blit_positions(a0,d3.w),d4              ;y
     swap d4                                                 ;x
 
     ;TODO: IF VERTICAL SCROLLING IS HAPPENING... NEED TO CALCULATE OFFSET FROM MAP (0,0)
@@ -96,59 +95,55 @@ ScrollGetXYPositionUp:
 
 ;-----------------------------------------------
 ScrollGetStepAndDelay:
-;USES: d1,d2,a3 (mapxy pos),a5 (scroll pos table),d0
+;USES: d1,d2,a0 (fast data),d0
 ;OUTPUT:d0(delay),d1(scroll step),d2(map x/y)
    clr.l d1
    clr.l d2
 
-   move.w (a3),d2
-   move.w (a3),d1
+   move.w v_map_y_position(a0),d2
+   move.w v_map_y_position(a0),d1
 
    and.w #$000F,d1
 
    swap d1
    swap d2
 
-   move.w 2(a3),d1
-   move.w 2(a3),d2
+   move.w v_map_x_position(a0),d1
+   move.w v_map_x_position(a0),d2
 
    and.w #$000F,d1
    clr.l d0
 
-   move.b (a5,d1.w),d0
+   move.b v_scroll_positions(a0,d1.w),d0
 
    rts
 
 ;-----------------------------------------------
 ScrollIncrementXPosition:
-;INPUT: MapXYPosition(a3),VideoXYPosition(a4),PreviousScrollDir(a5)
+;INPUT: FastData(a0)
 
-   lea MapXYPosition,a3
-   lea VideoXYPosition,a4
-   lea PreviousScrollDir,a5
+   addi.w #1,v_map_x_position(a0)                                           ;mapposx++;
+   move.w v_map_x_position(a0),v_video_x_position(a0)                       ;videoposx = mapposx;
 
-   addi.w #1,2(a3)                                           ;mapposx++;
-   move.w 2(a3),2(a4)                                         ;videoposx = mapposx;
-
-   cmp.w #(test_cols_to_decode*tile_width),2(a4)             ;352
+   cmp.w #(test_cols_to_decode*tile_width),v_video_x_position(a0)           ;352
    bne .update
 
-   move.w #0,2(a4)                                           ;reset video x to zero
+   move.w #0,v_video_x_position(a0)                                         ;reset video x to zero
 
 .update
-   move.b #0,(a5)                                           ;previous_direction = DIRECTION_RIGHT;
+   move.b #0,v_scroll_previous_direction(a0)                                ;previous_direction = DIRECTION_RIGHT;
    rts
 
 ;-----------------------------------------------
 ScrollDecrementXPosition:
-;INPUT: MapXYPosition(a3),VideoXYPosition(a4),ScrollPositions(a5)
-   subi.w #1,2(a3)                                          ;mapposx--;
-   move.w 2(a3),2(a4)                                       ;videoposx = mapposx;
+;INPUT: FastData(a0)
+   subi.w #1,v_map_x_position(a0)                                           ;mapposx--;
+   move.w v_map_x_position(a0),v_video_x_position(a0)                       ;videoposx = mapposx;
 
-   cmp.w #-1,2(a4)                                          ;-1
+   cmp.w #-1,v_video_x_position(a0)                                         ;-1
    bne .end
 
-   move.w #(test_cols_to_decode*tile_width-1),2(a4)         ;reset video x to 351
+   move.w #(test_cols_to_decode*tile_width-1),v_video_x_position(a0)        ;reset video x to 351
 
 .end
 
@@ -157,29 +152,29 @@ ScrollDecrementXPosition:
 
 ;-----------------------------------------------
 ScrollIncrementYPosition:
-;MapXYPosition(a3),VideoXYPosition(a4),PreviousScrollDir(a5)
-   addi.w #1,(a3)                                           ;mapposy++;
-   move.w (a3),(a4)                                         ;videoposy = mapposy;
+;FastData(a0)
+   addi.w #1,v_map_y_position(a0)                           ;mapposy++;
+   move.w v_map_y_position(a0),v_video_y_position(a0)       ;videoposy = mapposy;
 
-   cmp.w #screen_height,(a4)
+   cmp.w #screen_height,v_video_y_position(a0)
    bne .update
 
-   move.w #screen_height,(a4)                               ;reset video y to 256
+   move.w #screen_height,v_video_y_position(a0)             ;reset video y to 256
 
 .update
-   move.b #2,(a5)                                           ;previous_direction = DIRECTION_DOWN;
+   move.b #2,v_scroll_previous_direction(a0)                ;previous_direction = DIRECTION_DOWN;
    rts
 
 ;-----------------------------------------------
 ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3; x/y in d4
-;INPUT: MapXYPosition(a3),VideoXYPosition(a4),ScrollPositions(a5)
-   subi.w #1,(a3)                                           ;mapposy--;
-   move.w (a3),(a4)                                         ;videoposy = mapposy;
+;INPUT: FastData(a0)
+   subi.w #1,v_map_y_position(a0)                           ;mapposy--;
+   move.w v_map_y_position(a0),v_video_y_position(a0)       ;videoposy = mapposy;
 
-   cmp.w #-1,(a4)                                           ;-1
+   cmp.w #-1,v_video_y_position(a0)                         ;-1
    bne .end
 
-   move.w #0,(a4)                                           ;reset video y to 0
+   move.w #0,v_video_y_position(a0)                         ;reset video y to 0
 
 .end
 
@@ -188,7 +183,9 @@ ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3
 
 ;-----------------------------------------------
 ScrollUpdateBitplanePointers:
-;INPUT:d4=(dx=lw;dy=hw);d3=ScrollScreen;a1=CopHorzScrollPos;a2=CopBplP
+;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=CopHorzScrollPos;a2=CopBplP
+
+   move.l v_scroll_screen(a0),d3
 
    clr.l d5
    move.w d4,d5
@@ -237,7 +234,7 @@ ScrollUpdateBitplanePointers:
    dbf.w d5,.loop_add_y
 
 .update_pointer
-   move.l d3,ScrollScreen
+   move.l d3,v_scroll_screen(a0)
    move #4-1,d1
 
 .loop
@@ -253,12 +250,81 @@ ScrollUpdateBitplanePointers:
    rts
 
 ;-----------------------------------------------
+ScrollGetHTileOffsets:
+;INPUT: mapx/y in d3
+;       x/y in d4
+;       x = in pixels
+;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
+;       DecodedGraphic=a3;FastData=a5
+
+    ;SOURCE => d5 (d3=offset)
+
+    clr.l d1
+    clr.l d2
+    clr.l d5
+
+    swap d3                                                 ;mapy
+    swap d4                                                 ;y
+
+    move.w d3,d2
+    cmp.w #0,d2
+    beq .skip_add
+    sub.w #1,d2
+
+.addo                                                       ;mapy * mapwidth
+    add.l #$4000,d1
+    dbf d2,.addo
+
+.skip_add
+
+    swap d3                                                 ;mapx
+    move.w d3,d2
+
+    cmp.b #0,v_scroll_command(a0)
+    bne .left
+
+    subi #1,d2                                              ;back one column
+
+.left
+    asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
+
+    ;FOR DEBUGGING: COMMENT THIS OUT; it will always choose the same source tile
+    add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
+    move.l d1,d3                                            ;for debugging purposes
+
+    WAITBLIT                                                ;HardWaitBlit();
+
+    move.l a3,d5                                            ;A source (blocksbuffer)
+    add.l d1,d5                                             ;blocksbuffer + mapy + mapx
+
+    ;DESTINATION => d1 (d4)
+    move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
+
+    clr.l d2
+
+    cmp.b #0,v_scroll_command(a0)
+    bne .left2
+
+    add.w v_video_x_bitplane_offset(a0),d2                  ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
+                                                            ;or zero
+.left2
+    move.w v_map_x_position(a0),d4
+    and.w #15,d4
+
+    asl.w #1,d4
+    add.w v_scroll_dest_offset_table(a0,d4.w),d2
+
+    move.l d2,d4                                            ;(for debugging)
+    add.l d2,d1                                             ;frontbuffer + y + x
+    rts
+
+;-----------------------------------------------
 ScrollUpdateSaveWordRight:
-   cmp.b #1,(a5)                                            ;if (previous_direction == DIRECTION_LEFT)
+   cmp.b #1,v_scroll_previous_direction(a0)                 ;if (previous_direction == DIRECTION_LEFT)
    bne .rupdate_saveword
 
    WAITBLIT                                                 ;HardWaitBlit();
-   move.w (a4),(a3)                                         ;*savewordpointer = saveword;
+   move.w v_scroll_saveword(a0),v_scroll_ptr_saveword(a0)   ;*savewordpointer = saveword;
 
 .rupdate_saveword
 
@@ -281,19 +347,19 @@ ScrollUpdateSaveWordRight:
 ;   add.w #tile_plane_lines-1,d1                             ;(y + tile_plane_lines - 1)
 ;   mulu #screen_width/2,d1                                  ;* bitmap_bytes_per_row
 ;   add.l d1,d2
-;   move.l d2,a3                                             ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
-;   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
+;   move.l d2,a4                                             ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
+;   move.w (a4),v_scroll_saveword(a3)                        ;saveword = *savewordpointer;
 ;   swap d4                                                  ;x
 
     rts
 
 ;-----------------------------------------------
 ScrollUpdateSaveWordLeft:                                   ;OUTPUT: mapx/y in d3; video x/y in d4
-   cmp.b #0,(a5)                                            ;if (previous_direction == DIRECTION_RIGHT)
+   cmp.b #0,v_scroll_previous_direction(a0)                 ;if (previous_direction == DIRECTION_RIGHT)
    bne .lupdate_saveword
 
    WAITBLIT                                                 ;HardWaitBlit();
-   move.w (a4),(a3)                                         ;*savewordpointer = saveword;
+   move.w v_scroll_saveword(a0),v_scroll_ptr_saveword(a0)   ;*savewordpointer = saveword;
 
 .lupdate_saveword
 
@@ -313,12 +379,11 @@ ScrollUpdateSaveWordLeft:                                   ;OUTPUT: mapx/y in d
 ;   move.w d1,d4
 ;   mulu #screen_width/2,d1                                  ;* bitmap_bytes_per_row
 ;   add.l d1,d2
-;   move.l d2,a3                                             ;savewordpointer = (WORD *)(frontbuffer + y * bitmap_bytes_per_row + (x / 8));
-;   move.w (a3),(a4)                                         ;saveword = *savewordpointer;
+;   move.l d2,a4                                             ;savewordpointer = (WORD *)(frontbuffer + y * bitmap_bytes_per_row + (x / 8));
+;   move.w (a4),v_scroll_saveword(a0)                        ;saveword = *savewordpointer;
 ;   swap d4                                                  ;x
 
-;   lea PreviousScrollDir,a5
-   move.b #1,(a5)                                           ;previous_direction = DIRECTION_LEFT;
+   move.b #1,v_scroll_previous_direction(a0)                 ;previous_direction = DIRECTION_LEFT;
 
    rts
 

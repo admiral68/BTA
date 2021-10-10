@@ -5,6 +5,7 @@
     INCLUDE "common.s"
     INCLUDE "tile.s"
     INCLUDE "test.asm"
+    INCLUDE "tile.asm"
     INCLUDE "scroll.asm"
 
 *******************************************************************************
@@ -26,11 +27,15 @@ Init:
     bsr TESTCode
 
     bsr DecodeTileGraphicToLongBitmap
-    bsr CopyScreenFromDecodedLongBitmap
 
+    lea DecodedGraphic,a3
+    lea Screen,a4
+    bsr TESTCopyScreenFromDecodedLongBitmap
+
+    lea FastData,a1
     lea Screen,a0                                           ;ptr to first bitplane of image
     lea 2+screen_bytes_per_row*tile_height(a0),a0           ;+2 because we're scrollin' (Skip first column)
-    move.l a0,ScrollScreen
+    move.l a0,v_scroll_screen(a1)
 
     lea CopBplP,a1                                          ;where to poke the bitplane pointer words.
     move #4-1,d0
@@ -93,18 +98,14 @@ TESTVBCode:
 
 ;-----------------------------------------------
 TESTCode:
-    lea TileColumnsToDecode,a1
-    move.b #test_cols_to_decode,(a1)
+    lea FastData,a0
 
-    lea TileRowsToDecode,a1
-    move.b #test_rows_to_decode,(a1)
+    move.b #test_cols_to_decode,v_tile_columns_to_decode(a0)
+    move.b #test_rows_to_decode,v_tile_rows_to_decode(a0)
+    move.l #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
 
-    lea DestGraphicVTileOffset,a1
-    move.l #test_bmp_vtile_offset,(a1)
-
-    lea EncodedTilesSource,a0
-    lea TileSource,a1
-    move.l a0,(a1)
+    lea EncodedTilesSource,a1
+    move.l a1,v_tile_source(a0)
 
     lea TilesToDecode,a2
     lea ScrollDataLev1,a1
@@ -115,13 +116,10 @@ TESTCode:
 TESTUpdatePaletteDuringScroll:
     movem.l d0-a6,-(sp)
 
-    lea TestScrollCommand,a0                                ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
-    lea TileXYPosition,a2                                   ;TileXYPosition (upper left of screen)
-
-    cmp.b #0,(a0)
+    cmp.b #0,v_scroll_command(a0)                           ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
     bne .check_left
 
-    cmp.w #66,2(a2)                                         ;palette switch column
+    cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
     blo .continue
 
     lea CopPalPtrs,a2
@@ -147,10 +145,10 @@ TESTUpdatePaletteDuringScroll:
 
 .check_left
 
-    cmp.b #1,(a0)
+    cmp.b #1,v_scroll_command(a0)                           ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
     bne .continue
 
-    cmp.w #66,2(a2)                                         ;palette switch column
+    cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
     bhi .continue
 
     lea CopPalPtrs,a2
@@ -178,30 +176,27 @@ TESTUpdatePaletteDuringScroll:
 
 ;-----------------------------------------------
 TESTScrollRight:
-;INPUT:a0
+;INPUT:a0(FAST DATA)
    cmp.w #0,d1
    bne .update_horz_scroll_position
 
    ;tile is completely scrolled through; time to move the pointers
 
-   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
-
-   addi.w #1,2(a2)
-   cmp.w #1,2(a2)                                           ;If we're just starting, skip to the end
+   addi.w #1,v_tile_x_position(a0)
+   cmp.w #1,v_tile_x_position(a0)                           ;If we're just starting, skip to the end
    beq .update_horz_scroll_position
 
-   cmp.w #128,2(a2)
+   cmp.w #128,v_tile_x_position(a0)
    beq .no_update
 
    move.l #1,d4
-   move.l ScrollScreen,d3
    lea CopHorzScrollPos,a1
    lea CopBplP,a2
    bsr ScrollUpdateBitplanePointers
    rts
 
 .no_update
-   move.w #127,2(a2)                                        ;Tile position (current level max x)
+   move.w #127,v_tile_x_position(a0)                        ;Tile position (current level max x)
 
 .update_horz_scroll_position
 
@@ -218,23 +213,19 @@ TESTScrollLeft:
 
    ;tile is completely scrolled through; time to move the pointers
 
-   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
-
-   subi.w #1,2(a2)
-
-   cmp.w #-1,2(a2)
+   subi.w #1,v_tile_x_position(a0)
+   cmp.w #-1,v_tile_x_position(a0)
    beq .no_update
 
 .update
    move.l #$0000FFFF,d4
-   move.l ScrollScreen,d3
    lea CopHorzScrollPos,a1
    lea CopBplP,a2
    bsr ScrollUpdateBitplanePointers
    bra .update_horz_scroll_position
 
 .no_update
-   move.w #0,(a2)
+   move.w #0,v_tile_x_position(a0)
 
 .update_horz_scroll_position
 
@@ -246,82 +237,71 @@ TESTScrollLeft:
 ;-----------------------------------------------
 TESTScrollDown:
 ;INPUT:a0
-   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
-
-   addi.w #1,(a2)
-
-   cmp.w #16,(a2)
+   addi.w #1,v_tile_y_position(a0)
+   cmp.w #16,v_tile_y_position(a0)
    beq .no_update
 
    move.l #$10000,d4
-   move.l ScrollScreen,d3
    lea CopHorzScrollPos,a1
    lea CopBplP,a2
    bsr ScrollUpdateBitplanePointers
    rts
 
 .no_update
-   move.w #15,(a2)                                          ;Tile position
+   move.w #15,v_tile_y_position(a0)                                          ;Tile position
    rts
 
 ;-----------------------------------------------
 TESTScrollUp:
 ;INPUT:a0
-   lea TileXYPosition,a2                                    ;TileXYPosition (upper left of screen)
-
-   subi.w #1,(a2)
-
-   cmp.w #-1,(a2)
+   subi.w #1,v_tile_y_position(a0)
+   cmp.w #-1,v_tile_y_position(a0)
    beq .no_update
 
    move.l #$FFFF0000,d4
-   move.l ScrollScreen,d3
    lea CopHorzScrollPos,a1
    lea CopBplP,a2
    bsr ScrollUpdateBitplanePointers
    rts
 
 .no_update
-   move.w #0,(a2)                                          ;Tile position
+   move.w #0,v_tile_y_position(a0)                         ;Tile position
    rts
 
 ;-----------------------------------------------
 TESTScroll:
 
+   lea FastData,a0
    bsr TESTUpdatePaletteDuringScroll
-   lea MapXYPosition,a3
-   lea ScrollPositions,a5
    bsr ScrollGetStepAndDelay
 
-   lea TestScrollCommand,a0                                 ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
-
-   cmp.b #16,(a0)                                           ;16=kill code
+   cmp.b #16,v_scroll_command(a0)                           ;16=kill code
    bne .continue
    rts
 
 .continue
-   cmp.b #0,(a0)                                            ;user move left... do left
+   cmp.b #0,v_scroll_command(a0)                            ;user move left... do left
    beq .right
 
-   cmp.b #1,(a0)                                            ;user move left... do left
+   cmp.b #1,v_scroll_command(a0)                            ;user move left... do left
    beq .left
 
-   cmp.b #2,(a0)                                            ;user move left... do left
+   cmp.b #2,v_scroll_command(a0)                            ;user move left... do left
    beq .down
 
-   cmp.b #3,(a0)                                            ;user move left... do left
+   cmp.b #3,v_scroll_command(a0)                            ;user move left... do left
    beq .up
 
-   cmp.b #4,(a0)                                            ;user move left... do left
+   cmp.b #4,v_scroll_command(a0)                            ;user move left... do left
    beq .rightdown
 
-   cmp.b #5,(a0)                                            ;user move left... do left
+   cmp.b #5,v_scroll_command(a0)                            ;user move left... do left
    beq .rightup
 
-   cmp.b #6,(a0)                                            ;user move left... do left
+   cmp.b #6,v_scroll_command(a0)                            ;user move left... do left
    beq .leftdown
 
-   cmp.b #7,(a0)                                            ;user move left... do left
+   cmp.b #7,v_scroll_command(a0)                            ;user move left... do left
    beq .leftup
 
    rts
@@ -336,21 +316,16 @@ TESTScroll:
 
 .scroll_right
 
+   lea FastData,a0
    bsr TESTScrollRight                                      ;INPUT:d2,a0 (d1)
-   lea MapXYPosition,a3
    bsr ScrollGetXYPositionRight
 
    lea Screen,a2                                            ;frontbuffer
-   lea PtrSaveWord,a3
-   lea SaveWord,a4
-   lea PreviousScrollDir,a5
    bsr ScrollUpdateSaveWordRight                            ;OUTPUT: mapx/y in d3; video x/y in d4
-   bsr CalculateDrawHTile
-   bsr DrawTile
 
-   lea MapXYPosition,a3
-   lea VideoXYPosition,a4
-   lea PreviousScrollDir,a5
+   lea DecodedGraphic,a3
+   bsr ScrollGetHTileOffsets
+   bsr TileDraw
    bsr ScrollIncrementXPosition                             ;INPUT: mapx/y in d3; x/y in d4
    rts
 
@@ -363,40 +338,32 @@ TESTScroll:
 
 .scroll_left
 
-   lea MapXYPosition,a3
-   lea VideoXYPosition,a4
-   lea ScrollPositions,a5
+   lea FastData,a0
    bsr ScrollDecrementXPosition
    bsr TESTScrollLeft
-
-   lea MapXYPosition,a3
-   lea TileYBlitPositions,a5
    bsr ScrollGetXYPositionLeft
 
    lea Screen,a2
-   lea PtrSaveWord,a3
-   lea SaveWord,a4
-   lea PreviousScrollDir,a5
    bsr ScrollUpdateSaveWordLeft                             ;OUTPUT: mapx/y in d3; video x/y in d4
-   bsr CalculateDrawHTile
-   bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
+
+   lea DecodedGraphic,a3
+   bsr ScrollGetHTileOffsets
+   bsr TileDraw                                             ;DrawBlock(x,y,mapx,mapy);
    rts
 
 .up
    rts
 
 .scroll_up
-;   lea MapXYPosition,a3
-;   lea VideoXYPosition,a4
-;   lea ScrollPositions,a5
+   lea FastData,a0
 ;   bsr ScrollDecrementYPosition
+
    bsr TESTScrollUp
 
-;   lea MapXYPosition,a3
 ;   lea TileXBlitPositions,a5
 ;   bsr ScrollGetXYPositionUp
 ;   bsr CalculateDrawVTile
-;   bsr DrawTile                                             ;DrawBlock(x,y,mapx,mapy);
+;   bsr TileDraw                                             ;DrawBlock(x,y,mapx,mapy);
    rts
 
 .down
@@ -408,14 +375,12 @@ TESTScroll:
 
 .scroll_down
 
+   lea FastData,a0
    bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
    bsr ScrollGetXYPositionDown
 ;   bsr CalculateDrawVTile
-;   bsr DrawTile
-;   lea MapXYPosition,a3
-;   lea VideoXYPosition,a4
-;   lea PreviousScrollDir,a5
-;;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;   bsr TileDraw
+;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
    rts
 
 .rightup
@@ -431,7 +396,7 @@ TESTScroll:
    rts
 
 .switch_direction
-   move.b d3,(a0)
+   move.b d3,v_scroll_command(a0)
    rts
 
 *******************************************************************************
@@ -439,148 +404,6 @@ TESTScroll:
 *******************************************************************************
 VBCode:
 
-    rts
-
-;-----------------------------------------------
-CopyScreenFromDecodedLongBitmap:
-;Does a rectangular blit to the the visible screen, then a strip blit from the edge
-    lea DecodedGraphic,a3
-    lea Screen,a4
-    move.l a3,d3
-    move.l a4,d4
-    add.l #screen_bytes_per_row*tile_height,d4
-
-    add.l #127*2,d3                                         ;move source to last column
-
-    move.w #$09F0,BLTCON0(a6)                               ;use A and D. Op: D = A
-    move.w #$0000,BLTCON1(a6)
-    move.w #$FFFF,BLTAFWM(a6)
-    move.w #$FFFF,BLTALWM(a6)
-    move.w #254,BLTAMOD(a6)                                 ;skip 127 columns (copy 1)
-    move.w #42,BLTDMOD(a6)                                  ;skip 21 columns (copy 1)
-    move.l d3,BLTAPTH(a6)
-    move.l d4,BLTDPTH(a6)
-
-    move.w #1,BLTSIZE(a6)                                   ;one column
-
-    WAITBLIT
-
-    lea DecodedGraphic,a3
-    lea Screen,a4
-    lea 2+screen_bytes_per_row*tile_height(a4),a4           ;initially skip first column of pixels
-    move.l a3,d3
-    move.l a4,d4
-
-    move.w #214,BLTAMOD(a6)                                 ;skip 107 columns (copy 21)
-    move.w #2,BLTDMOD(a6)                                   ;skip 1 column (copy 21)
-    move.l d3,BLTAPTH(a6)
-    move.l d4,BLTDPTH(a6)
-
-    move.w #(screen_width-tile_width)/16,BLTSIZE(a6)        ;no "h" term needed since it's 1024. Thanks ross @eab!
-;
-;    WAITBLIT
-;
-;    lea DecodedGraphic,a3
-;    lea Screen,a4
-;    add.l #2+screen_bytes_per_row*(screen_height+tile_height),a4
-;    move.l a3,d3
-;    move.l a4,d4
-;
-;    move.w #214,BLTAMOD(a6)                                 ;skip 107 columns (copy 21)
-;    move.w #2,BLTDMOD(a6)                                   ;skip 1 column (copy 21)
-;    move.l d3,BLTAPTH(a6)
-;    move.l d4,BLTDPTH(a6)
-;
-;    move.w #tile_plane_lines*64+(screen_width-tile_width)/16,BLTSIZE(a6)
-    rts
-
-;-----------------------------------------------
-ExtractTile:
-    ;INPUT:  a1 - source bytes ptr
-    ;        a3 - destination ptr
-    ;        d1 - flipped = 1.b, not flipped = 0.b
-    ;USES:   a2
-    ;OUTPUT: a3 - destination
-
-    move #$0F,d0                                            ;16 rasterlines at a time; rightmost byte done too
-
-.extract_tile:
-
-    lea DecodedBitplaneBytes,a2                             ;stores intermediate decoded bitplane bytes
-    bsr TESTDecodeRowOf16Pixels                             ;This can be changed for a version where we decode differently
-
-    ;    0  1  2  3   4  5  6  7
-    ;a2: 3, 2, 1, 0 | 3, 2, 1, 0
-
-    ;To flip the tile horizontally, we need to reverse the 4 bit color indexes,
-    ;which means reversing the NYBBLES--not the bits. Reversing the bits gives
-    ;us swapping of the odd bitplanes, which messes up the colors
-
-    cmp.b #1,d1
-    bne .no_flip
-
-    swap d1
-
-    move.b 3(a2),d6
-    move.b 7(a2),d1
-    REPT 8
-    roxr.b #1,d1
-    addx.b d6,d6
-    ENDR
-    roxr.b #1,d1
-    move.b d6,3(a2)
-    move.b d1,7(a2)
-
-    move.b 2(a2),d6
-    move.b 6(a2),d1
-    REPT 8
-    roxr.b #1,d1
-    addx.b d6,d6
-    ENDR
-    roxr.b #1,d1
-    move.b d6,2(a2)
-    move.b d1,6(a2)
-
-    move.b 1(a2),d6
-    move.b 5(a2),d1
-    REPT 8
-    roxr.b #1,d1
-    addx.b d6,d6
-    ENDR
-    roxr.b #1,d1
-    move.b d6,1(a2)
-    move.b d1,5(a2)
-
-    move.b (a2),d6
-    move.b 4(a2),d1
-    REPT 8
-    roxr.b #1,d1
-    addx.b d6,d6
-    ENDR
-    roxr.b #1,d1
-    move.b d6,(a2)
-    move.b d1,4(a2)
-
-    swap d1
-
-.no_flip
-
-    ;this interleaves the bytes. Maybe we can do something that doesn't
-    ;interleave the bytes
-
-    move.b, 3(a2),test_bmp_bp_bytes_per_raster_line*0(a3)           ;bitplane 0
-    move.b, 2(a2),test_bmp_bp_bytes_per_raster_line*1(a3)           ;bitplane 1
-    move.b, 1(a2),test_bmp_bp_bytes_per_raster_line*2(a3)           ;bitplane 2
-    move.b, (a2),test_bmp_bp_bytes_per_raster_line*3(a3)            ;bitplane 3
-    move.b, 7(a2),test_bmp_bp_bytes_per_raster_line*0+1(a3)         ;bitplane 0
-    move.b, 6(a2),test_bmp_bp_bytes_per_raster_line*1+1(a3)         ;bitplane 1
-    move.b, 5(a2),test_bmp_bp_bytes_per_raster_line*2+1(a3)         ;bitplane 2
-    move.b, 4(a2),test_bmp_bp_bytes_per_raster_line*3+1(a3)         ;bitplane 3
-
-    lea test_bmp_bp_bytes_per_raster_line*tile_bitplanes(a3),a3     ;move down one rasterline ($400 = $100 * 4 bitplanes; $100 = bytes in one rasterline for one bitplane)
-    lea $02(a1),a1                                                  ;source bytes per rasterline are 2 bytes apart
-
-    dbf d0,.extract_tile
     rts
 
 ;-----------------------------------------------
@@ -593,9 +416,9 @@ DecodeTileGraphicToLongBitmap:
     ;32*32*4
 
     lea DecodedGraphic,a0
-    lea TileDecodeRowDest,a1
+    lea FastData,a1
 
-    move.l a0,(a1)
+    move.l a0,v_tile_decode_row_dest(a1)
     move.l (DecodedGraphicE-DecodedGraphic)/4,d0
 
 .l0:
@@ -605,21 +428,20 @@ DecodeTileGraphicToLongBitmap:
     clr.l d0
 
     lea TilesToDecode,a0                                    ;Starting tile
-    lea TileDecodeDest,a2
-    lea TileDecodeRowDest,a1
+    lea FastData,a2
+    lea v_tile_decode_row_dest(a2),a1
 
-    move.l (a1),(a2)
+    move.l (a1),v_tile_decode_dest(a2)
     move.l #0,d5
 
 .loop_rows
     move.l #0,d4
 
 .loop_columns
-    move.l (a2),a3
+    move.l v_tile_decode_dest(a2),a3
 
     move.b #0,d1
-    lea TileSource,a4
-    move.l (a4),a1
+    move.l v_tile_source(a2),a1
     move.w (a0)+,d0
     btst #15,d0
     beq .no_flip
@@ -629,150 +451,32 @@ DecodeTileGraphicToLongBitmap:
     asl.l #$06,d0
     lea (a1,d0.l),a1
 
-    bsr ExtractTile
+    lea FastData,a2
+    lea v_decoded_bitplane_bytes(a2),a5                     ;stores intermediate decoded bitplane bytes
+    bsr TESTExtractTile
 
-    lea TileColumnsToDecode,a4
-    lea TileDecodeDest,a2
-    add.l #2,(a2)
+    lea FastData,a2
+    lea v_tile_columns_to_decode(a2),a4
+    add.l #2,v_tile_decode_dest(a2)
     addi.b #1,d4
 
 .check_loop
     cmp.b (a4),d4
     bne .loop_columns
 
-    lea TileDecodeRowDest,a4
-    move.l (a4),a1
-    lea TileDecodeDest,a2
-    lea DestGraphicVTileOffset,a3                           ;One tile height in destination bitmap
+    lea FastData,a2
+    move.l v_tile_decode_row_dest(a2),a1
+    lea v_dest_graphic_vtile_offset(a2),a3                  ;One tile height in destination bitmap
 
     adda.l (a3),a1
-    move.l a1,(a2)
-    move.l a1,(a4)
+    move.l a1,v_tile_decode_dest(a2)
+    move.l a1,v_tile_decode_row_dest(a2)
 
-    lea TileRowsToDecode,a4
+    lea v_tile_rows_to_decode(a2),a4
     addi.b #1,d5
     cmp.b (a4),d5
     bne .loop_rows
 
-    rts
-
-;-----------------------------------------------
-CalculateDrawHTile:
-;INPUT: mapx/y in d3
-;       x/y in d4
-;       x = in pixels
-;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
-
-    ;SOURCE => d5 (d3=offset)
-
-    clr.l d1
-    clr.l d2
-    clr.l d5
-
-    swap d3                                                 ;mapy
-    swap d4                                                 ;y
-
-    move.w d3,d2
-    cmp.w #0,d2
-    beq .skip_add
-    sub.w #1,d2
-
-.addo                                                       ;mapy * mapwidth
-    add.l #$4000,d1
-    dbf d2,.addo
-
-.skip_add
-
-    swap d3                                                 ;mapx
-    move.w d3,d2
-
-    cmp.b #0,(a0)
-    bne .left
-
-    subi #1,d2                                              ;back one column
-
-.left
-    asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
-
-    ;FOR DEBUGGING: COMMENT THIS OUT; it will always choose the same source tile
-    add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
-    move.l d1,d3                                            ;for debugging purposes
-
-    WAITBLIT                                                ;HardWaitBlit();
-
-    lea DecodedGraphic,a3
-
-    move.l a3,d5                                            ;A source (blocksbuffer)
-    add.l d1,d5                                             ;blocksbuffer + mapy + mapx
-
-    ;DESTINATION => d1 (d4)
-    move.l ScrollScreen,d1                                     ;D dest (frontbuffer)
-
-    clr.l d2
-
-    cmp.b #0,(a0)
-    bne .left2
-
-    lea VideoXBitplaneOffset,a3
-    add.w (a3),d2                                           ;always either one bitplane pointer down (because of shift)
-                                                            ;or zero
-.left2
-    lea MapXYPosition,a3
-    move.w 2(a3),d4                                         ;x
-    and.w #15,d4
-
-    lea ScrollDestinationOffsets,a3
-    asl.w #1,d4
-    add.w (a3,d4.w),d2
-
-    move.l d2,d4                                            ;(for debugging)
-    add.l d2,d1                                             ;frontbuffer + y + x
-    rts
-
-;-----------------------------------------------
-DrawTile:
-;INPUT: mapx/y in d3
-;       x/y in d4
-;OUTPUT: source ptr in d5; dest ptr in d1
-
-
-    move.w #$09F0,BLTCON0(a6)                               ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
-    move.w #$0000,BLTCON1(a6)                               ;custom->bltcon1 = 0;
-    move.w #$FFFF,BLTAFWM(a6)                               ;custom->bltafwm = 0xFFFF;
-    move.w #$FFFF,BLTALWM(a6)                               ;custom->bltalwm = 0xFFFF;
-    move.w #tile_bytes_per_row-2,BLTAMOD(a6)                ;custom->bltamod = BLOCKSBYTESPERROW - (BLOCKWIDTH / 8);
-    move.w #screen_bpl_bytes_per_row-2,BLTDMOD(a6)          ;custom->bltdmod = BITMAPBYTESPERROW - (BLOCKWIDTH / 8);
-    move.l d5,BLTAPTH(a6)                                   ;custom->bltapt  = blocksbuffer + mapy + mapx;
-    move.l d1,BLTDPTH(a6)                                   ;custom->bltdpt  = frontbuffer + y + x;
-
-    move.w #(tile_plane_lines*64+1),BLTSIZE(a6)             ;custom->bltsize = BLOCKPLANELINES * 64 + (BLOCKWIDTH / 16);
-
-;    cmp.l #$3C056,d3                                        ;can stop after a particular tile is blitted by
-;    bne .end                                                 ;doing something like this
-;
-;    lea TestScrollCommand,a0                                ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
-;    move.b #16,(a0)
-
-.end
-    rts
-
-;-----------------------------------------------
-DrawTwoHorizontalTiles:
-;INPUT: mapx/y in d3
-;       x/y in d4
-;OUTPUT: source ptr in d5; dest ptr in d1
-
-    move.w #$09F0,BLTCON0(a6)                               ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
-    move.w #$0000,BLTCON1(a6)                               ;custom->bltcon1 = 0;
-    move.w #$FFFF,BLTAFWM(a6)                               ;custom->bltafwm = 0xFFFF;
-    move.w #$FFFF,BLTALWM(a6)                               ;custom->bltalwm = 0xFFFF;
-    move.w #tile_bytes_per_row-4,BLTAMOD(a6)                ;custom->bltamod = BLOCKSBYTESPERROW - (BLOCKWIDTH / 8);
-    move.w #screen_bpl_bytes_per_row-4,BLTDMOD(a6)          ;custom->bltdmod = BITMAPBYTESPERROW - (BLOCKWIDTH / 8);
-    move.l d5,BLTAPTH(a6)                                   ;custom->bltapt  = blocksbuffer + mapy + mapx;
-    move.l d1,BLTDPTH(a6)                                   ;custom->bltdpt  = frontbuffer + y + x;
-
-    move.w #(tile_plane_lines*64+2),BLTSIZE(a6)             ;custom->bltsize = BLOCKPLANELINES * 64 + (BLOCKWIDTH / 16);
-.end
     rts
 
 ;-----------------------------------------------
@@ -817,68 +521,71 @@ ScrollDataLev1: INCBIN "data/lev_1_scroll_data.bin"
 TilesToDecode:
     ds.w (test_cols_to_decode+1)*(test_rows_to_decode+1)*tile_height
 
-TileXYPosition:
+FastData:
+;v_tile_y_position
+;v_tile_x_position
     dc.l 0
 
-TileDecodeDest:
+;v_tile_decode_dest
     dc.l 0
 
-TileDecodeRowDest:
+;v_tile_decode_row_dest
     dc.l 0
 
-TileImageStride:
+;v_tile_image_stride
     dc.l 0
 
-TileSource:
+;v_tile_source
     dc.l 0
 
-MapXYPosition:
+;v_map_y_position
+;v_map_x_position
     dc.l 0
 
-VideoXYPosition:
+;v_video_y_position
+;v_video_x_position
     dc.l 0
 
-PtrSaveWord
+;v_scroll_ptr_saveword
     dc.l 0
 
-DestGraphicVTileOffset:
+;v_dest_graphic_vtile_offset
     dc.l 0
 
-ScrollScreen:
+;v_scroll_screen
     dc.l 0
 
-ScrollDestinationOffsets:
+;v_scroll_dest_offset_table
     dc.w $0000,$0B00,$1600,$2100,$2C00,$3700,$4200,$4D00
     dc.w $5800,$6300,$6E00,$7900,$8400,$8F00,$9A00,$A500
 
-SaveWord:
+;v_scroll_saveword
     dc.w 0
 
-VideoXBitplaneOffset:
+;v_video_x_bitplane_offset
     dc.w screen_bpl_bytes_per_row-2
 
-ScrollPositions:
+;v_scroll_positions
     dc.b $FF,$EE,$DD,$CC,$BB,$AA,$99,$88
     dc.b $77,$66,$55,$44,$33,$22,$11,$00
 
-TileYBlitPositions:
+;v_tile_y_blit_positions
     dc.b $F0,$E0,$D0,$C0,$B0,$A0,$90,$80
     dc.b $70,$60,$50,$40,$30,$20,$10,$00
 
-
-DecodedBitplaneBytes:
+;v_decoded_bitplane_bytes
     dc.b 0,0,0,0,0,0,0,0
 
-TileColumnsToDecode:
+;v_tile_columns_to_decode
     dc.b 0
 
-TileRowsToDecode:
+;v_tile_rows_to_decode
     dc.b 0
 
-TestScrollCommand:
+;v_scroll_command
     dc.b 0
 
-PreviousScrollDir:
+;v_scroll_previous_direction
     dc.b 0
 
     EVEN
