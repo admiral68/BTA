@@ -130,12 +130,13 @@ TESTCode:
 TESTUpdatePaletteDuringScroll:
     movem.l d0-a6,-(sp)
 
-    cmp.b #0,v_scroll_command(a0)                           ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
-    bne .check_left
+    btst.b #0,v_scroll_command(a0)                          ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
+    beq .check_left
 
     cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
     blo .continue
 
+    mcgeezer_special
     lea Copper,a2
 
     move.w #$0b87,c_palette_01(a2)
@@ -159,8 +160,9 @@ TESTUpdatePaletteDuringScroll:
 
 .check_left
 
-    cmp.b #1,v_scroll_command(a0)                           ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
-    bne .continue
+    mcgeezer_special
+    btst.b #7,v_scroll_command(a0)                          ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
+    beq .continue
 
     cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
     bhi .continue
@@ -299,35 +301,35 @@ TESTScroll:
    rts
 
 .continue
-   cmp.b #0,v_scroll_command(a0)                            ;user move left... do left
+   cmp.b #1,v_scroll_command(a0)
    beq .right
 
-   cmp.b #1,v_scroll_command(a0)                            ;user move left... do left
+   cmp.b #8,v_scroll_command(a0)
    beq .left
 
-   cmp.b #2,v_scroll_command(a0)                            ;user move left... do left
+   cmp.b #2,v_scroll_command(a0)
    beq .down
 
-   cmp.b #3,v_scroll_command(a0)                            ;user move left... do left
+   cmp.b #4,v_scroll_command(a0)
    beq .up
 
-   cmp.b #4,v_scroll_command(a0)                            ;user move left... do left
+   cmp.b #3,v_scroll_command(a0)
    beq .rightdown
 
-   cmp.b #5,v_scroll_command(a0)                            ;user move left... do left
+   cmp.b #5,v_scroll_command(a0)
    beq .rightup
 
-   cmp.b #6,v_scroll_command(a0)                            ;user move left... do left
+   cmp.b #10,v_scroll_command(a0)
    beq .leftdown
 
-   cmp.b #7,v_scroll_command(a0)                            ;user move left... do left
+   cmp.b #12,v_scroll_command(a0)
    beq .leftup
 
    rts
 
 .right
     ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
-    move.b #1,d3
+    move.b #2,d3
     cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width*2),d2              ;2048-352-tile_width*2
     blo .scroll_right
     bra .switch_direction
@@ -344,7 +346,7 @@ TESTScroll:
    rts
 
 .left
-    move.b #0,d3
+    move.b #4,d3
     cmp.w #tile_width,d2
     bhi .scroll_left
     bra .switch_direction
@@ -361,7 +363,7 @@ TESTScroll:
    rts
 
 .up
-    move.b #2,d3
+    move.b #1,d3
     swap d2
     cmp.w #tile_height,d2
     bhi .scroll_up
@@ -378,7 +380,7 @@ TESTScroll:
    rts
 
 .down
-    move.b #3,d3
+    move.b #8,d3
     swap d2
     cmp.w #1024-256-16,d2
     blo .scroll_down
@@ -573,9 +575,13 @@ FastData:
 ;v_scroll_screen_split
     dc.l 0
 
-;v_scroll_dest_offset_table
+;v_scrollx_dest_offset_table
     dc.w $0000,$0B00,$1600,$2100,$2C00,$3700,$4200,$4D00
     dc.w $5800,$6300,$6E00,$7900,$8400,$8F00,$9A00,$A500
+
+;v_scrolly_dest_offset_table
+    dc.w $0010,$0020,$0030,$0040,$0050,$0060,$0070,$0090
+    dc.w $00a0,$00c0,$00d0,$00f0,$0100,$0120,$0130,$0150
 
 ;v_scroll_saveword
     dc.w 0
@@ -601,10 +607,12 @@ FastData:
     dc.b 0
 
 ;v_scroll_command
-    dc.b 2
+    dc.b 1
 
 ;v_scroll_previous_direction
-    dc.b 2
+    dc.b 1
+
+
 
     EVEN
 

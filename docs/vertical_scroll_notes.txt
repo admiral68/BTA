@@ -1,81 +1,33 @@
-copper_scroll:
-	lea v_scroll_screen(a0),a0
-	; calculate xoffset on bitplanes
+screen_bytes_per_row*tile_height = $B00
 
+
+#define TWOBLOCKSTEP (((SCREENWIDTH + EXTRAWIDTH) / BLOCKWIDTH) - BLOCKHEIGHT)
+
+(SCREEN_COLUMNS - BLOCKHEIGHT) (22 - 16) = 6
+
+mapx = mapposy & 15;
+
+
+   if ((mapposy & 15) < 6
+   if ((mapposy & 15) < (((SCREENWIDTH + EXTRAWIDTH) / BLOCKWIDTH) - BLOCKHEIGHT))
+   {
+   	// blit only one block
+   	
+   	x = (mapposy & 15) * BLOCKWIDTH; (0-5)
+   	
+   	DrawBlock(x,y,mapx,mapy);
+   	
+   } else {
+   	// blit two blocks
+   	
+   	mapx = 6 + (mapposy & 15 - 6) * 2;  (6-15)
 	
-	;a2 clist
-	lea v_scroll_screen(a0),a0
-
-	; calculate a second bitplane pointer with xoffset and ymodulo
-	lea	YOffTab(a4),a1
-	move.w	d4,d0			;d4 = ypos & BMAPH
-	add.w	d0,d0
-	add.w	d0,d0
-	move.l	(a1,d0.w),d6
-	add.l	a0,d6			; d6 (top):   bitmap + xoffset + ymodulo
-	move.l	a0,d7			; d7 (split): bitmap + xoffset
-
-
-	; determine real Vtop and Vsplit bitmap pointer for rendering
-	move.l	d6,a0
-	move.l	d7,a1
-	moveq	#15,d0
-	and.w	d2,d0			;d2 = xpos
-	bne	.1
-	addq.l	#2,a0
-	addq.l	#2,a1
-
-
-.1:	
-    movem.l	a0-a1,Vtop(a5)						;save ptrs
-
-	; calculate current y-offset of split
-	move.w	#screen_buffer_height,d1
-	sub.w	d4,d1								;d1 = d1 - (ypos % screen_buffer_height)
-	move.w	d1,Vsplyoff(a5)						;save?
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	; calculate raster line of display split
-	move.w	#v_display_start,d0
-	moveq	#-2*16,d1							;
-	add.w	d4,d1								;d1 = d1 + (ypos % screen_buffer_height)
-	bmi	.2			; no split
-	sub.w	d1,d0								;d0 = d0 - (-2*16)
-
-
-
-	; write WAIT command for split line
-.2:	move.b	d0,Cl_waitsplit+4(a2)				;d0 is the second one
-	and.w	#$ff00,d0
-	sne	Cl_waitsplit(a2);                       ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
-
-	; write updated bitplane pointers for top and split section
-	lea	Cl_bpltop+2(a2),a0
-
-	moveq	#screen_bitplanes-1,d0
-	move.w	#screen_bpl_bytes_per_row,a1
-.3:	swap	d6
-	move.w	d6,(a0)
-	swap	d6
-	move.w	d6,4(a0)
-	swap	d7
-	move.w	d7,Cl_bplsplit-Cl_bpltop(a0)
-	swap	d7
-	move.w	d7,4+Cl_bplsplit-Cl_bpltop(a0)
-	addq.l	#8,a0
-	add.l	a1,d6
-	add.l	a1,d7
-	dbf	d0,.3
-	rts
+	6->
+	
+	
+   	mapx = ((352 / BLOCKWIDTH) - BLOCKHEIGHT) + (mapposy & 15 - ((352 / BLOCKWIDTH) - BLOCKHEIGHT)) * 2;
+   	x = mapx * BLOCKWIDTH;
+   	
+   	DrawBlock(x,y,mapx,mapy);
+   	DrawBlock(x + BLOCKWIDTH,y,mapx + 1,mapy);
+   }

@@ -347,8 +347,8 @@ ScrollGetHTileOffsets:
     swap d3                                                 ;mapx
     move.w d3,d2
 
-    cmp.b #0,v_scroll_command(a0)
-    bne .left
+    btst.b #0,v_scroll_command(a0)
+    beq .left
 
     subi #1,d2                                              ;back one column
 
@@ -369,8 +369,8 @@ ScrollGetHTileOffsets:
 
     clr.l d2
 
-    cmp.b #0,v_scroll_command(a0)
-    bne .left2
+    btst.b #0,v_scroll_command(a0)
+    beq .left2
 
     add.w v_video_x_bitplane_offset(a0),d2                  ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
                                                             ;or zero
@@ -379,7 +379,7 @@ ScrollGetHTileOffsets:
     and.w #15,d4
 
     asl.w #1,d4
-    add.w v_scroll_dest_offset_table(a0,d4.w),d2
+    add.w v_scrollx_dest_offset_table(a0,d4.w),d2
 
     move.l d2,d4                                            ;(for debugging)
     add.l d2,d1                                             ;frontbuffer + y + x
