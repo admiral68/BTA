@@ -149,13 +149,14 @@ ScrollIncrementYPosition:
    addi.w #1,v_map_y_position(a0)                           ;mapposy++;
    move.w v_map_y_position(a0),v_video_y_position(a0)       ;videoposy = mapposy;
 
-   cmp.w #screen_height,v_video_y_position(a0)
+   cmp.w #screen_buffer_height,v_video_y_position(a0)
    bne .update
 
-   move.w #screen_height,v_video_y_position(a0)             ;reset video y to 256
+   move.w #screen_buffer_height,v_video_y_position(a0)      ;reset video y to 288
 
 .update
    move.b #2,v_scroll_previous_direction(a0)                ;previous_direction = DIRECTION_DOWN;
+   bsr ScrollGetStepAndDelay
    rts
 
 ;-----------------------------------------------
@@ -213,23 +214,26 @@ ScrollUpdateBitplanePointers:
 
    beq .update_pointer
 
+
+
+
    clr.l d2
    move.w v_map_y_position(a0),d2
-   divu #screen_buffer_height,d2                           ;bitplane pointers in screen buffer
+   divu #screen_buffer_height,d2                           	;bitplane pointers in screen buffer
    swap d2
 
 ; calculate raster line of display split
    move.w #v_display_start,d0
    moveq #-2*16,d1
-   add.w d2,d1                             ;d1 = d1 + (ypos % screen_buffer_height)
+   add.w d2,d1                             					;d1 = d1 + (ypos % screen_buffer_height)
    bmi .no_split
-   sub.w d1,d0                             ;d0 = d0 - (-2*16)
+   sub.w d1,d0                             					;d0 = d0 - (-2*16)
 
 ; write WAIT command for split line
 .no_split:
-   move.b d0,c_split(a0)                   ;d0 is the second one
+   move.b d0,c_split(a1)                   					;d0 is the second one
    and.w #$ff00,d0
-   sne c_split_stop(a0)                    ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
+   sne c_split_stop(a1)                    					;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
 
 ;   ; write updated bitplane pointers for top and split section
 
@@ -272,11 +276,11 @@ ScrollUpdateBitplanePointers:
    move #4-1,d1
 
 .loop
-   move.w d3,4+c_bitplane_pointers_01(a1)                    ;lo word
+   move.w d3,4+c_bitplane_pointers_01(a1)                   ;lo word
    move.w d6,4+c_bitplane_pointers_02(a1)                   ;lo word
    swap d3
    swap d6
-   move.w d3,c_bitplane_pointers_01(a1)                      ;hi word
+   move.w d3,c_bitplane_pointers_01(a1)                     ;hi word
    move.w d6,c_bitplane_pointers_02(a1)                     ;hi word
    swap d3
    swap d6

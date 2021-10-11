@@ -226884,6 +226884,13 @@ tile_pal_03:macro
 ;    bsr CalculateDrawTileLeft
 ;    ENDR
 
+   bsr TESTScrollRight                                      ;INPUT:d2,a0 (d1)
+   bsr ScrollGetXYPositionRight
+
+   lea DecodedGraphic,a3
+   bsr ScrollGetHTileOffsets
+   bsr TileDraw
+   bsr ScrollIncrementXPosition                             ;INPUT: mapx/y in d3; x/y in d4
 
 
 

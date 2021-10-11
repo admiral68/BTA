@@ -1,20 +1,28 @@
-;    move.l #$160,MapXYPosition
-;    move.l #$160,VideoXYPosition
-
-;  lea FastData,a0
-;  bsr ScrollGetStepAndDelay
-;  
-;  bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
-;  bsr ScrollGetXYPositionDown
-;  bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;   lea FastData,a0
+;   lea Screen,a1                                           ;ptr to first bitplane of image
+;   lea 2+screen_bytes_per_row*tile_height(a1),a1           ;+2 because we're scrollin' (Skip first column)
 ;
-;  REPT 16
-;  bsr ScrollGetStepAndDelay
-;  bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
-;  bsr ScrollGetXYPositionDown
-;  bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;   move.w #$160,v_map_x_position(a0)
+;   move.w #$160,v_video_x_position(a0)
+;
+;   move.l a1,v_scroll_screen(a0)
+;   move.l a1,v_scroll_screen_split(a0)
+;   bsr ScrollGetStepAndDelay
+;
+;   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
+;   bsr ScrollGetXYPositionDown
+;
+;;   lea DecodedGraphic,a3
+;;   bsr ScrollGetHTileOffsets
+;;   bsr TileDraw
+;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;
+;   REPT 16
+;   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
+;   bsr ScrollGetXYPositionDown
+;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
 ;;  bsr CalculateDrawTileLeft
-;  ENDR
+;   ENDR
 
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
@@ -264,26 +272,36 @@ TESTScrollLeft:
 ;-----------------------------------------------
 TESTScrollDown:
 ;INPUT:a0
+   swap d1
+   cmp.w #0,d1                                                              ;update tile row?
+   bne .move_down
+
    addi.w #1,v_tile_y_position(a0)
-   cmp.w #16,v_tile_y_position(a0)
+   cmp.w #32,v_tile_y_position(a0)
    beq .no_update
 
+.move_down
    move.l #$10000,d4
    lea Copper,a1
    bsr ScrollUpdateBitplanePointers
    rts
 
 .no_update
-   move.w #15,v_tile_y_position(a0)                                          ;Tile position
+   move.w #31,v_tile_y_position(a0)                                         ;Tile position
    rts
 
 ;-----------------------------------------------
 TESTScrollUp:
 ;INPUT:a0
+   swap d1
+   cmp.w #15,d1                                                             ;update tile row?
+   bne .move_up
+
    subi.w #1,v_tile_y_position(a0)
    cmp.w #-1,v_tile_y_position(a0)
    beq .no_update
 
+.move_up
    move.l #$FFFF0000,d4
    lea Copper,a1
    bsr ScrollUpdateBitplanePointers

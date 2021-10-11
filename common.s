@@ -31,11 +31,11 @@ v_scroll_previous_direction = 119
 
 c_horizontal_scroll_pos_01  = 2
 c_sprites_enable_01         = 6
-c_palette_01                = 10
+c_palette_01                = 8
 c_display_enable_01         = 74
 c_bitplane_pointers_01      = 78
-c_split_stop                = 110
-c_split                     = 114
+c_split_stop                = 108
+c_split                     = 112
 c_bitplane_pointers_02      = 118
 
     *-----------------*
@@ -46,6 +46,7 @@ screen_width                        = 352
 screen_height                       = 256
 screen_buffer_height                = 288
 screen_buffer_columns               = screen_width/tile_width
+screen_buffer_rows                  = screen_buffer_height/tile_height
 screen_bitplanes                    = 4
 screen_bpl_bytes_per_row            = screen_width/8
 screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
