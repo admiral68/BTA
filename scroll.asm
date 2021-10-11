@@ -152,7 +152,7 @@ ScrollIncrementYPosition:
    cmp.w #screen_buffer_height,v_video_y_position(a0)
    bne .update
 
-   move.w #screen_buffer_height,v_video_y_position(a0)      ;reset video y to 288
+   move.w #0,v_video_y_position(a0)                         ;reset video y to 0
 
 .update
    move.b #2,v_scroll_previous_direction(a0)                ;previous_direction = DIRECTION_DOWN;
@@ -168,7 +168,7 @@ ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3
    cmp.w #-1,v_video_y_position(a0)                         ;-1
    bne .end
 
-   move.w #0,v_video_y_position(a0)                         ;reset video y to 0
+   move.w #screen_buffer_height-1,v_video_y_position(a0)    ;reset video y to 287
 
 .end
 
@@ -223,10 +223,11 @@ ScrollUpdateBitplanePointers:
    swap d2
 
 ; calculate raster line of display split
-   move.w #v_display_start,d0
+   move.w #v_display_start+screen_height,d0
    moveq #-2*16,d1
    add.w d2,d1                             					;d1 = d1 + (ypos % screen_buffer_height)
    bmi .no_split
+   mcgeezer_special
    sub.w d1,d0                             					;d0 = d0 - (-2*16)
 
 ; write WAIT command for split line
@@ -276,12 +277,12 @@ ScrollUpdateBitplanePointers:
    move #4-1,d1
 
 .loop
-   move.w d3,4+c_bitplane_pointers_01(a1)                   ;lo word
-   move.w d6,4+c_bitplane_pointers_02(a1)                   ;lo word
+   move.w d6,4+c_bitplane_pointers_01(a1)                   ;lo word
+   move.w d3,4+c_bitplane_pointers_02(a1)                   ;lo word
    swap d3
    swap d6
-   move.w d3,c_bitplane_pointers_01(a1)                     ;hi word
-   move.w d6,c_bitplane_pointers_02(a1)                     ;hi word
+   move.w d6,c_bitplane_pointers_01(a1)                     ;hi word
+   move.w d3,c_bitplane_pointers_02(a1)                     ;hi word
    swap d3
    swap d6
    add.l #screen_bpl_bytes_per_row,d3                       ;every 44 bytes we'll have new bitplane data
