@@ -1,3 +1,44 @@
+   lea FastData,a0
+   lea Screen,a1                                           ;ptr to first bitplane of image
+
+   move.l a1,v_screen(a0)
+
+   lea 2+screen_bytes_per_row*tile_height(a1),a1           ;+2 because we're scrollin' (Skip first column)
+
+   move.w #$160,v_map_x_position(a0)
+   move.w #$160,v_video_x_position(a0)
+   move.b #4,v_scroll_command(a0)
+
+   move.l a1,v_scroll_screen(a0)
+   move.l a1,v_scroll_screen_split(a0)
+   bsr ScrollGetVTileOffsets
+  
+   add.l #screen_bytes_per_row*screen_height,v_scroll_screen(a0)
+
+   move.b #2,v_scroll_command(a0)
+   bsr ScrollGetVTileOffsets
+
+
+   bsr ScrollGetStepAndDelay
+
+   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
+   bsr ScrollGetXYPositionDown
+
+   lea DecodedGraphic,a3
+   bsr ScrollGetVTileOffsets
+;   bsr TileDraw
+   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+
+   REPT 16
+   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
+   bsr ScrollGetXYPositionDown
+
+   lea DecodedGraphic,a3
+   bsr ScrollGetVTileOffsets
+;   bsr TileDraw
+   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+   ENDR
+
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"
@@ -375,7 +416,7 @@ TESTScroll:
 
 ;   lea TileXBlitPositions,a5
    bsr ScrollGetXYPositionUp
-;   bsr CalculateDrawVTile
+   bsr ScrollGetVTileOffsets
 ;   bsr TileDraw                                             ;DrawBlock(x,y,mapx,mapy);
    rts
 
@@ -390,7 +431,7 @@ TESTScroll:
 
    bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
    bsr ScrollGetXYPositionDown
-;   bsr CalculateDrawVTile
+   bsr ScrollGetVTileOffsets
 ;   bsr TileDraw
    bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
    rts

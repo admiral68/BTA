@@ -386,3 +386,103 @@ ScrollGetHTileOffsets:
     rts
 
 ;-----------------------------------------------
+ScrollGetVTileOffsets:
+;INPUT: mapx/y in d3
+;       x/y in d4
+;       x = in pixels
+;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
+;       DecodedGraphic=a3;FastData=a5
+
+    ;SOURCE => d5 (d3=offset)
+
+    clr.l d1
+    clr.l d2
+    clr.l d5
+
+;    swap d3                                                 ;mapy
+;    swap d4                                                 ;y
+
+;    move.w d3,d2
+;    cmp.w #0,d2
+;    beq .skip_add
+;    sub.w #1,d2
+
+;.addo                                                       ;mapy * mapwidth
+;    add.l #$4000,d1
+;    dbf d2,.addo
+
+;.skip_add
+
+;    swap d3                                                 ;mapx
+;   move.w d3,d2
+
+;    btst.b #0,v_scroll_command(a0)
+;    beq .left
+
+;    subi #1,d2                                              ;back one column
+
+;.left
+;    asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
+
+    ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
+;    add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
+;    move.l d1,d3                                            ;for debugging purposes
+
+;    WAITBLIT                                                ;HardWaitBlit();
+
+;    move.l a3,d5                                            ;A source (blocksbuffer)
+;    add.l d1,d5                                             ;blocksbuffer + mapy + mapx
+
+    ;DESTINATION => d1 (d4)
+    move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
+
+    clr.l d2
+    move.l v_screen(a0),d2
+
+    btst.b #2,v_scroll_command(a0)
+    beq .up2
+
+    sub.l #screen_bytes_per_row*tile_height+tile_width,d1   ;top fill row
+    bra .continue
+
+.up2
+    add.l #screen_bytes_per_row*screen_buffer_height+tile_width,d1 ;bottom fill row
+    add.l #screen_bytes_per_row*screen_buffer_height,d2
+
+    cmp.l d2,d1
+    blt .continue
+
+    sub.l d2,d1
+	add.l v_screen(a0),d1
+
+.continue
+    clr.l d2
+    move.w v_map_y_position(a0),d4
+    swap d4
+    move.w v_map_y_position(a0),d4
+    and.l #$000F000F,d4
+
+    asl.w #1,d4
+    add.w v_scrolly_dest_offset_table(a0,d4.w),d2
+
+    move.l d2,d4                                            ;(for debugging)
+    add.l d2,d1                                             ;frontbuffer + y + x
+
+;check to see if we're within the buffer
+    clr.l d2
+    move.l v_screen(a0),d2
+
+    cmp.l d2,d1
+    bgt .end
+
+    sub.l d1,d2
+    beq .end
+
+	move.l #screen_bytes_per_row*screen_buffer_height,d1
+	
+	add.l v_screen(a0),d1
+	sub.l d2,d1	
+.end	
+    rts
+
+;-----------------------------------------------

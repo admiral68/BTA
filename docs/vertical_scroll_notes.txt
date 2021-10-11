@@ -1,4 +1,4 @@
-screen_bytes_per_row*tile_height = $B00
+screen_bytes_per_row*tile_height+tile_width = $B00
 
 
 #define TWOBLOCKSTEP (((SCREENWIDTH + EXTRAWIDTH) / BLOCKWIDTH) - BLOCKHEIGHT)
