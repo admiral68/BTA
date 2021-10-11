@@ -147,7 +147,7 @@ ScrollDecrementXPosition:
 ScrollIncrementYPosition:
 ;FastData(a0)
    addi.w #1,v_map_y_position(a0)                           ;mapposy++;
-   move.w v_map_y_position(a0),v_video_y_position(a0)       ;videoposy = mapposy;
+   addi.w #1,v_video_y_position(a0)                         ;videoposy = mapposy;
 
    cmp.w #screen_buffer_height,v_video_y_position(a0)
    bne .update
@@ -156,14 +156,16 @@ ScrollIncrementYPosition:
 
 .update
    move.b #2,v_scroll_previous_direction(a0)                ;previous_direction = DIRECTION_DOWN;
-   bsr ScrollGetStepAndDelay
    rts
 
 ;-----------------------------------------------
 ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3; x/y in d4
 ;INPUT: FastData(a0)
+   cmp.w #0,v_map_y_position(a0)
+   beq .end
+
    subi.w #1,v_map_y_position(a0)                           ;mapposy--;
-   move.w v_map_y_position(a0),v_video_y_position(a0)       ;videoposy = mapposy;
+   subi.w #1,v_video_y_position(a0)                         ;videoposy = mapposy;
 
    cmp.w #-1,v_video_y_position(a0)                         ;-1
    bne .end
@@ -171,7 +173,6 @@ ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3
    move.w #screen_buffer_height-1,v_video_y_position(a0)    ;reset video y to 287
 
 .end
-
    bsr ScrollGetStepAndDelay
    rts
 
@@ -186,6 +187,8 @@ ScrollUpdateBitplanePointers:
    move.w d4,d5
 
    beq .check_y
+
+;do delta-x
 
    btst #15,d5
    beq .positive_x
@@ -212,47 +215,31 @@ ScrollUpdateBitplanePointers:
    clr.l d5
    move.w d4,d5
 
-   beq .update_pointer
+   beq .check_top_too_low
 
-
-
+;calculate split
 
    clr.l d2
    move.w v_map_y_position(a0),d2
-   divu #screen_buffer_height,d2                           	;bitplane pointers in screen buffer
+   add.w tile_height*2,d2                                   ;offset for extra rows
+   divu #screen_buffer_height,d2                            ;bitplane pointers in screen buffer
    swap d2
 
 ; calculate raster line of display split
    move.w #v_display_start+screen_height,d0
    moveq #-2*16,d1
-   add.w d2,d1                             					;d1 = d1 + (ypos % screen_buffer_height)
+   add.w d2,d1                                              ;d1 = d1 + (ypos % screen_buffer_height)
    bmi .no_split
-   mcgeezer_special
-   sub.w d1,d0                             					;d0 = d0 - (-2*16)
+   sub.w tile_height*2,d1; ???
+   sub.w d1,d0                                              ;d0 = d0 - (-2*16)
 
 ; write WAIT command for split line
 .no_split:
-   move.b d0,c_split(a1)                   					;d0 is the second one
+   move.b d0,c_split(a1)                                    ;d0 is the second one
    and.w #$ff00,d0
-   sne c_split_stop(a1)                    					;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
+   sne c_split_stop(a1)                                     ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
 
-;   ; write updated bitplane pointers for top and split section
-
-;   moveq   #screen_bitplanes-1,d0
-;.3:
-;   swap    d6
-;   move.w  d6,c_bitplane_pointers_01(a0)
-;   swap    d6
-;   move.w  d6,4+c_bitplane_pointers_01(a0)
-;   swap    d7
-;   move.w  d7,c_bitplane_pointers_02(a0)
-;   swap    d7
-;   move.w  d7,4+c_bitplane_pointers_02(a0)
-;   addq.l  #8,a0
-;   add.l   #screen_bpl_bytes_per_row,d6
-;   add.l   #screen_bpl_bytes_per_row,d7
-;   dbf d0,.3
-
+;do delta-y
    btst #15,d5
    beq .positive_y
 
@@ -262,7 +249,7 @@ ScrollUpdateBitplanePointers:
 .loop_sub_y
    sub.l #screen_bytes_per_row,d6
    dbf.w d5,.loop_sub_y
-   bra .update_pointer
+   bra .check_top_too_low
 
 .positive_y
    subi #1,d5
@@ -271,7 +258,43 @@ ScrollUpdateBitplanePointers:
    add.l #screen_bytes_per_row,d6
    dbf.w d5,.loop_add_y
 
+
+;check to see if the bitplane pointers
+;are outside of the buffer area
+
+.check_top_too_low
+   move.l v_screen(a0),d7
+   cmp.l d7,d3
+   bge .check_top_too_high
+
+   add.l #screen_bytes_per_row*screen_buffer_height,d3
+
+.check_top_too_high
+   add.l #screen_bytes_per_row*screen_buffer_height,d7
+   cmp.l d7,d3
+   blt .check_split_too_low
+
+   sub.l #screen_bytes_per_row*screen_buffer_height,d3
+
+   bra .update_pointer
+
+.check_split_too_low
+   move.l v_screen(a0),d7
+   cmp.l d7,d6
+   bge .check_split_too_high
+
+   add.l #screen_bytes_per_row*screen_buffer_height,d6
+
+.check_split_too_high
+   add.l #screen_bytes_per_row*screen_buffer_height,d7
+   cmp.l d7,d6
+   blt .update_pointer
+
+   sub.l #screen_bytes_per_row*screen_buffer_height,d6
+
+
 .update_pointer
+
    move.l d3,v_scroll_screen(a0)
    move.l d6,v_scroll_screen_split(a0)
    move #4-1,d1

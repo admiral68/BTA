@@ -1,29 +1,3 @@
-;   lea FastData,a0
-;   lea Screen,a1                                           ;ptr to first bitplane of image
-;   lea 2+screen_bytes_per_row*tile_height(a1),a1           ;+2 because we're scrollin' (Skip first column)
-;
-;   move.w #$160,v_map_x_position(a0)
-;   move.w #$160,v_video_x_position(a0)
-;
-;   move.l a1,v_scroll_screen(a0)
-;   move.l a1,v_scroll_screen_split(a0)
-;   bsr ScrollGetStepAndDelay
-;
-;   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
-;   bsr ScrollGetXYPositionDown
-;
-;;   lea DecodedGraphic,a3
-;;   bsr ScrollGetHTileOffsets
-;;   bsr TileDraw
-;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
-;
-;   REPT 16
-;   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
-;   bsr ScrollGetXYPositionDown
-;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
-;;  bsr CalculateDrawTileLeft
-;   ENDR
-
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"
@@ -56,6 +30,9 @@ Init:
 
     lea FastData,a1
     lea Screen,a0                                           ;ptr to first bitplane of image
+
+    move.l a0,v_screen(a1)
+
     lea 2+screen_bytes_per_row*tile_height(a0),a0           ;+2 because we're scrollin' (Skip first column)
 
     move.l a0,v_scroll_screen(a1)
@@ -384,21 +361,24 @@ TESTScroll:
    rts
 
 .up
-   rts
+    move.b #2,d3
+    swap d2
+    cmp.w #tile_height,d2
+    bhi .scroll_up
+    bra .switch_direction
 
 .scroll_up
-;   bsr ScrollDecrementYPosition
-
+   bsr ScrollDecrementYPosition
    bsr TESTScrollUp
 
 ;   lea TileXBlitPositions,a5
-;   bsr ScrollGetXYPositionUp
+   bsr ScrollGetXYPositionUp
 ;   bsr CalculateDrawVTile
 ;   bsr TileDraw                                             ;DrawBlock(x,y,mapx,mapy);
    rts
 
 .down
-    move.b #16,d3
+    move.b #3,d3
     swap d2
     cmp.w #1024-256-16,d2
     blo .scroll_down
@@ -570,7 +550,7 @@ FastData:
 ;v_tile_decode_row_dest
     dc.l 0
 
-;v_tile_image_stride
+;v_screen
     dc.l 0
 
 ;v_tile_source
