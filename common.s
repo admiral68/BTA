@@ -56,6 +56,9 @@ screen_horz_disp_words              = screen_width/16
 screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
 screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
 
+map_tile_width                      = test_cols_to_decode
+map_tile_height                     = test_rows_to_decode
+
 DMA_fetch_start                     = $28                                   ;$28 for 22 columns;$38 for 20 columns
 v_display_start                     = $2c
 h_display_start                     = $71                                   ;$81 for non-scrolling display; $91 otherwise

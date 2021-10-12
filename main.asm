@@ -1,45 +1,52 @@
-   lea FastData,a0
-   lea Screen,a1                                            ;ptr to first bitplane of image
-
-   move.l a1,v_screen(a0)
-
-   lea 2(a1),a1                                             ;(Skip first column)
-   move.l a1,v_scroll_screen(a0)
-
-   move.w #$160,v_map_x_position(a0)
-   move.w #$160,v_video_x_position(a0)
-   move.b #4,v_scroll_command(a0);down
-
-   bsr ScrollGetVTileOffsets
-
-   lea screen_bytes_per_row*(screen_height+tile_height)(a1),a1            ;+2 because we're scrollin' (Skip first column)
-   move.l a1,v_scroll_screen(a0)
-
-   move.w #$F,v_map_y_position(a0)
-   move.w #$F,v_video_y_position(a0)
-   move.b #2,v_scroll_command(a0);up
-   bsr ScrollGetVTileOffsets
-
-
-   bsr ScrollGetStepAndDelay
-
-   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
-   bsr ScrollGetXYPositionDown
-
-   lea DecodedGraphic,a3
-   bsr ScrollGetVTileOffsets
-;   bsr TileDraw
-   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
-
-   REPT 16
-   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
-   bsr ScrollGetXYPositionDown
-
-   lea DecodedGraphic,a3
-   bsr ScrollGetVTileOffsets
-;   bsr TileDraw
-   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
-   ENDR
+;   lea FastData,a0
+;   lea Screen,a1                                            ;ptr to first bitplane of image
+;
+;   move.l a1,v_screen(a0)
+;
+;   lea 2(a1),a1                                             ;(Skip first column)
+;   move.l a1,v_scroll_screen(a0)
+;
+;   move.w #$160,v_map_x_position(a0)
+;   move.w #$160,v_video_x_position(a0)
+;   move.b #4,v_scroll_command(a0);down
+;
+;   bsr ScrollGetXYPositionDown
+;
+;   lea DecodedGraphic,a3
+;   bsr ScrollGetVTileOffsets
+;
+;   add.l #screen_bytes_per_row*(screen_height+tile_height),a1            ;+2 because we're scrollin' (Skip first column)
+;   move.l a1,v_scroll_screen(a0)
+;
+;   move.w #$F,v_map_y_position(a0)
+;   move.w #$F,v_video_y_position(a0)
+;   move.b #2,v_scroll_command(a0);up
+;
+;   bsr ScrollGetXYPositionUp
+;
+;   lea DecodedGraphic,a3
+;   bsr ScrollGetVTileOffsets
+;
+;
+;   bsr ScrollGetStepAndDelay
+;
+;   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
+;   bsr ScrollGetXYPositionDown
+;
+;   lea DecodedGraphic,a3
+;   bsr ScrollGetVTileOffsets
+;;   bsr TileDraw
+;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;
+;   REPT 16
+;   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
+;   bsr ScrollGetXYPositionDown
+;
+;   lea DecodedGraphic,a3
+;   bsr ScrollGetVTileOffsets
+;;   bsr TileDraw
+;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;   ENDR
 
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
@@ -416,10 +423,16 @@ TESTScroll:
    bsr ScrollDecrementYPosition
    bsr TESTScrollUp
 
-;   lea TileXBlitPositions,a5
    bsr ScrollGetXYPositionUp
+
+   lea DecodedGraphic,a3
    bsr ScrollGetVTileOffsets
-;   bsr TileDraw                                             ;DrawBlock(x,y,mapx,mapy);
+   beq .blit_up_single
+.blit_up_double
+   bsr TileDrawTwoHorizontal
+   rts
+.blit_up_single
+   bsr TileDraw
    rts
 
 .down
@@ -433,8 +446,16 @@ TESTScroll:
 
    bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
    bsr ScrollGetXYPositionDown
+
+   lea DecodedGraphic,a3
    bsr ScrollGetVTileOffsets
-;   bsr TileDraw
+   beq .blit_down_single
+.blit_down_double
+   bsr TileDrawTwoHorizontal
+   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+   rts
+.blit_down_single
+   bsr TileDraw
    bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
    rts
 
