@@ -1,21 +1,23 @@
    lea FastData,a0
-   lea Screen,a1                                           ;ptr to first bitplane of image
+   lea Screen,a1                                            ;ptr to first bitplane of image
 
    move.l a1,v_screen(a0)
 
-   lea 2+screen_bytes_per_row*tile_height(a1),a1           ;+2 because we're scrollin' (Skip first column)
+   lea 2(a1),a1                                             ;(Skip first column)
+   move.l a1,v_scroll_screen(a0)
 
    move.w #$160,v_map_x_position(a0)
    move.w #$160,v_video_x_position(a0)
-   move.b #4,v_scroll_command(a0)
+   move.b #4,v_scroll_command(a0);down
 
-   move.l a1,v_scroll_screen(a0)
-   move.l a1,v_scroll_screen_split(a0)
    bsr ScrollGetVTileOffsets
-  
-   add.l #screen_bytes_per_row*screen_height,v_scroll_screen(a0)
 
-   move.b #2,v_scroll_command(a0)
+   lea screen_bytes_per_row*(screen_height+tile_height)(a1),a1            ;+2 because we're scrollin' (Skip first column)
+   move.l a1,v_scroll_screen(a0)
+
+   move.w #$F,v_map_y_position(a0)
+   move.w #$F,v_video_y_position(a0)
+   move.b #2,v_scroll_command(a0);up
    bsr ScrollGetVTileOffsets
 
 
@@ -621,8 +623,8 @@ FastData:
     dc.w $5800,$6300,$6E00,$7900,$8400,$8F00,$9A00,$A500
 
 ;v_scrolly_dest_offset_table
-    dc.w $0010,$0020,$0030,$0040,$0050,$0060,$0070,$0090
-    dc.w $00a0,$00c0,$00d0,$00f0,$0100,$0120,$0130,$0150
+    dc.w $0000,$0002,$0004,$0006,$0008,$000A,$000C,$0010
+    dc.w $0012,$0016,$0018,$001C,$001E,$0022,$0024,$0028
 
 ;v_scroll_saveword
     dc.w 0

@@ -442,18 +442,18 @@ ScrollGetVTileOffsets:
     btst.b #2,v_scroll_command(a0)
     beq .up2
 
-    sub.l #screen_bytes_per_row*tile_height+tile_width,d1   ;top fill row
+    sub.l #screen_bytes_per_row*tile_height,d1   ;top fill row
     bra .continue
 
 .up2
-    add.l #screen_bytes_per_row*screen_buffer_height+tile_width,d1 ;bottom fill row
+    add.l #screen_bytes_per_row*screen_height,d1 ;bottom fill row
     add.l #screen_bytes_per_row*screen_buffer_height,d2
 
     cmp.l d2,d1
     blt .continue
 
     sub.l d2,d1
-	add.l v_screen(a0),d1
+    add.l v_screen(a0),d1
 
 .continue
     clr.l d2
@@ -478,11 +478,11 @@ ScrollGetVTileOffsets:
     sub.l d1,d2
     beq .end
 
-	move.l #screen_bytes_per_row*screen_buffer_height,d1
-	
-	add.l v_screen(a0),d1
-	sub.l d2,d1	
-.end	
+    move.l #screen_bytes_per_row*screen_buffer_height,d1
+
+    add.l v_screen(a0),d1
+    sub.l d2,d1
+.end
     rts
 
 ;-----------------------------------------------
