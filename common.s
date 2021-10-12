@@ -57,8 +57,13 @@ screen_horz_disp_words              = screen_width/16
 screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
 screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
 
+map_width                           = map_tile_width*tile_width
+map_height                          = map_tile_height*tile_height
 map_tile_width                      = test_cols_to_decode
 map_tile_height                     = test_rows_to_decode
+map_bpl_bytes_per_row               = map_width/8
+map_bitplanes                       = 4
+map_bytes_per_row                   = map_bpl_bytes_per_row*map_bitplanes
 
 DMA_fetch_start                     = $28                                   ;$28 for 22 columns;$38 for 20 columns
 v_display_start                     = $2c
@@ -345,7 +350,7 @@ test_tilesrc_bp_offset              = $20000
 test_tilesrc_upr_px_b_off           = $20
 
 test_cols_to_decode                 = 128
-test_rows_to_decode                 = 32                                                ;TODO: Make it possible to decode more than 16 rows
+test_rows_to_decode                 = 16                                                ;TODO: Make it possible to decode more than 16 rows
 
 test_bmp_width_pixels               = 2048
 test_bmp_horz_disp_words            = test_bmp_width_pixels/tile_width

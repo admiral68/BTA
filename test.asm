@@ -316,7 +316,7 @@ TESTCopyScreenFromDecodedLongBitmap:
     ;lea Screen,a4
     move.l a3,d3
     move.l a4,d4
-    add.l #screen_bytes_per_row*tile_height,d4
+    add.l #screen_bytes_per_row*tile_height,d4				;blits to the upper left corner of the visible area - 2
 
     add.l #127*2,d3                                         ;move source to last column
 
@@ -335,10 +335,10 @@ TESTCopyScreenFromDecodedLongBitmap:
 
     ;lea DecodedGraphic,a3
     ;lea Screen,a4
-    lea 2+screen_bytes_per_row*tile_height(a4),a4           ;initially skip first column of pixels
+    lea 2+screen_bytes_per_row*tile_height(a4),a4           ;initially skip first column of pixels; blits to the upper left corner of the visible area
     move.l a3,d3
     move.l a4,d4
-
+	
     move.w #214,BLTAMOD(a6)                                 ;skip 107 columns (copy 21)
     move.w #2,BLTDMOD(a6)                                   ;skip 1 column (copy 21)
     move.l d3,BLTAPTH(a6)

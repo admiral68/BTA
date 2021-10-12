@@ -54,7 +54,7 @@ Init:
     move.l #screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2),d0
 
 .clr
-    move.b #0,(a0)
+    move.b #0,(a0)+
     dbf d0,.clr
 
 
@@ -179,7 +179,7 @@ TESTUpdatePaletteDuringScroll:
     cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
     blo .continue
 
-    mcgeezer_special
+    ;mcgeezer_special
     lea Copper,a2
 
     move.w #$0b87,c_palette_01(a2)
@@ -203,7 +203,7 @@ TESTUpdatePaletteDuringScroll:
 
 .check_left
 
-    mcgeezer_special
+    ;mcgeezer_special
     btst.b #7,v_scroll_command(a0)                          ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
     beq .continue
 
@@ -308,6 +308,7 @@ TESTScrollDown:
 .move_down
    move.l #$10000,d4
    lea Copper,a1
+   ;mcgeezer_special
    bsr ScrollUpdateBitplanePointers
    rts
 
@@ -426,10 +427,10 @@ TESTScroll:
    bsr ScrollGetVTileOffsets
    beq .blit_up_single
 .blit_up_double
-   bsr TileDrawTwoHorizontal
+   ;bsr TileDrawTwoHorizontal
    rts
 .blit_up_single
-   bsr TileDraw
+   ;bsr TileDraw
    rts
 
 .down
@@ -757,6 +758,7 @@ ScreenE:
 
 DecodedGraphic:
     ds.b $80000                                             ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
+	;REMEMBER, the test bitmap is only 16 tiles high (256)
 DecodedGraphicE:
 
 
