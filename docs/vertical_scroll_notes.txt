@@ -31,3 +31,24 @@ mapx = mapposy & 15;
    	DrawBlock(x,y,mapx,mapy);
    	DrawBlock(x + BLOCKWIDTH,y,mapx + 1,mapy);
    }
+;
+;   bsr ScrollGetXYPositionDown
+;
+;   lea DecodedGraphic,a3
+;   bsr ScrollGetVTileOffsets
+;
+;   add.l #screen_bytes_per_row*(screen_height+tile_height),a1            ;+2 because we're scrollin' (Skip first column)
+;   move.l a1,v_scroll_screen(a0)
+;
+;   move.w #$F,v_map_y_position(a0)
+;   move.w #$F,v_video_y_position(a0)
+;   move.b #2,v_scroll_command(a0);up
+;
+;   bsr ScrollGetXYPositionUp
+;
+;   lea DecodedGraphic,a3
+;   bsr ScrollGetVTileOffsets
+;
+;
+;   bsr ScrollGetStepAndDelay
+;

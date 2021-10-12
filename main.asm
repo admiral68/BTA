@@ -8,43 +8,25 @@
 ;
 ;   move.w #$160,v_map_x_position(a0)
 ;   move.w #$160,v_video_x_position(a0)
-;   move.b #4,v_scroll_command(a0);down
+;   move.b #4,v_scroll_command(a0)
 ;
+;   ;bsr ScrollGetStepAndDelay
+;   ;bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
 ;   bsr ScrollGetXYPositionDown
 ;
 ;   lea DecodedGraphic,a3
 ;   bsr ScrollGetVTileOffsets
 ;
-;   add.l #screen_bytes_per_row*(screen_height+tile_height),a1            ;+2 because we're scrollin' (Skip first column)
-;   move.l a1,v_scroll_screen(a0)
-;
-;   move.w #$F,v_map_y_position(a0)
-;   move.w #$F,v_video_y_position(a0)
-;   move.b #2,v_scroll_command(a0);up
-;
-;   bsr ScrollGetXYPositionUp
-;
-;   lea DecodedGraphic,a3
-;   bsr ScrollGetVTileOffsets
-;
-;
-;   bsr ScrollGetStepAndDelay
-;
-;   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
-;   bsr ScrollGetXYPositionDown
-;
-;   lea DecodedGraphic,a3
-;   bsr ScrollGetVTileOffsets
-;;   bsr TileDraw
 ;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
 ;
 ;   REPT 16
+;   bsr ScrollGetStepAndDelay
 ;   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
 ;   bsr ScrollGetXYPositionDown
 ;
 ;   lea DecodedGraphic,a3
 ;   bsr ScrollGetVTileOffsets
-;;   bsr TileDraw
+;
 ;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
 ;   ENDR
 
@@ -67,6 +49,14 @@ Init:
     lea Screen,a1
     lea screen_bytes_per_row*tile_height(a1),a1
     bsr.w ClearScreen
+
+    lea Screen,a0
+    move.l #screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2),d0
+
+.clr
+    move.b #0,(a0)
+    dbf d0,.clr
+
 
 ; some test code
 
@@ -180,8 +170,11 @@ TESTCode:
 TESTUpdatePaletteDuringScroll:
     movem.l d0-a6,-(sp)
 
-    btst.b #0,v_scroll_command(a0)                          ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
-    beq .check_left
+    btst.b #3,v_scroll_command(a0)                          ;left?
+    bne .check_left
+
+    btst.b #0,v_scroll_command(a0)                          ;right?
+    beq .continue
 
     cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
     blo .continue
@@ -306,6 +299,9 @@ TESTScrollDown:
    bne .move_down
 
    addi.w #1,v_tile_y_position(a0)
+   cmp.w #1,v_tile_y_position(a0)                                           ;If we're just starting, skip to the end
+   beq .end
+
    cmp.w #32,v_tile_y_position(a0)
    beq .no_update
 
@@ -317,6 +313,7 @@ TESTScrollDown:
 
 .no_update
    move.w #31,v_tile_y_position(a0)                                         ;Tile position
+.end
    rts
 
 ;-----------------------------------------------
@@ -413,7 +410,7 @@ TESTScroll:
    rts
 
 .up
-    move.b #1,d3
+    move.b #2,d3
     swap d2
     cmp.w #tile_height,d2
     bhi .scroll_up
@@ -436,7 +433,7 @@ TESTScroll:
    rts
 
 .down
-    move.b #8,d3
+    move.b #4,d3
     swap d2
     cmp.w #1024-256-16,d2
     blo .scroll_down
@@ -644,8 +641,8 @@ FastData:
     dc.w $5800,$6300,$6E00,$7900,$8400,$8F00,$9A00,$A500
 
 ;v_scrolly_dest_offset_table
-    dc.w $0000,$0002,$0004,$0006,$0008,$000A,$000C,$0010
-    dc.w $0012,$0016,$0018,$001C,$001E,$0022,$0024,$0028
+    dc.w $0002,$0004,$0006,$0008,$000A,$000C,$000E,$0012
+    dc.w $0014,$0018,$001A,$001E,$0020,$0024,$0026,$002A
 
 ;v_scroll_saveword
     dc.w 0
@@ -671,10 +668,10 @@ FastData:
     dc.b 0
 
 ;v_scroll_command
-    dc.b 1
+    dc.b 2
 
 ;v_scroll_previous_direction
-    dc.b 1
+    dc.b 2
 
 
 

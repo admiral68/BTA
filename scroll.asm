@@ -10,7 +10,7 @@ ScrollGetXYPositionRight:
     move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
-    move.w #screen_buffer_columns,d4                        ;22
+    move.w #screen_columns,d4                        ;22
 
     add.w d4,d3                                             ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
     clr.l d4
@@ -26,7 +26,7 @@ ScrollGetXYPositionRight:
                                                             ;always blitting to left column
     clr.l d5
     move.w d4,d5
-    divu #screen_buffer_columns,d5                          ;bitplane pointers in screen buffer
+    divu #screen_columns,d5                          ;bitplane pointers in screen buffer
     swap d5
     move.w d5,d4                                            ;x
     swap d4                                                 ;y
@@ -62,7 +62,7 @@ ScrollGetXYPositionLeft:
 
     ;TODO: IF VERTICAL SCROLLING IS HAPPENING... NEED TO CALCULATE OFFSET FROM MAP (0,0)
 
-    move.w #(screen_buffer_columns-1)*tile_width,d4         ;VideoX for Left Scroll is always 336
+    move.w #(screen_columns-1)*tile_width,d4         ;VideoX for Left Scroll is always 336
                                                             ;always blitting to right column
 
 
@@ -77,16 +77,21 @@ ScrollGetXYPositionDown:
     clr.l d4
     move.w v_map_y_position(a0),d3                          ;save for mapy
     move.w d3,d4
+    and.w #15,d4
     swap d3
     move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
-    add.w #2,d3                                             ;first column
+    ;add.w #2,d3                                             ;first column
 
     swap d3
 
     asr.w #4,d3                                             ;mapposy / BLOCKHEIGHT
-    add.w #screen_buffer_rows-1,d3                          ;17--row under visible screen
+    swap d4
+    move.w d3,d4                                            ;mapy in d4
+    swap d4
+
+    add.w #screen_rows+1,d3                                 ;mapy+17--row under visible screen
     cmp.w #map_tile_height,d3
     blt .end
 
@@ -94,9 +99,6 @@ ScrollGetXYPositionDown:
 
 .end
     swap d3
-
-    and.w #15,d4
-
     rts
 
 ;-----------------------------------------------
@@ -105,11 +107,12 @@ ScrollGetXYPositionUp:
     clr.l d4
     move.w v_map_y_position(a0),d3                          ;save for mapy
     move.w d3,d4
+    and.w #15,d4
     swap d3
     move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
-    add.w #2,d3                                             ;first column
+    ;add.w #2,d3                                             ;first column
 
     swap d3
 
@@ -121,9 +124,6 @@ ScrollGetXYPositionUp:
 
 .end
     swap d3
-
-    and.w #15,d4
-
     rts
 
 ;-----------------------------------------------
@@ -426,12 +426,9 @@ ScrollGetHTileOffsets:
     rts
 
 ;-----------------------------------------------
-ScrollGetVTileOffsets:
+ScrollGetVTileOffsetsOld:
 ;INPUT: mapx/y in d3
-;       x/y in d4
-;       x = in pixels
-;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
-;       DecodedGraphic=a3;FastData=a5
+;       y step in d4
 
     ;SOURCE => d5 (d3=offset)
 
@@ -458,7 +455,8 @@ ScrollGetVTileOffsets:
     asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
 
     ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
-    add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
+    ;add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
+
     move.l d1,d3                                            ;for debugging purposes
 
     WAITBLIT                                                ;TODO: PUT BACK IN WHEN NOT DEBUGGING
@@ -466,36 +464,61 @@ ScrollGetVTileOffsets:
     move.l a3,d5                                            ;A source (blocksbuffer)
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
 
+****************** DESTINATION **************************
+
     ;DESTINATION => d1 (d4)
     clr.l d3
     move.w d4,d3                                            ;step;keep this for blit
-    move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
+    move.l v_scroll_screen_split(a0),d1                     ;D dest (frontbuffer)
+
+*************** ADJUST PIXEL ROW ************************
+; subtract d4*screen_bytes_per_row because we're moving *
+
+    cmp.w #0,d3
+    beq .get_relative_location
+
+    swap d4
+    move.w d3,d4
+    sub.w #1,d4
+
+.adjust_pixel_row
+    sub.l #screen_bytes_per_row,d1
+    dbf d4,.adjust_pixel_row
+
+    swap d4
+
+************* GET RELATIVE LOCATION *********************
+.get_relative_location
 
     clr.l d2
     move.l v_screen(a0),d2
 
-    btst.b #2,v_scroll_command(a0)
+    btst.b #1,v_scroll_command(a0)
     beq .up2
 
     sub.l #screen_bytes_per_row*tile_height,d1              ;top fill row
-    bra .continue
+    bra .check_past_end_of_buffer
 
 .up2
     add.l #screen_bytes_per_row*screen_height,d1            ;bottom fill row
+
+*********** CHECK PAST END OF BUFFER ********************
+.check_past_end_of_buffer
     add.l #screen_bytes_per_row*screen_buffer_height,d2
 
     cmp.l d2,d1
-    blt .continue
+    blt .add_column_offsets
 
     sub.l d2,d1
     add.l v_screen(a0),d1
 
-.continue
+************** ADD COLUMN OFFSETS ***********************
+.add_column_offsets
     clr.l d2
-;    move.w v_map_y_position(a0),d4
-;    swap d4
-;    move.w v_map_y_position(a0),d4
-;    and.l #$000F000F,d4
+    move.w v_map_y_position(a0),d4
+    swap d4
+    move.w v_map_y_position(a0),d4
+    and.l #$000F000F,d4
 
     asl.w #1,d4
     add.w v_scrolly_dest_offset_table(a0,d4.w),d2
@@ -503,23 +526,24 @@ ScrollGetVTileOffsets:
     move.l d2,d4                                            ;(for debugging)
     add.l d2,d1                                             ;frontbuffer + y + x
 
-;check to see if we're within the buffer
+********** CHECK BEFORE START OF BUFFER *****************
+.check_before_start_of_buffer
     clr.l d2
     move.l v_screen(a0),d2
 
     cmp.l d2,d1
-    bgt .end
+    bge .figure_out_num_blocks_to_blit
 
     sub.l d1,d2
-    beq .end
+    beq .figure_out_num_blocks_to_blit
 
     move.l #screen_bytes_per_row*screen_buffer_height,d1
 
     add.l v_screen(a0),d1
     sub.l d2,d1
-.end
-    ;now figure out if it's a single or double blit
-    cmp.w #6,d3
+
+.figure_out_num_blocks_to_blit
+    cmp.w #5,d3
     ble .single
 
     and.w #1,d3
@@ -533,3 +557,101 @@ ScrollGetVTileOffsets:
     rts
 
 ;-----------------------------------------------
+ScrollGetVTileOffsets:
+;INPUT: mapx/mapy(offset for dest) in d3
+;       y step/actual mapy(source) in d4
+
+    ;SOURCE => d5 (d3=offset)
+
+    clr.l d1
+    clr.l d2
+    clr.l d5
+    move.l d3,d6                                            ;for destination
+
+    swap d3                                                 ;mapy(offset for dest)
+    swap d4                                                 ;actual mapy(source)
+    move.w d4,d2
+    swap d4                                                 ;y step
+
+    cmp.w #0,d2
+    beq .skip_add
+    sub.w #1,d2
+
+.addo                                                       ;mapy * mapwidth
+    add.l #$4000,d1
+    dbf d2,.addo
+
+.skip_add
+
+    swap d3                                                 ;mapx
+    move.w d3,d2
+
+    asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
+
+    ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
+    add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
+
+    move.l d1,d3                                            ;for debugging purposes
+
+    WAITBLIT                                                ;TODO: PUT BACK IN WHEN NOT DEBUGGING
+
+    move.l a3,d5                                            ;A source (blocksbuffer)
+    ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
+    add.l d1,d5                                             ;blocksbuffer + mapy + mapx
+
+****************** DESTINATION **************************
+
+    ;DESTINATION => d1 (d4)
+    clr.l d3
+    move.w d4,d3                                            ;y step;keep this for blit
+    move.l v_screen(a0),d1                                  ;D dest (frontbuffer)
+
+    swap d6
+
+    move.w d6,d2
+    cmp.w #0,d2
+    beq .add_column_offsets
+
+************* CONVERT MAPY TO VIDEOY ********************
+
+.convert_mapy_to_videoy
+    cmp.w #screen_buffer_rows,d2
+    ble .add_rows
+
+    sub.w #screen_buffer_rows,d2
+    bra .convert_mapy_to_videoy
+
+.add_rows
+    move.w d2,d6                                            ;debug
+    sub.w #1,d2
+
+.loop_add_tile_row                                          ;videoy * screenwidth
+    add.l #screen_bytes_per_row*tile_height,d1
+    dbf d2,.loop_add_tile_row
+	
+************** ADD COLUMN OFFSETS ***********************
+.add_column_offsets
+    clr.l d2
+    move.w v_map_y_position(a0),d4
+    swap d4
+    move.w v_map_y_position(a0),d4
+    and.l #$000F000F,d4
+
+    asl.w #1,d4
+    add.w v_scrolly_dest_offset_table(a0,d4.w),d2
+	
+    add.l d2,d1                                             ;destination offset = mapy * mapwidth + mapx
+
+.figure_out_num_blocks_to_blit
+    cmp.w #5,d3
+    ble .single
+
+    and.w #1,d3
+    bne .single
+
+    moveq #1,d3
+    rts
+
+.single
+    moveq #0,d3
+    rts
