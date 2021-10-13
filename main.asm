@@ -77,6 +77,7 @@ Init:
 
     move.l a0,v_scroll_screen(a1)
     move.l a0,v_scroll_screen_split(a1)
+    add.l #tile_height*screen_bytes_per_row,v_scroll_screen_split(a1)
 
     lea Copper,a1                                           ;where to poke the bitplane pointer words.
     move #4-1,d0
@@ -413,7 +414,7 @@ TESTScroll:
 .up
     move.b #2,d3
     swap d2
-    cmp.w #tile_height,d2
+    cmp.w #1,d2
     bhi .scroll_up
     bra .switch_direction
 
@@ -436,7 +437,8 @@ TESTScroll:
 .down
     move.b #4,d3
     swap d2
-    cmp.w #1024-256-16,d2
+
+    cmp.w #255,d2
     blo .scroll_down
     bra .switch_direction
 
@@ -758,7 +760,7 @@ ScreenE:
 
 DecodedGraphic:
     ds.b $80000                                             ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
-	;REMEMBER, the test bitmap is only 16 tiles high (256)
+    ;REMEMBER, the test bitmap is only 16 tiles high (256)
 DecodedGraphicE:
 
 

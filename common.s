@@ -106,6 +106,10 @@ mcgeezer_special:macro
     clr.w $100.w
     endm
 
+mcgeezer_special2:macro
+    clr.w $102.w
+    endm
+
 ; write a copper wait instruction
 ; arguments: vpos,hpos,<ea>
 COPWAIT:macro

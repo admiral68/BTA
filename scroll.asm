@@ -88,8 +88,9 @@ ScrollGetXYPositionDown:
 
     asr.w #4,d3                                             ;mapposy / BLOCKHEIGHT
 
-    cmp.w #map_tile_height,d3                    			;This is because the
-    ble .save_mapy                  						;source bitmap is only map_tile_height blocks high
+    cmp.w #map_tile_height,d3                               ;This is because the
+    ble .save_mapy                                          ;source bitmap is only map_tile_height blocks high
+
     sub.w #map_tile_height,d3
 
 .save_mapy
@@ -99,10 +100,10 @@ ScrollGetXYPositionDown:
     swap d4
 
     add.w #screen_rows+1,d3                                 ;mapy+17--row under visible screen
-    cmp.w #map_tile_height,d3
+    cmp.w #screen_buffer_rows,d3
     blt .end
 
-    sub.w #map_tile_height,d3
+    sub.w #screen_buffer_rows,d3
 
 .end
     swap d3
@@ -200,7 +201,7 @@ ScrollIncrementYPosition:
    bne .check_map_height
 
    move.w #0,v_video_y_position(a0)                         ;reset video y to 0
-   
+
 .check_map_height
    cmp.w #map_height,v_map_y_position(a0)
    bne .update
@@ -296,12 +297,13 @@ ScrollUpdateBitplanePointers:
    ;moveq #-tile_height,d1
    add.w d2,d1                                              ;d1 = d1 + (ypos % screen_buffer_height)
    bmi .no_split
-   
-   cmp.w #0,d1
+
+   cmp.w #0,d1                                              ;first split--reset split pointer
    bne .split
 
    mcgeezer_special
    ;if there is no split, the bitplane pointers should be reset
+   ;the code gets here first for scroll down
    move.l d3,d6
    move.l v_scroll_screen(a0),v_scroll_screen_split(a0)
 
@@ -309,26 +311,13 @@ ScrollUpdateBitplanePointers:
    add.l #tile_height*screen_bytes_per_row,v_scroll_screen_split(a0)
 
 .split
-   mcgeezer_special
-   sub.w #tile_height,d1; ???                               ;is this right?
-   ;sub.w #tile_height*2,d1; ???                             ;is this right?
+   sub.w #tile_height,d1; ???                               ;is this right? -- I think this needs to be subtracted again but only the first time...
    sub.w d1,d0                                              ;d0 = d0 - (-2*16)
-
-   bra .write_wait
 
    ;if there is no split, the bitplane pointers for the top should be reset
 .no_split:
 
-   ;mcgeezer_special
-   cmp.w #0,d2
-   bne .write_wait
-
-   ;mcgeezer_special
-   ;move.l d3,d6
-   ;move.l v_scroll_screen(a0),v_scroll_screen_split(a0)
-
 ; write WAIT command for split line
-.write_wait
    move.b d0,c_split(a1)                                    ;d0 is the second one
    and.w #$ff00,d0
    sne c_split_stop(a1)                                     ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
@@ -742,7 +731,13 @@ ScrollGetVTileOffsets:
 
     add.l d2,d1                                             ;destination offset = mapy * mapwidth + mapx
 
+    clr.l d2
+    move.w v_scrolly_dest_offset_table(a0,d4.w),d2
+    sub.w #2,d2
+    add.l d2,d5
+
 .figure_out_num_blocks_to_blit
+
     cmp.w #5,d3
     ble .single
 
