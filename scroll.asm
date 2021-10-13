@@ -70,7 +70,7 @@ ScrollGetXYPositionLeft:
     rts
 
 ;-----------------------------------------------
-ScrollGetXYPositionDown:
+ScrollGetXYPositionDown2:
 ;returns mapx/y in d3
     ;get source ptrs
 
@@ -81,8 +81,6 @@ ScrollGetXYPositionDown:
     swap d3
     move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
-
-    ;add.w #2,d3                                             ;first column
 
     swap d3
 
@@ -106,12 +104,15 @@ ScrollGetXYPositionDown:
     sub.w #screen_buffer_rows,d3
 
 .end
+
     swap d3
     rts
 
 ;-----------------------------------------------
-ScrollGetXYPositionUp:
+ScrollGetXYPositionDown:
 ;returns mapx/y in d3
+    ;get source ptrs
+
     clr.l d4
     move.w v_map_y_position(a0),d3                          ;save for mapy
     move.w d3,d4
@@ -120,7 +121,49 @@ ScrollGetXYPositionUp:
     move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
-    ;add.w #2,d3                                             ;first column
+    swap d3
+
+    asr.w #4,d3                                             ;mapposy / BLOCKHEIGHT
+
+    cmp.w #map_tile_height,d3                               ;This is because the
+    ble .save_mapy                                          ;source bitmap is only map_tile_height blocks high
+
+    sub.w #map_tile_height,d3
+
+.save_mapy
+
+    swap d4
+    move.w d3,d4                                            ;mapy in d4
+    swap d4
+
+;destination block in d3
+
+    ;add.w #screen_rows+1,d3                                 ;mapy+17--row under visible screen
+    ;cmp.w #screen_buffer_rows,d3
+    ;blt .end
+
+    ;sub.w #screen_buffer_rows,d3
+
+    ;sub.w #1,d3                                             ;-1--row above visible screen
+    ;bpl .end
+
+    ;add.w #map_tile_height,d3
+
+.end
+
+    swap d3
+    rts
+
+;-----------------------------------------------
+ScrollGetXYPositionUp2:
+;returns mapx/y in d3
+    clr.l d4
+    move.w v_map_y_position(a0),d3                          ;save for mapy
+    move.w d3,d4
+    and.w #15,d4
+    swap d3
+    move.w v_map_x_position(a0),d3                          ;mapposx
+    asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
     swap d3
 
@@ -131,6 +174,52 @@ ScrollGetXYPositionUp:
     add.w #map_tile_height,d3
 
 .end
+    swap d3
+    rts
+
+;-----------------------------------------------
+ScrollGetXYPositionUp:
+;returns mapx/y in d3
+    ;get source ptrs
+
+    clr.l d4
+    move.w v_map_y_position(a0),d3                          ;save for mapy
+    move.w d3,d4
+    and.w #15,d4
+    swap d3
+    move.w v_map_x_position(a0),d3                          ;mapposx
+    asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
+
+    swap d3
+
+    asr.w #4,d3                                             ;mapposy / BLOCKHEIGHT
+
+    cmp.w #map_tile_height,d3                               ;This is because the
+    ble .save_mapy                                          ;source bitmap is only map_tile_height blocks high
+
+    sub.w #map_tile_height,d3
+
+.save_mapy
+
+    swap d4
+    move.w d3,d4                                            ;mapy in d4
+    swap d4
+
+;destination block in d3
+
+    add.w #screen_rows+1,d3                                 ;mapy+17--row under visible screen
+    cmp.w #screen_buffer_rows,d3
+    blt .end
+
+    sub.w #screen_buffer_rows,d3
+
+    ;sub.w #1,d3                                             ;-1--row above visible screen
+    ;bpl .end
+
+    ;add.w #map_tile_height,d3
+
+.end
+
     swap d3
     rts
 
@@ -205,8 +294,8 @@ ScrollIncrementYPosition:
 .check_map_height
    cmp.w #map_height,v_map_y_position(a0)
    bne .update
-   
-   move.w #0,v_map_y_position(a0)							;reset map y to 0
+
+   move.w #0,v_map_y_position(a0)                           ;reset map y to 0
 
 .update
    move.b #2,v_scroll_previous_direction(a0)                ;previous_direction = DIRECTION_DOWN;
@@ -233,6 +322,8 @@ ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3
 ;-----------------------------------------------
 ScrollUpdateBitplanePointers:
 ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
+
+   mcgeezer_special
 
    move.l v_scroll_screen(a0),d3
    move.l v_scroll_screen_split(a0),d6
@@ -264,74 +355,12 @@ ScrollUpdateBitplanePointers:
 
    move.w d0,c_horizontal_scroll_pos_01(a1)                 ;update copper
 
-
 .check_y
    swap d4
    clr.l d5
    move.w d4,d5                                             ;dy
 
    beq .check_top_too_low                                   ;no y-scroll
-
-
-
-
-
-
-
-
-;TODO: Maybe calculate split AFTER the scroll??
-
-;calculate split
-
-   clr.l d2
-
-   move.w v_video_y_position(a0),d2                         ;buffer coordinates
-   ;add.w #tile_height*2,d2                                 ;offset for extra rows
-   ;add.w #tile_height,d2                                    ;offset for extra rows
-   divu #screen_buffer_height,d2                            ;bitplane pointers in screen buffer
-   swap d2
-
-; calculate raster line of display split
-   move.w #v_display_start+screen_height,d0                 ;should this be screen buffer height?
-   moveq #-2*tile_height,d1
-   ;moveq #-tile_height,d1
-   add.w d2,d1                                              ;d1 = d1 + (ypos % screen_buffer_height)
-   bmi .no_split
-
-   cmp.w #0,d1                                              ;first split--reset split pointer
-   bne .split
-
-   mcgeezer_special
-   ;if there is no split, the bitplane pointers should be reset
-   ;the code gets here first for scroll down
-   move.l d3,d6
-   move.l v_scroll_screen(a0),v_scroll_screen_split(a0)
-
-   add.l #tile_height*screen_bytes_per_row,d6
-   add.l #tile_height*screen_bytes_per_row,v_scroll_screen_split(a0)
-
-.split
-   sub.w #tile_height,d1; ???                               ;is this right? -- I think this needs to be subtracted again but only the first time...
-   sub.w d1,d0                                              ;d0 = d0 - (-2*16)
-
-   ;if there is no split, the bitplane pointers for the top should be reset
-.no_split:
-
-; write WAIT command for split line
-   move.b d0,c_split(a1)                                    ;d0 is the second one
-   and.w #$ff00,d0
-   sne c_split_stop(a1)                                     ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
-
-
-
-
-
-
-
-
-
-
-
 
 ;do delta-y
    btst #15,d5                                              ;scrolling up?
@@ -352,21 +381,6 @@ ScrollUpdateBitplanePointers:
 .loop_add_y
    add.l #screen_bytes_per_row,d6
    dbf.w d5,.loop_add_y
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;check to see if the bitplane pointers
 ;are outside of the buffer area
@@ -405,28 +419,15 @@ ScrollUpdateBitplanePointers:
    ;mcgeezer_special
    sub.l #screen_bytes_per_row*screen_buffer_height,d6
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 .update_pointer
+
+   bsr ScrollCalculateVerticalSplit
 
    move.l d3,v_scroll_screen(a0)
    move.l d6,v_scroll_screen_split(a0)
    move #4-1,d1
+
+
 
 .loop
    move.w d6,4+c_bitplane_pointers_01(a1)                   ;lo word
@@ -441,10 +442,97 @@ ScrollUpdateBitplanePointers:
    add.l #screen_bpl_bytes_per_row,d6                       ;every 44 bytes we'll have new bitplane data
    addq #8,a1                                               ;point to next bpl to poke in copper
    dbf.w d1,.loop
-
-.end
    rts
 
+;-----------------------------------------------
+ScrollCalculateVerticalSplit:
+;INPUTS: d3,d6
+;USES: d0,d1,d2
+;OUTPUTS: d6
+;calculate split
+
+   ;mcgeezer_special2
+   ;mcgeezer_special
+
+   clr.l d2
+
+   move.w v_video_y_position(a0),d2                         ;buffer coordinates
+   divu #screen_buffer_height,d2                            ;bitplane pointers in screen buffer
+   swap d2
+
+; calculate raster line of display split
+
+   move.w #v_display_start+screen_height,d0                 ;should this be screen buffer height?
+
+   moveq #-2*tile_height,d1                                 ;DEBUG
+
+   moveq #0,d1
+   add.w d2,d1                                              ;d1 = d1 + (ypos % screen_buffer_height)
+
+   bmi .no_change_in_split                                  ;DEBUG
+
+
+
+
+
+.split_changes_here
+
+;   swap d2
+;   move.w d1,d2
+;   and.w #(tile_height*2)-1,d2
+;
+;   cmp.w #1,d2
+;   bne .check_transition
+;
+;   sub.w #tile_height,d1
+;   bra .update_split
+;
+;.check_transition
+
+   cmp.w #0,d1                                              ;first split--reset split pointer
+   bne .update_split
+
+   ;if there is no split, the bitplane pointers should be reset
+   ;the code gets here first for scroll down
+   move.l d3,d6
+
+
+
+
+
+   move.l v_scroll_screen(a0),v_scroll_screen_split(a0)
+
+   add.l #tile_height*2*screen_bytes_per_row,d6
+   add.l #tile_height*2*screen_bytes_per_row,v_scroll_screen_split(a0)
+
+
+
+
+
+;   sub.w #tile_height,d1; ???                               ;is this right? -- I think this needs to be subtracted again but only the first time...
+
+
+
+
+.update_split
+   sub.w d1,d0                                              ;d0 = d0 - (-2*16)
+
+
+
+
+
+
+
+
+.no_change_in_split:
+   ;rts
+
+; write WAIT command for split line
+   move.b d0,c_split(a1)                                    ;d0 is the second one
+   and.w #$ff00,d0
+   sne c_split_stop(a1)                                     ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
+
+   rts
 ;-----------------------------------------------
 ScrollGetHTileOffsets:
 ;INPUT: mapx/y in d3
@@ -494,6 +582,7 @@ ScrollGetHTileOffsets:
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
 
     ;DESTINATION => d1 (d4)
+    ;TODO: THIS MIGHT BE MESSED UP; ADD A TILE HEIGHT
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
 
     clr.l d2

@@ -52,3 +52,61 @@ mapx = mapposy & 15;
 ;
 ;   bsr ScrollGetStepAndDelay
 ;
+;   swap d2
+;   move.w d1,d2
+;   and.w #(tile_height*2)-1,d2
+
+;   cmp.w #1,d2
+;   bne .check_zero_split
+;   
+;   mcgeezer_special
+;   add.w #tile_height,d1
+;   bra .split
+;
+;.check_zero_split
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;   lea FastData,a0
+;   lea Screen,a1                                            ;ptr to first bitplane of image
+;
+;   move.l a1,v_screen(a0)
+;
+;   lea 2(a1),a1                                             ;(Skip first column)
+;   move.l a1,v_scroll_screen(a0)
+;
+;   move.w #$160,v_map_x_position(a0)
+;   move.w #$160,v_video_x_position(a0)
+;   move.b #4,v_scroll_command(a0)
+;
+;   ;bsr ScrollGetStepAndDelay
+;   ;bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
+;   bsr ScrollGetXYPositionDown
+;
+
+;   bsr ScrollGetVTileOffsets
+;
+;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;
+;   REPT 16
+;   bsr ScrollGetStepAndDelay
+;   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
+;   bsr ScrollGetXYPositionDown
+;
+;   lea DecodedGraphic,a3
+;   bsr ScrollGetVTileOffsets
+;
+;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
+;   ENDR
+

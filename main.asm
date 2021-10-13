@@ -1,34 +1,5 @@
-;   lea FastData,a0
-;   lea Screen,a1                                            ;ptr to first bitplane of image
-;
-;   move.l a1,v_screen(a0)
-;
-;   lea 2(a1),a1                                             ;(Skip first column)
-;   move.l a1,v_scroll_screen(a0)
-;
-;   move.w #$160,v_map_x_position(a0)
-;   move.w #$160,v_video_x_position(a0)
-;   move.b #4,v_scroll_command(a0)
-;
-;   ;bsr ScrollGetStepAndDelay
-;   ;bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
-;   bsr ScrollGetXYPositionDown
-;
-;   lea DecodedGraphic,a3
-;   bsr ScrollGetVTileOffsets
-;
-;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
-;
-;   REPT 16
-;   bsr ScrollGetStepAndDelay
-;   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
-;   bsr ScrollGetXYPositionDown
-;
-;   lea DecodedGraphic,a3
-;   bsr ScrollGetVTileOffsets
-;
-;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
-;   ENDR
+   clr.w $102.w
+   lea DecodedGraphic,a3
 
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
@@ -39,6 +10,7 @@
     INCLUDE "test.asm"
     INCLUDE "tile.asm"
     INCLUDE "scroll.asm"
+
 
 *******************************************************************************
 * GAME
@@ -57,7 +29,6 @@ Init:
     move.b #0,(a0)+
     dbf d0,.clr
 
-
 ; some test code
 
     bsr TESTCode
@@ -72,12 +43,11 @@ Init:
     lea Screen,a0                                           ;ptr to first bitplane of image
 
     move.l a0,v_screen(a1)
-
-    lea 2+screen_bytes_per_row*tile_height(a0),a0           ;+2 because we're scrollin' (Skip first column)
-
     move.l a0,v_scroll_screen(a1)
+
+    lea screen_bytes_per_row*tile_height(a0),a0             ;+2 because we're scrollin' (Skip first column)
+
     move.l a0,v_scroll_screen_split(a1)
-    add.l #tile_height*screen_bytes_per_row,v_scroll_screen_split(a1)
 
     lea Copper,a1                                           ;where to poke the bitplane pointer words.
     move #4-1,d0
@@ -438,7 +408,7 @@ TESTScroll:
     move.b #4,d3
     swap d2
 
-    cmp.w #255,d2
+    cmp.w #screen_height-1,d2
     blo .scroll_down
     bra .switch_direction
 
@@ -740,6 +710,8 @@ Copper:
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
+    dc.w $0180,$0FF9
+
     dc.w $ffff,$fffe
 
 CopperE:
@@ -755,6 +727,10 @@ CopperE:
 Screen:
     ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2)
 ScreenE:
+
+Screen2:
+    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2)
+Screen2E:
 
     EVEN
 
