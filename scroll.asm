@@ -396,7 +396,10 @@ ScrollCalculateVerticalSplit:
 
 .update_split
     sub.w d2,d0                                             ;d0 = d0 - (ypos % screen_buffer_height)
-
+	cmp.w #$00ff,d0
+	bhi .move
+	mcgeezer_special2
+.move
     move.b d0,c_split(a1)                                   ;d0 is the second one
     and.w #$ff00,d0
     sne c_split_stop(a1)                                    ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
