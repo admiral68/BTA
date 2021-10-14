@@ -174,7 +174,6 @@ TESTUpdatePaletteDuringScroll:
 
 .check_left
 
-    ;mcgeezer_special
     btst.b #7,v_scroll_command(a0)                          ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
     beq .continue
 
@@ -260,53 +259,6 @@ TESTScrollLeft:
    lea Copper,a1                                  ;Copper Horizontal Scroll pos
    move.w d0,c_horizontal_scroll_pos_01(a1)       ;update copper
 
-   rts
-
-;-----------------------------------------------
-TESTScrollDown:
-;INPUT:a0,d1(scroll step)
-   ;swap d1
-   ;cmp.w #0,d1                                                              ;update tile row?
-   ;bne .move_down
-
-   ;addi.w #1,v_tile_y_position(a0)
-   ;cmp.w #1,v_tile_y_position(a0)                                           ;If we're just starting, skip to the end
-   ;beq .end
-
-   ;cmp.w #32,v_tile_y_position(a0)
-   ;beq .no_update
-
-;.move_down
-   move.l #$10000,d4
-   lea Copper,a1
-   ;mcgeezer_special
-   bsr ScrollUpdateBitplanePointers
-;   rts
-;
-;.no_update
-   ;move.w #31,v_tile_y_position(a0)                                         ;Tile position
-;.end
-   rts
-
-;-----------------------------------------------
-TESTScrollUp:
-;INPUT:a0
-   ;swap d1
-   ;cmp.w #15,d1                                                             ;update tile row?
-   ;bne .move_up
-
-   ;subi.w #1,v_tile_y_position(a0)
-   ;cmp.w #-1,v_tile_y_position(a0)
-   ;beq .no_update
-
-;.move_up
-   move.l #$FFFF0000,d4
-   lea Copper,a1
-   bsr ScrollUpdateBitplanePointers
-   rts
-
-.no_update
-   ;move.w #0,v_tile_y_position(a0)                         ;Tile position
    rts
 
 ;-----------------------------------------------
@@ -423,7 +375,7 @@ TESTScroll:
    bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
    cmp.w #screen_height+1,v_map_y_position(a0)              ;scroll through all pixels before changing direction
    bne .end_scroll
-   move.b #4,d3                                             ;TODO: PUT BACK IN
+   move.b #4,d3
    bra .switch_direction
 
 .rightup

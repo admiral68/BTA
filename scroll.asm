@@ -143,16 +143,6 @@ ScrollGetXYPositionUp:
 ;destination block in d3
 
     add.w #1,d3                                             ;mapy+1--row under visible screen
-    cmp.w #screen_buffer_rows,d3
-    blt .end
-
-    mcgeezer_special2
-    sub.w #screen_buffer_rows,d3
-
-    ;sub.w #1,d3                                             ;-1--row above visible screen
-    ;bpl .end
-
-    ;add.w #map_tile_height,d3
 
 .end
 
@@ -372,32 +362,21 @@ ScrollCalculateVerticalSplit:
 ;INPUTS: d3,d6
 ;USES: d0,d1,d2
 ;OUTPUTS: d6
-;calculate split
 
-   ;mcgeezer_special2
-   ;mcgeezer_special
+   move.w #vert_display_start+screen_height,d0
 
    clr.l d2
 
    move.w v_video_y_position(a0),d2                         ;buffer coordinates
    divu #screen_buffer_height,d2                            ;bitplane pointers in screen buffer
-   swap d2
+   swap d2                                                  ;(ypos % screen_buffer_height)
 
-; calculate raster line of display split
-
-   move.w #vert_display_start+screen_height,d0
-
-   ;moveq #-2*tile_height,d1                                 ;DEBUG
-   moveq #0,d1
-   add.w d2,d1                                              ;d1 = d1 + (ypos % screen_buffer_height)
-
-;   bmi .write_split
-
-   cmp.w #0,d1                                              ;first split--reset split pointer
+   cmp.w #0,d2                                              ;first split--reset split pointer
    bne .update_split
 
    ;if there is no split, the bitplane pointers should be reset
    ;the code gets here first for scroll down
+
    move.l d3,d6
 
    move.l v_scroll_screen(a0),v_scroll_screen_split(a0)
@@ -406,9 +385,8 @@ ScrollCalculateVerticalSplit:
    add.l #tile_height*2*screen_bytes_per_row,v_scroll_screen_split(a0)
 
 .update_split
-   sub.w d1,d0                                              ;d0 = d0 - (-2*16)
+   sub.w d2,d0                                              ;d0 = d0 - (ypos % screen_buffer_height)
 
-;.write_split:
    move.b d0,c_split(a1)                                    ;d0 is the second one
    and.w #$ff00,d0
    sne c_split_stop(a1)                                     ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait

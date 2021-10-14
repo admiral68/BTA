@@ -371,18 +371,11 @@ TESTCopyScreenFromDecodedLongBitmapForRightScroll:
     move.l a4,d4
     add.l #4+screen_bytes_per_row*tile_height,d4
 
-;    move.w #$09F0,BLTCON0(a6)                               ;use A and D. Op: D = A
-;    move.w #$0000,BLTCON1(a6)
-;    move.w #$FFFF,BLTAFWM(a6)
-;    move.w #$FFFF,BLTALWM(a6)
     move.w #214,BLTAMOD(a6)                                 ;skip 107 columns (copy 21)
     move.w #2,BLTDMOD(a6)                                   ;skip 1 column (copy 21)
     move.l d3,BLTAPTH(a6)
     move.l d4,BLTDPTH(a6)
 
     move.w #(screen_width-tile_width)/16,BLTSIZE(a6)        ;no "h" term needed since it's 1024. Thanks ross @eab!
-
-
-
     rts
 

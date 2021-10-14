@@ -3,10 +3,10 @@ TileDraw:
 ;       x/y in d4
 ;OUTPUT: source ptr in d5; dest ptr in d1
 
-    cmp.w #$28,d2
-    bne .skip_breakpoint
-    ;mcgeezer_special2
-.skip_breakpoint
+;    cmp.w #$28,d2
+;    bne .skip_breakpoint
+;    mcgeezer_special2
+;.skip_breakpoint
     move.w #$09F0,BLTCON0(a6)                               ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
     move.w #$0000,BLTCON1(a6)                               ;custom->bltcon1 = 0;
     move.w #$FFFF,BLTAFWM(a6)                               ;custom->bltafwm = 0xFFFF;
