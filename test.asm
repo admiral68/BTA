@@ -331,7 +331,6 @@ TESTCopyScreenFromDecodedLongBitmap:
     move.l a3,d3
     move.l a4,d4
 
-    mcgeezer_special2
     add.l #2+screen_bytes_per_row*(screen_height+tile_height),d4
 
     move.w #214,BLTAMOD(a6)                                 ;skip 107 columns (copy 21)

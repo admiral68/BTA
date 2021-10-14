@@ -82,8 +82,8 @@ StartGame:
 
     move.w #0,$01fc(a6)                                     ;slow fetch mode, AGA compatibility
     move.w #$200,BPLCON0(a6)
-    move.w #v_display_start<<8+h_display_start,DIWSTRT(a6)
-    move.w #v_display_start<<8+h_display_stop,DIWSTOP(a6)
+    move.w #vert_display_start<<8+h_display_start,DIWSTRT(a6)
+    move.w #vert_display_start<<8+h_display_stop,DIWSTOP(a6)
     move.w #DMA_fetch_start,DDFSTRT(a6)                     ;$28 for 22 columns; $38 for 20 columns (etc)
     move.w #$d0,DDFSTOP(a6)
 
@@ -264,49 +264,49 @@ TESTScrollLeft:
 
 ;-----------------------------------------------
 TESTScrollDown:
-;INPUT:a0
-   swap d1
-   cmp.w #0,d1                                                              ;update tile row?
-   bne .move_down
+;INPUT:a0,d1(scroll step)
+   ;swap d1
+   ;cmp.w #0,d1                                                              ;update tile row?
+   ;bne .move_down
 
-   addi.w #1,v_tile_y_position(a0)
-   cmp.w #1,v_tile_y_position(a0)                                           ;If we're just starting, skip to the end
-   beq .end
+   ;addi.w #1,v_tile_y_position(a0)
+   ;cmp.w #1,v_tile_y_position(a0)                                           ;If we're just starting, skip to the end
+   ;beq .end
 
-   cmp.w #32,v_tile_y_position(a0)
-   beq .no_update
+   ;cmp.w #32,v_tile_y_position(a0)
+   ;beq .no_update
 
-.move_down
+;.move_down
    move.l #$10000,d4
    lea Copper,a1
    ;mcgeezer_special
    bsr ScrollUpdateBitplanePointers
-   rts
-
-.no_update
-   move.w #31,v_tile_y_position(a0)                                         ;Tile position
-.end
+;   rts
+;
+;.no_update
+   ;move.w #31,v_tile_y_position(a0)                                         ;Tile position
+;.end
    rts
 
 ;-----------------------------------------------
 TESTScrollUp:
 ;INPUT:a0
-   swap d1
-   cmp.w #15,d1                                                             ;update tile row?
-   bne .move_up
+   ;swap d1
+   ;cmp.w #15,d1                                                             ;update tile row?
+   ;bne .move_up
 
-   subi.w #1,v_tile_y_position(a0)
-   cmp.w #-1,v_tile_y_position(a0)
-   beq .no_update
+   ;subi.w #1,v_tile_y_position(a0)
+   ;cmp.w #-1,v_tile_y_position(a0)
+   ;beq .no_update
 
-.move_up
+;.move_up
    move.l #$FFFF0000,d4
    lea Copper,a1
    bsr ScrollUpdateBitplanePointers
    rts
 
 .no_update
-   move.w #0,v_tile_y_position(a0)                         ;Tile position
+   ;move.w #0,v_tile_y_position(a0)                         ;Tile position
    rts
 
 ;-----------------------------------------------
@@ -382,15 +382,11 @@ TESTScroll:
    rts
 
 .up
-    move.b #2,d3
-    swap d2
-    cmp.w #1,d2
-    bhi .scroll_up
-    bra .switch_direction
-
-.scroll_up
    bsr ScrollDecrementYPosition
-   bsr TESTScrollUp
+   
+   move.l #$FFFF0000,d4
+   lea Copper,a1
+   bsr ScrollUpdateBitplanePointers                         ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
    bsr ScrollGetXYPositionUp
 
@@ -398,23 +394,21 @@ TESTScroll:
    bsr ScrollGetVTileOffsets
    beq .blit_up_single
 .blit_up_double
-   ;bsr TileDrawTwoHorizontal
+   bsr TileDrawTwoHorizontal
    rts
 .blit_up_single
-   ;bsr TileDraw
-   rts
+   bsr TileDraw
+.end_up
+   cmp.w #0,v_map_y_position(a0)
+   bne .end_scroll
+   move.b #2,d3
+   bra .switch_direction
 
 .down
-    move.b #4,d3
-    swap d2
+   move.l #$10000,d4
+   lea Copper,a1
+   bsr ScrollUpdateBitplanePointers                         ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
-    cmp.w #screen_height-1,d2
-    blo .scroll_down
-    bra .switch_direction
-
-.scroll_down
-
-   bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
    bsr ScrollGetXYPositionDown
 
    lea DecodedGraphic,a3
@@ -422,12 +416,15 @@ TESTScroll:
    beq .blit_down_single
 .blit_down_double
    bsr TileDrawTwoHorizontal
-   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
-   rts
+   bra .end_down
 .blit_down_single
    bsr TileDraw
+.end_down
    bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
-   rts
+   cmp.w #screen_height+1,v_map_y_position(a0)              ;scroll through all pixels before changing direction
+   bne .end_scroll
+   move.b #4,d3                                             ;TODO: PUT BACK IN
+   bra .switch_direction
 
 .rightup
    rts
@@ -443,6 +440,7 @@ TESTScroll:
 
 .switch_direction
    move.b d3,v_scroll_command(a0)
+.end_scroll
    rts
 
 *******************************************************************************
@@ -544,8 +542,8 @@ VBint:                                                      ;Blank template VERT
     move.w d0,INTREQ(a6)
     move.w d0,INTREQ(a6)
 
-    move.w #v_display_start<<8+h_display_start,DIWSTRT(a6)
-    move.w #v_display_start<<8+h_display_stop,DIWSTOP(a6)
+    move.w #vert_display_start<<8+h_display_start,DIWSTRT(a6)
+    move.w #vert_display_start<<8+h_display_stop,DIWSTOP(a6)
     move.w #DMA_fetch_start,DDFSTRT(a6)                     ;$28 for 22 columns; $38 for 20 columns (etc)
     move.w #$d0,DDFSTOP(a6)
 
