@@ -1,5 +1,5 @@
-   clr.w $102.w
-   lea DecodedGraphic,a3
+    clr.w $102.w
+    lea DecodedGraphic,a3
 
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
@@ -45,7 +45,7 @@ Init:
     move.l a0,v_screen(a1)
     move.l a0,v_scroll_screen(a1)
 
-    lea screen_bytes_per_row*tile_height(a0),a0             ;+2 because we're scrollin' (Skip first column)
+    lea screen_bytes_per_row*tile_height(a0),a0             ;skip first tile row
 
     move.l a0,v_scroll_screen_split(a1)
 
@@ -150,7 +150,6 @@ TESTUpdatePaletteDuringScroll:
     cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
     blo .continue
 
-    ;mcgeezer_special
     lea Copper,a2
 
     move.w #$0b87,c_palette_01(a2)
@@ -206,97 +205,97 @@ TESTUpdatePaletteDuringScroll:
 ;-----------------------------------------------
 TESTScrollRight:
 ;INPUT:a0(FAST DATA)
-   cmp.w #0,d1
-   bne .update_horz_scroll_position
+    cmp.w #0,d1
+    bne .update_horz_scroll_position
 
    ;tile is completely scrolled through; time to move the pointers
 
-   addi.w #1,v_tile_x_position(a0)
-   cmp.w #1,v_tile_x_position(a0)                           ;If we're just starting, skip to the end
-   beq .update_horz_scroll_position
+    addi.w #1,v_tile_x_position(a0)
+    cmp.w #1,v_tile_x_position(a0)                          ;If we're just starting, skip to the end
+    beq .update_horz_scroll_position
 
-   cmp.w #128,v_tile_x_position(a0)
-   beq .no_update
+    cmp.w #128,v_tile_x_position(a0)
+    beq .no_update
 
-   move.l #1,d4
-   lea Copper,a1
-   bsr ScrollUpdateBitplanePointers
-   rts
+    move.l #1,d4
+    lea Copper,a1
+    bsr ScrollUpdateBitplanePointers
+    rts
 
 .no_update
-   move.w #127,v_tile_x_position(a0)                        ;Tile position (current level max x)
+    move.w #127,v_tile_x_position(a0)                       ;Tile position (current level max x)
 
 .update_horz_scroll_position
 
-   lea Copper,a1                                  ;Copper Horizontal Scroll pos
-   move.w d0,c_horizontal_scroll_pos_01(a1)       ;update copper
+    lea Copper,a1                                           ;Copper Horizontal Scroll pos
+    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
 
-   rts
+    rts
 
 ;-----------------------------------------------
 TESTScrollLeft:
 ;INPUT:a0
-   cmp.w #15,d1
-   bne .update_horz_scroll_position
+    cmp.w #15,d1
+    bne .update_horz_scroll_position
 
-   ;tile is completely scrolled through; time to move the pointers
+    ;tile is completely scrolled through; time to move the pointers
 
-   subi.w #1,v_tile_x_position(a0)
-   cmp.w #-1,v_tile_x_position(a0)
-   beq .no_update
+    subi.w #1,v_tile_x_position(a0)
+    cmp.w #-1,v_tile_x_position(a0)
+    beq .no_update
 
 .update
-   move.l #$0000FFFF,d4
-   lea Copper,a1
-   bsr ScrollUpdateBitplanePointers
-   bra .update_horz_scroll_position
+    move.l #$0000FFFF,d4
+    lea Copper,a1
+    bsr ScrollUpdateBitplanePointers
+    bra .update_horz_scroll_position
 
 .no_update
-   move.w #0,v_tile_x_position(a0)
+    move.w #0,v_tile_x_position(a0)
 
 .update_horz_scroll_position
 
-   lea Copper,a1                                  ;Copper Horizontal Scroll pos
-   move.w d0,c_horizontal_scroll_pos_01(a1)       ;update copper
+    lea Copper,a1                                           ;Copper Horizontal Scroll pos
+    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
 
-   rts
+    rts
 
 ;-----------------------------------------------
 TESTScroll:
 
-   bsr TESTUpdatePaletteDuringScroll
-   bsr ScrollGetStepAndDelay
+    bsr TESTUpdatePaletteDuringScroll
+    bsr ScrollGetStepAndDelay
 
-   cmp.b #16,v_scroll_command(a0)                           ;16=kill code
-   bne .continue
-   rts
+    cmp.b #16,v_scroll_command(a0)                           ;16=kill code
+    bne .continue
+    rts
 
 .continue
-   cmp.b #1,v_scroll_command(a0)
-   beq .right
+    cmp.b #1,v_scroll_command(a0)
+    beq .right
 
-   cmp.b #8,v_scroll_command(a0)
-   beq .left
+    cmp.b #8,v_scroll_command(a0)
+    beq .left
 
-   cmp.b #2,v_scroll_command(a0)
-   beq .down
+    cmp.b #2,v_scroll_command(a0)
+    beq .down
 
-   cmp.b #4,v_scroll_command(a0)
-   beq .up
+    cmp.b #4,v_scroll_command(a0)
+    beq .up
 
-   cmp.b #3,v_scroll_command(a0)
-   beq .rightdown
+    cmp.b #3,v_scroll_command(a0)
+    beq .rightdown
 
-   cmp.b #5,v_scroll_command(a0)
-   beq .rightup
+    cmp.b #5,v_scroll_command(a0)
+    beq .rightup
 
-   cmp.b #10,v_scroll_command(a0)
-   beq .leftdown
+    cmp.b #10,v_scroll_command(a0)
+    beq .leftdown
 
-   cmp.b #12,v_scroll_command(a0)
-   beq .leftup
+    cmp.b #12,v_scroll_command(a0)
+    beq .leftup
 
-   rts
+    rts
 
 .right
     ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
@@ -307,14 +306,14 @@ TESTScroll:
 
 .scroll_right
 
-   bsr TESTScrollRight                                      ;INPUT:d2,a0 (d1)
-   bsr ScrollGetXYPositionRight
+    bsr TESTScrollRight                                      ;INPUT:d2,a0 (d1)
+    bsr ScrollGetXYPositionRight
 
-   lea DecodedGraphic,a3
-   bsr ScrollGetHTileOffsets
-   bsr TileDraw
-   bsr ScrollIncrementXPosition                             ;INPUT: mapx/y in d3; x/y in d4
-   rts
+    lea DecodedGraphic,a3
+    bsr ScrollGetHTileOffsets
+    bsr TileDraw
+    bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
+    rts
 
 .left
     move.b #4,d3
@@ -324,76 +323,76 @@ TESTScroll:
 
 .scroll_left
 
-   bsr ScrollDecrementXPosition
-   bsr TESTScrollLeft
-   bsr ScrollGetXYPositionLeft
+    bsr ScrollDecrementXPosition
+    bsr TESTScrollLeft
+    bsr ScrollGetXYPositionLeft
 
-   lea DecodedGraphic,a3
-   bsr ScrollGetHTileOffsets
-   bsr TileDraw                                             ;DrawBlock(x,y,mapx,mapy);
-   rts
+    lea DecodedGraphic,a3
+    bsr ScrollGetHTileOffsets
+    bsr TileDraw                                            ;DrawBlock(x,y,mapx,mapy);
+    rts
 
 .up
-   bsr ScrollDecrementYPosition
-   
-   move.l #$FFFF0000,d4
-   lea Copper,a1
-   bsr ScrollUpdateBitplanePointers                         ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
+    bsr ScrollDecrementYPosition
 
-   bsr ScrollGetXYPositionUp
+    move.l #$FFFF0000,d4
+    lea Copper,a1
+    bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
-   lea DecodedGraphic,a3
-   bsr ScrollGetVTileOffsets
-   beq .blit_up_single
+    bsr ScrollGetXYPositionUp
+
+    lea DecodedGraphic,a3
+    bsr ScrollGetVTileOffsets
+    beq .blit_up_single
 .blit_up_double
-   bsr TileDrawTwoHorizontal
-   rts
+    bsr TileDrawTwoHorizontal
+    bra .end_up
 .blit_up_single
-   bsr TileDraw
+    bsr TileDraw
 .end_up
-   cmp.w #0,v_map_y_position(a0)
-   bne .end_scroll
-   move.b #2,d3
-   bra .switch_direction
+    cmp.w #0,v_map_y_position(a0)
+    bne .end_scroll
+    move.b #2,d3
+    bra .switch_direction
 
 .down
-   move.l #$10000,d4
-   lea Copper,a1
-   bsr ScrollUpdateBitplanePointers                         ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
+    move.l #$10000,d4
+    lea Copper,a1
+    bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
-   bsr ScrollGetXYPositionDown
+    bsr ScrollGetXYPositionDown
 
-   lea DecodedGraphic,a3
-   bsr ScrollGetVTileOffsets
-   beq .blit_down_single
+    lea DecodedGraphic,a3
+    bsr ScrollGetVTileOffsets
+    beq .blit_down_single
 .blit_down_double
-   bsr TileDrawTwoHorizontal
-   bra .end_down
+    bsr TileDrawTwoHorizontal
+    bra .end_down
 .blit_down_single
-   bsr TileDraw
+    bsr TileDraw
 .end_down
-   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
-   cmp.w #screen_height+1,v_map_y_position(a0)              ;scroll through all pixels before changing direction
-   bne .end_scroll
-   move.b #4,d3
-   bra .switch_direction
+    bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4
+    cmp.w #screen_height+1,v_map_y_position(a0)             ;scroll through all pixels before changing direction
+    bne .end_scroll
+    move.b #4,d3
+    bra .switch_direction
 
 .rightup
-   rts
+    rts
 
 .rightdown
-   rts
+    rts
 
 .leftup
-   rts
+    rts
 
 .leftdown
-   rts
+    rts
 
 .switch_direction
-   move.b d3,v_scroll_command(a0)
+    move.b d3,v_scroll_command(a0)
 .end_scroll
-   rts
+    rts
 
 *******************************************************************************
 * ROUTINES
@@ -686,7 +685,7 @@ Screen2E:
 
 DecodedGraphic:
     ds.b $80000                                             ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
-    ;REMEMBER, the test bitmap is only 16 tiles high (256)
+                                                            ;REMEMBER, the test bitmap is only 16 tiles high (256)
 DecodedGraphicE:
 
 
