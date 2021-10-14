@@ -10,7 +10,7 @@ ScrollGetXYPositionRight:
     move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
-    move.w #screen_columns,d4                        ;22
+    move.w #screen_columns,d4                               ;22
 
     add.w d4,d3                                             ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
     clr.l d4
@@ -26,7 +26,7 @@ ScrollGetXYPositionRight:
                                                             ;always blitting to left column
     clr.l d5
     move.w d4,d5
-    divu #screen_columns,d5                          ;bitplane pointers in screen buffer
+    divu #screen_columns,d5                                 ;bitplane pointers in screen buffer
     swap d5
     move.w d5,d4                                            ;x
     swap d4                                                 ;y
@@ -62,7 +62,7 @@ ScrollGetXYPositionLeft:
 
     ;TODO: IF VERTICAL SCROLLING IS HAPPENING... NEED TO CALCULATE OFFSET FROM MAP (0,0)
 
-    move.w #(screen_columns-1)*tile_width,d4         ;VideoX for Left Scroll is always 336
+    move.w #(screen_columns-1)*tile_width,d4                ;VideoX for Left Scroll is always 336
                                                             ;always blitting to right column
 
 
@@ -209,16 +209,16 @@ ScrollDecrementXPosition:
 ;-----------------------------------------------
 ScrollIncrementYPosition:
 ;FastData(a0)
-    addi.w #1,v_map_y_position(a0)                           ;mapposy++;
-    addi.w #1,v_video_y_position(a0)                         ;videoposy = mapposy;
+    addi.w #1,v_map_y_position(a0)                          ;mapposy++;
+    addi.w #1,v_video_y_position(a0)                        ;videoposy = mapposy;
 
     cmp.w #screen_buffer_height,v_video_y_position(a0)
     bne .update
 
-    move.w #0,v_video_y_position(a0)                         ;reset video y to 0
+    move.w #0,v_video_y_position(a0)                        ;reset video y to 0
 
 .update
-    move.b #2,v_scroll_previous_direction(a0)                ;previous_direction = DIRECTION_DOWN;
+    move.b #2,v_scroll_previous_direction(a0)               ;previous_direction = DIRECTION_DOWN;
     rts
 
 ;-----------------------------------------------
@@ -227,13 +227,13 @@ ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3
     cmp.w #0,v_map_y_position(a0)
     beq .end
 
-    subi.w #1,v_map_y_position(a0)                           ;mapposy--;
-    subi.w #1,v_video_y_position(a0)                         ;videoposy = mapposy;
+    subi.w #1,v_map_y_position(a0)                          ;mapposy--;
+    subi.w #1,v_video_y_position(a0)                        ;videoposy = mapposy;
 
-    cmp.w #-1,v_video_y_position(a0)                         ;-1
+    cmp.w #-1,v_video_y_position(a0)                        ;-1
     bne .end
 
-    move.w #screen_buffer_height-1,v_video_y_position(a0)    ;reset video y to 287
+    move.w #screen_buffer_height-1,v_video_y_position(a0)   ;reset video y to 287
 
 .end
     bsr ScrollGetStepAndDelay
@@ -244,7 +244,7 @@ ScrollUpdateBitplanePointers:
 ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
     movem.l d3-d4,-(sp)                                     ;Save used registers
 
-    mcgeezer_special
+    ;mcgeezer_special
 
     move.l v_scroll_screen(a0),d3
     move.l v_scroll_screen_split(a0),d6
@@ -252,7 +252,7 @@ ScrollUpdateBitplanePointers:
     clr.l d5
     move.w d4,d5
 
-    beq .check_y                                             ;no x-scroll. Check y-scroll
+    beq .check_y                                            ;no x-scroll. Check y-scroll
 
 ;do delta-x
 
@@ -274,17 +274,17 @@ ScrollUpdateBitplanePointers:
 
 .update_scroll_delay
 
-    move.w d0,c_horizontal_scroll_pos_01(a1)                 ;update copper
+    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
 
 .check_y
     swap d4
     clr.l d5
-    move.w d4,d5                                             ;dy
+    move.w d4,d5                                            ;dy
 
-    beq .check_top_too_low                                   ;no y-scroll
+    beq .check_top_too_low                                  ;no y-scroll
 
 ;do delta-y
-    btst #15,d5                                              ;scrolling up?
+    btst #15,d5                                             ;scrolling up?
     beq .positive_y
 
     neg.w d5
@@ -341,17 +341,17 @@ ScrollUpdateBitplanePointers:
     move #4-1,d1
 
 .loop
-    move.w d6,4+c_bitplane_pointers_01(a1)                   ;lo word
-    move.w d3,4+c_bitplane_pointers_02(a1)                   ;lo word
+    move.w d6,4+c_bitplane_pointers_01(a1)                  ;lo word
+    move.w d3,4+c_bitplane_pointers_02(a1)                  ;lo word
     swap d3
     swap d6
-    move.w d6,c_bitplane_pointers_01(a1)                     ;hi word
-    move.w d3,c_bitplane_pointers_02(a1)                     ;hi word
+    move.w d6,c_bitplane_pointers_01(a1)                    ;hi word
+    move.w d3,c_bitplane_pointers_02(a1)                    ;hi word
     swap d3
     swap d6
-    add.l #screen_bpl_bytes_per_row,d3                       ;every 44 bytes we'll have new bitplane data
-    add.l #screen_bpl_bytes_per_row,d6                       ;every 44 bytes we'll have new bitplane data
-    addq #8,a1                                               ;point to next bpl to poke in copper
+    add.l #screen_bpl_bytes_per_row,d3                      ;every 44 bytes we'll have new bitplane data
+    add.l #screen_bpl_bytes_per_row,d6                      ;every 44 bytes we'll have new bitplane data
+    addq #8,a1                                              ;point to next bpl to poke in copper
     dbf.w d1,.loop
 
     movem.l (sp)+,d3-d4                                     ;restore
@@ -367,29 +367,39 @@ ScrollCalculateVerticalSplit:
 
     clr.l d2
 
-    move.w v_video_y_position(a0),d2                         ;buffer coordinates
-    divu #screen_buffer_height,d2                            ;bitplane pointers in screen buffer
-    swap d2                                                  ;(ypos % screen_buffer_height)
+    move.w v_video_y_position(a0),d2                        ;buffer coordinates
+    divu #screen_buffer_height,d2                           ;bitplane pointers in screen buffer
+    swap d2                                                 ;(ypos % screen_buffer_height)
 
-    cmp.w #0,d2                                              ;first split--reset split pointer
+    cmp.w #0,d2                                             ;first split--reset split pointer
     bne .update_split
-
+    
     ;if there is no split, the bitplane pointers should be reset
     ;the code gets here first for scroll down
 
     move.l d3,d6
 
     move.l v_scroll_screen(a0),v_scroll_screen_split(a0)
+    
+    move.l #tile_height*2*screen_bytes_per_row,d1
+    
+    ;TODO: If scrolling down, add screen_bytes_per_row "scroll y velocity" times
+    ;here we're just adding it once (scroll y velocity=1 pixel) 
+    btst.b #1,v_scroll_command(a0)                          ;if downward scroll, move down a scan row
+    beq .add_offset
 
-    add.l #tile_height*2*screen_bytes_per_row,d6
-    add.l #tile_height*2*screen_bytes_per_row,v_scroll_screen_split(a0)
+    add.l #screen_bytes_per_row,d1                          ;just for down scroll, bitplane pointer is off by one row
+
+.add_offset
+    add.l d1,d6
+    add.l d1,v_scroll_screen_split(a0)
 
 .update_split
-    sub.w d2,d0                                              ;d0 = d0 - (ypos % screen_buffer_height)
+    sub.w d2,d0                                             ;d0 = d0 - (ypos % screen_buffer_height)
 
-    move.b d0,c_split(a1)                                    ;d0 is the second one
+    move.b d0,c_split(a1)                                   ;d0 is the second one
     and.w #$ff00,d0
-    sne c_split_stop(a1)                                     ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
+    sne c_split_stop(a1)                                    ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
 
     rts
 ;-----------------------------------------------

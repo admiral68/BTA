@@ -66,6 +66,7 @@ Init:
     dbf d0,.bpl7
 
 ;test code ends
+    mcgeezer_special
 
     movem.l (sp)+,d0-a6
     rts
@@ -356,6 +357,8 @@ TESTScroll:
     bra .switch_direction
 
 .down
+    ;BUG? BP pointers get updated before blit at y=0... split shows up one row too early... until 2C...
+
     move.l #$10000,d4
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
