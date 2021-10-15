@@ -244,7 +244,7 @@ ScrollUpdateBitplanePointers:
 ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
     movem.l d3-d4,-(sp)                                     ;Save used registers
 
-    ;mcgeezer_special
+    mcgeezer_special
 
     move.l v_scroll_screen(a0),d3
     move.l v_scroll_screen_split(a0),d6
@@ -444,9 +444,11 @@ ScrollGetHTileOffsets:
     btst.b #0,v_scroll_command(a0)
     beq .left
 
-    subi #1,d2                                              ;back one column
+    mcgeezer_special2
+    subi #1,d2                                              ;back a column
 
 .left
+    subi #1,d2                                              ;ADDED LINE: NEW (BREAKING?) CHANGE back a column
     asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
 
     ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
@@ -461,6 +463,7 @@ ScrollGetHTileOffsets:
     ;DESTINATION => d1 (d4)
     ;TODO: THIS MIGHT BE MESSED UP; ADD A TILE HEIGHT
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
+    add.l #screen_bytes_per_row*tile_height,d1              ;ADDED LINE: NEW (BREAKING?) CHANGE
 
     clr.l d2
 
