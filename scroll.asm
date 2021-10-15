@@ -181,7 +181,7 @@ ScrollIncrementXPosition:
     addi.w #1,v_map_x_position(a0)                                           ;mapposx++;
     move.w v_map_x_position(a0),v_video_x_position(a0)                       ;videoposx = mapposx;
 
-    cmp.w #(test_cols_to_decode*tile_width),v_video_x_position(a0)           ;352
+    cmp.w #(screen_columns*tile_width),v_video_x_position(a0)                ;352 not quite
     bne .update
 
     move.w #0,v_video_x_position(a0)                                         ;reset video x to zero
@@ -199,7 +199,7 @@ ScrollDecrementXPosition:
     cmp.w #-1,v_video_x_position(a0)                                         ;-1
     bne .end
 
-    move.w #(test_cols_to_decode*tile_width-1),v_video_x_position(a0)        ;reset video x to 351
+    move.w #(screen_columns*tile_width-1),v_video_x_position(a0)             ;reset video x to 351
 
 .end
 
@@ -259,6 +259,7 @@ ScrollUpdateBitplanePointers:
     btst #15,d5
     beq .positive_x
 
+;TODO: SCROLL VELOCITY
     neg.w d5
     sub.l d5,d3
     sub.l d5,d3
@@ -266,6 +267,7 @@ ScrollUpdateBitplanePointers:
     sub.l d5,d6
     bra .update_scroll_delay
 
+;TODO: SCROLL VELOCITY
 .positive_x
     add.l d5,d3
     add.l d5,d3
@@ -290,6 +292,7 @@ ScrollUpdateBitplanePointers:
     neg.w d5
     subi #1,d5
 
+;TODO: SCROLL VELOCITY
 .loop_sub_y
     sub.l #screen_bytes_per_row,d6
     dbf.w d5,.loop_sub_y
@@ -299,6 +302,7 @@ ScrollUpdateBitplanePointers:
 .positive_y
     subi #1,d5
 
+;TODO: SCROLL VELOCITY
 .loop_add_y
     add.l #screen_bytes_per_row,d6
     dbf.w d5,.loop_add_y

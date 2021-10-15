@@ -149,8 +149,8 @@ R+U: All blocks fill column (left source);  all blocks fill row (bottom source) 
 D+L: All blocks fill row (top source);      all blocks fill column (right source)(overlap is [B]--last blit)
 U+L: All blocks fill column (right source); all blocks fill row (bottom source)  (overlap is [D]--first blit)
 
-R->D->U->L
-D: Check R (for A overlap)
-U: Check R (for C overlap)
-L: Check D (for B overlap); Check U (for D overlap)
+BLIT ORDER: R->D->U->L
+D: Check R (for [A] overlap)--If R, skip [A]
+U: Check R (for [C] overlap)--If R, skip [C]
+L: Check D (for [B] overlap); Check U (for [D] overlap)--If D, skip [B]. If U, skip [D].
 

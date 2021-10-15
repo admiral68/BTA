@@ -29,6 +29,8 @@ v_tile_columns_to_decode    = 148
 v_tile_rows_to_decode       = 149
 v_scroll_command            = 150
 v_scroll_previous_direction = 151
+v_y_scroll_velocity         = 152
+v_x_scroll_velocity         = 153
 
 c_horizontal_scroll_pos_01  = 2
 c_sprites_enable_01         = 6
@@ -43,16 +45,16 @@ c_bitplane_pointers_02      = 118
     * constants:video *
     *-----------------*
 
-screen_width                        = 352
-screen_height                       = 256
-screen_buffer_height                = 288
+screen_width                        = 352                                               ;CONVERT
+screen_height                       = 256                                               ;CONVERT
+screen_buffer_height                = 288                                               ;CONVERT
 screen_columns                      = screen_width/tile_width
 screen_rows                         = screen_height/tile_height
 screen_buffer_rows                  = screen_buffer_height/tile_height
 screen_bitplanes                    = 4
 screen_bpl_bytes_per_row            = screen_width/8
 screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
-screen_modulo                       = (screen_width/8)*3                                ;offset by 3 bitplanes
+screen_modulo                       = (screen_width/8)*(screen_bitplanes-1)             ;offset by 3 bitplanes
 screen_horz_disp_words              = screen_width/16
 screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
 screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
@@ -65,10 +67,12 @@ map_bpl_bytes_per_row               = map_width/8
 map_bitplanes                       = 4
 map_bytes_per_row                   = map_bpl_bytes_per_row*map_bitplanes
 
-DMA_fetch_start                     = $28                                   ;$28 for 22 columns;$38 for 20 columns
-vert_display_start                  = $2c
-h_display_start                     = $71                                   ;$81 for non-scrolling display; $91 otherwise
-h_display_stop                      = $c1                                   ;$c1 for non-scrolling display
+DMA_fetch_start                     = $28                                   ;CONVERT $28 for 22 columns;$38 for 20 columns
+DMA_fetch_stop                      = $d0                                   ;CONVERT $d0 for 22 columns;$c0 for 20 columns
+vert_display_start                  = $2c                                   ;CONVERT
+vert_display_stop                   = $2c                                   ;CONVERT $12c
+h_display_start                     = $71                                   ;CONVERT $81 for non-scrolling display; $91 otherwise
+h_display_stop                      = $c1                                   ;CONVERT $c1 for non-scrolling display
 
 bpls                                = 3                                     ;handy values:
 

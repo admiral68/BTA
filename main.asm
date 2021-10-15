@@ -84,9 +84,9 @@ StartGame:
     move.w #0,$01fc(a6)                                     ;slow fetch mode, AGA compatibility
     move.w #$200,BPLCON0(a6)
     move.w #vert_display_start<<8+h_display_start,DIWSTRT(a6)
-    move.w #vert_display_start<<8+h_display_stop,DIWSTOP(a6)
+    move.w #vert_display_stop<<8+h_display_stop,DIWSTOP(a6)
     move.w #DMA_fetch_start,DDFSTRT(a6)                     ;$28 for 22 columns; $38 for 20 columns (etc)
-    move.w #$d0,DDFSTOP(a6)
+    move.w #DMA_fetch_stop,DDFSTOP(a6)                      ;$d0 for 22 columns; $c0 for 20 columns
 
     move.w #screen_modulo,BPL1MOD(a6)
     move.w #screen_modulo,BPL2MOD(a6)
@@ -497,9 +497,9 @@ VBint:                                                      ;Blank template VERT
     move.w d0,INTREQ(a6)
 
     move.w #vert_display_start<<8+h_display_start,DIWSTRT(a6)
-    move.w #vert_display_start<<8+h_display_stop,DIWSTOP(a6)
+    move.w #vert_display_stop<<8+h_display_stop,DIWSTOP(a6)
     move.w #DMA_fetch_start,DDFSTRT(a6)                     ;$28 for 22 columns; $38 for 20 columns (etc)
-    move.w #$d0,DDFSTOP(a6)
+    move.w #DMA_fetch_stop,DDFSTOP(a6)                      ;$d0 for 22 columns; $c0 for 20 columns
 
     move.w #screen_modulo,BPL1MOD(a6)
     move.w #screen_modulo,BPL2MOD(a6)
@@ -598,7 +598,11 @@ FastData:
 ;v_scroll_previous_direction
     dc.b 2
 
+;v_y_scroll_velocity
+    dc.b 1
 
+;v_x_scroll_velocity
+    dc.b 1
 
     EVEN
 
@@ -607,12 +611,6 @@ FastData:
 *******************************************************************************
 
     SECTION AllData,DATA_C
-
-    ;move.w #$01a0,DMACON(a6)
-    ;move.w #$0200,BPLCON0(a6)   ;disables it
-
-    ;bsr    waitvertb
-    ;move.w #PLANES<<12|$200,BPLCON0(a6)  ;shows it
 
 Copper:
 
