@@ -110,3 +110,47 @@ mapx = mapposy & 15;
 ;   bsr ScrollIncrementYPosition                             ;INPUT: mapx/y in d3; x/y in d4
 ;   ENDR
 
+
+;    ;sne c_split_stop(a1)                                    ;set y=255 wait if position <= $2C
+;   bne .set_FFDF_wait
+;.set_nop
+;    mcgeezer_special2
+;   move.w #$01FE,c_split_stop(a1)
+;   rts
+;.set_FFDF_wait
+;   move.w #$FFDF,c_split_stop(a1)
+;    rts
+
+Building off the understanding from the above post... it seems that the scheme should be like this
+
+R: Blit all 18 tiles in the fill column (per 16 pixels of scroll)
+L: Same
+D: Blit all 22 tiles in the fill row (per 16 pixels of scroll)
+U: Same
+
+(corner blocks are denoted by brackets [])
+
+R+D: R->[A];       D->[B]; extra block to blit: [C]
+R+U: R->[A] & [C]; U->[D]
+D+L: D->[A] & [B]; L->[D]
+U+L: L->[B];       U->[C] & [D]
+
+I guess I'm trying to sort the blits in terms of Blitter in Ascending mode... such that all blits go from 
+left to right, top to bottom of the visible area.
+
+In that case ...
+
+R:   All blocks fill column (left source)
+L:   All blocks fill column (right source)
+U:   All blocks fill row (bottom source)
+D:   All blocks fill row (top source)
+R+D: All blocks fill row (top source);      all blocks fill column (left source) (overlap is [A]--first blit)
+R+U: All blocks fill column (left source);  all blocks fill row (bottom source)  (overlap is [C]--last blit)
+D+L: All blocks fill row (top source);      all blocks fill column (right source)(overlap is [B]--last blit)
+U+L: All blocks fill column (right source); all blocks fill row (bottom source)  (overlap is [D]--first blit)
+
+R->D->U->L
+D: Check R (for A overlap)
+U: Check R (for C overlap)
+L: Check D (for B overlap); Check U (for D overlap)
+

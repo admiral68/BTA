@@ -373,18 +373,18 @@ ScrollCalculateVerticalSplit:
 
     cmp.w #0,d2                                             ;first split--reset split pointer
     bne .update_split
-    
+
     ;if there is no split, the bitplane pointers should be reset
     ;the code gets here first for scroll down
 
     move.l d3,d6
 
     move.l v_scroll_screen(a0),v_scroll_screen_split(a0)
-    
+
     move.l #tile_height*2*screen_bytes_per_row,d1
-    
+
     ;TODO: If scrolling down, add screen_bytes_per_row "scroll y velocity" times
-    ;here we're just adding it once (scroll y velocity=1 pixel) 
+    ;here we're just adding it once (scroll y velocity=1 pixel)
     btst.b #1,v_scroll_command(a0)                          ;if downward scroll, move down a scan row
     beq .add_offset
 
@@ -396,13 +396,14 @@ ScrollCalculateVerticalSplit:
 
 .update_split
     sub.w d2,d0                                             ;d0 = d0 - (ypos % screen_buffer_height)
-	cmp.w #$00ff,d0
-	bhi .move
-	mcgeezer_special2
+    cmp.w #$00ff,d0
+    bhi .move
+    mcgeezer_special2
+    sub.w #1,d0                                             ;compensates for vertical split glitch
 .move
     move.b d0,c_split(a1)                                   ;d0 is the second one
     and.w #$ff00,d0
-    sne c_split_stop(a1)                                    ;set to $ffff, if (d0 & $ff00) != 0  --if y is past 256, add second wait
+    sne c_split_stop(a1)                                    ;set y=255 wait if position < $2C
 
     rts
 ;-----------------------------------------------
