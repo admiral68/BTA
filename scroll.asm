@@ -104,12 +104,6 @@ ScrollGetXYPositionDown:
 
 ;destination block in d3
 
-;;COMMENTING THIS OUT BREAKS HORIZONTAL SCROLL
-;;    add.w #1,d3                                             ;NEW need this adjustment for destination
-;;    cmp.w #map_tile_height,d3                               ;This is because the
-;;    ble .end                                                ;source bitmap is only map_tile_height blocks high
-;;    sub.w #map_tile_height,d3                               ;special case: grab source blocks from top of test bitmap
-
 .end
     swap d3                                                 ;mapx (block)
     rts
@@ -250,7 +244,6 @@ ScrollUpdateBitplanePointers:
 ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
     movem.l d0/d3-d4,-(sp)                                  ;Save used registers
 
-    ;move.l v_scroll_screen_top(a0),d1
     move.l v_scroll_screen(a0),d3
     move.l v_scroll_screen_split(a0),d6
 
@@ -266,26 +259,18 @@ ScrollUpdateBitplanePointers:
 
 ;TODO: SCROLL VELOCITY
     neg.w d5
-    sub.l d5,d3                                             ;there's a bug here...need to keep these in sync
-    sub.l d5,d3                                             ;for vertical but they mess up horizontal
-    ;sub.l d5,d1
-    ;sub.l d5,d1
+    sub.l d5,d3
+    sub.l d5,d3
     sub.l d5,d6
     sub.l d5,d6
-    ;sub.l d5,v_scroll_buffer_start(a0)
-    ;sub.l d5,v_scroll_buffer_start(a0)
     bra .update_scroll_delay
 
 ;TODO: SCROLL VELOCITY
 .positive_x
-    add.l d5,d3                                             ;there's a bug here...need to keep these in sync
-    add.l d5,d3                                             ;for vertical but they mess up horizontal
-    ;add.l d5,d1
-    ;add.l d5,d1
+    add.l d5,d3
+    add.l d5,d3
     add.l d5,d6
     add.l d5,d6
-    ;add.l d5,v_scroll_buffer_start(a0)
-    ;add.l d5,v_scroll_buffer_start(a0)
 
 .update_scroll_delay
 
@@ -296,7 +281,7 @@ ScrollUpdateBitplanePointers:
     clr.l d5
     move.w d4,d5                                            ;dy
 
-    beq .check_top_too_left                                  ;no y-scroll
+    beq .check_split_too_low                                ;no y-scroll
 
 ;do delta-y
     btst #15,d5                                             ;scrolling up?
@@ -308,10 +293,9 @@ ScrollUpdateBitplanePointers:
 ;TODO: SCROLL VELOCITY
 .loop_sub_y
     sub.l #screen_bytes_per_row,d6
-    ;sub.l #screen_bytes_per_row,v_scroll_buffer_start(a0)
     dbf.w d5,.loop_sub_y
 
-    bra .check_top_too_left
+    bra .check_split_too_low
 
 .positive_y
     subi #1,d5
@@ -319,47 +303,10 @@ ScrollUpdateBitplanePointers:
 ;TODO: SCROLL VELOCITY
 .loop_add_y
     add.l #screen_bytes_per_row,d6
-    ;add.l #screen_bytes_per_row,v_scroll_buffer_start(a0)
     dbf.w d5,.loop_add_y
 
 ;check to see if the bitplane pointers
 ;are outside of the buffer area
-
-.check_top_too_left
-;    move.l v_screen(a0),d7
-;    add.l #screen_bytes_per_row*tile_height,d7              ;NEW METHOD
-;    cmp.l d7,d1
-;
-;    ;NOTE: THE "NEW" METHOD RESETS v_scroll_screen to make sure it
-;    ;stays pointing at the first bitplane of the buffer anywhere along the x-axis.
-;    ;This doesn't work so well for horizontal scroll, because the buffer itself scrolls
-;    ;all the way to the right. The "OLD" METHOD just increments/decrements pointers
-;    ;2 bytes (per x velocity) to skip to the next tile column. The bounds checking here
-;    ;doesn't mess with that pointer
-;
-;    ;bge .check_top_too_right                                ;OLD METHOD
-;    ;add.l #screen_bytes_per_row*screen_buffer_height,d3     ;OLD METHOD
-;
-;    bge .check_top_too_right                                ;NEW METHOD
-;    move.l d7,d1                                            ;NEW METHOD
-;    move.b v_x_scroll_velocity(a0),d7                       ;NEW METHOD
-;    sub.l d7,d1                                             ;NEW METHOD
-;    sub.l d7,d1                                             ;NEW METHOD
-;    add.l #screen_bp_bytes_per_raster_line,d1               ;NEW METHOD reset to right edge
-
-    bra .check_split_too_low
-
-;.check_top_too_right
-;    ;add.l #screen_bytes_per_row*screen_buffer_height,d7     ;OLD METHOD
-;    ;cmp.l d7,d3                                             ;OLD METHOD
-;    ;blt .check_split_too_low                                ;OLD METHOD
-;    ;sub.l #screen_bytes_per_row*screen_buffer_height,d3     ;OLD METHOD
-;
-;    add.l #screen_bp_bytes_per_raster_line,d7               ;NEW METHOD
-;    cmp.l d7,d1                                             ;NEW METHOD
-;    blt .check_split_too_low                                ;NEW METHOD
-;    move.l v_screen(a0),d1                                  ;NEW METHOD reset to zero
-;    add.l #screen_bytes_per_row*tile_height,d1              ;NEW METHOD
 
 .check_split_too_low
     move.l v_screen(a0),d7
@@ -374,52 +321,9 @@ ScrollUpdateBitplanePointers:
     blt .update_pointer
     sub.l #screen_bytes_per_row*screen_buffer_height,d6
 
-
-;.check_start_of_buffer_too_low
-;    move.l v_screen(a0),d7
-;    cmp.l v_scroll_buffer_start(a0),d7
-;    blt .check_start_of_buffer_too_high
-;    add.l #screen_bytes_per_row*screen_buffer_height,v_scroll_buffer_start(a0)
-;    bra .update_pointer
-;
-;.check_start_of_buffer_too_high
-;    add.l #screen_bytes_per_row*screen_buffer_height,d7
-;    cmp.l v_scroll_buffer_start(a0),d7
-;    bge .update_pointer
-;    sub.l #screen_bytes_per_row*screen_buffer_height,v_scroll_buffer_start(a0)
-
-
 .update_pointer
 
     bsr ScrollCalculateVerticalSplit
-
-    ;move.l v_scroll_screen_top(a0),d1
-
-
-
-
-    ;CHECK TO SEE IF WE HAVE ANY HORIZONTAL SCROLL GOING
-
-;    btst.b #0,v_scroll_command(a0)
-;    bne .calculate_horizontal_pointer_move
-;
-;    btst.b #3,v_scroll_command(a0)
-;    beq .skip_calculate_horizontal_pointer_move
-
-;.calculate_horizontal_pointer_move
-;    move.l v_screen(a0),d1
-;
-;    ;TODO: AVOID MULU! Pre-calculate table
-;    add.w #tile_height,d2
-;    cmp.w #screen_buffer_height,d2
-;    blo .do_mulu
-;    sub.w #screen_buffer_height,d2
-;.do_mulu
-;    mulu #screen_bytes_per_row,d2
-;    add.l d2,d1
-
-
-
 
     move.l #screen_bytes_per_row*tile_height,d1
     add.l d3,d1                                             ;v_scroll_screen+$B00
@@ -459,45 +363,10 @@ ScrollCalculateVerticalSplit:
     swap d2                                                 ;(ypos % screen_buffer_height)
 
     btst.b #1,v_scroll_command(a0)                          ;if downward scroll, continue
-    bne .continue
+    bne .update_split
 
     btst.b #2,v_scroll_command(a0)                          ;if not upward scroll, skip the offset
     beq .end
-
-.continue
-    cmp.w #0,d2                                             ;first split--reset split pointer
-    bne .update_split
-
-    ;if there is no split, the bitplane pointers should be reset
-    ;the code gets here first for scroll down
-
-
-    bra .update_split ;temporarily skip this code
-
-
-
-
-
-    move.l d1,d6
-
-    move.l v_scroll_screen_top(a0),v_scroll_screen_split(a0)
-
-    move.l #tile_height*2*screen_bytes_per_row,d7
-
-    ;TODO: If scrolling down, add screen_bytes_per_row "scroll y velocity" times
-    ;here we're just adding it once (scroll y velocity=1 pixel)
-    btst.b #1,v_scroll_command(a0)                          ;if downward scroll, move down a scan row
-    beq .add_offset
-
-    add.l #screen_bytes_per_row,d7                          ;just for down scroll, bitplane pointer is off by one row
-
-.add_offset
-    add.l d7,d6
-    add.l d7,v_scroll_screen_split(a0)
-
-
-
-
 
 .update_split
     sub.w d2,d0                                             ;d0 = d0 - (ypos % screen_buffer_height)
@@ -507,7 +376,6 @@ ScrollCalculateVerticalSplit:
 .check_down
     btst.b #2,v_scroll_command(a0)                          ;if upward scroll, add one to the wait value
     beq .move
-    ;mcgeezer_special2
     add.w #1,d0
 .move
     move.b d0,c_split(a1)                                   ;d0 is the second one
@@ -634,7 +502,6 @@ ScrollGetVTileOffsets:
     ;DESTINATION => d1 (d4)
     clr.l d3
     move.w d4,d3                                            ;y step;keep this for blit
-    ;move.l v_screen(a0),d1                                  ;D dest (frontbuffer)
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
 
     swap d6                                                 ;mapy(offset for dest)

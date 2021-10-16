@@ -870,3 +870,32 @@ ScrollGetXYPositionUp2:
     rts
 
 ;-----------------------------------------------
+    cmp.w #0,d2                                             ;first split--reset split pointer
+    bne .update_split
+
+    ;if there is no split, the bitplane pointers should be reset
+    ;the code gets here first for scroll down
+
+
+    bra .update_split ;temporarily skip this code
+
+
+
+
+
+    move.l d1,d6
+
+    move.l v_scroll_screen_top(a0),v_scroll_screen_split(a0)
+
+    move.l #tile_height*2*screen_bytes_per_row,d7
+
+    ;TODO: If scrolling down, add screen_bytes_per_row "scroll y velocity" times
+    ;here we're just adding it once (scroll y velocity=1 pixel)
+    btst.b #1,v_scroll_command(a0)                          ;if downward scroll, move down a scan row
+    beq .add_offset
+
+    add.l #screen_bytes_per_row,d7                          ;just for down scroll, bitplane pointer is off by one row
+
+.add_offset
+    add.l d7,d6
+    add.l d7,v_scroll_screen_split(a0)

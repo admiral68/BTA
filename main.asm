@@ -44,13 +44,10 @@ Init:
 
     move.l a0,v_screen(a1)
     move.l a0,v_scroll_screen(a1)
-    ;move.l a0,v_scroll_screen_top(a1)                      ;USING THIS BREAKS HORIZONTAL SCROLL
-    ;move.l a0,v_scroll_buffer_start(a1)
 
     lea screen_bytes_per_row*tile_height(a0),a0             ;skip first tile row
 
     move.l a0,v_scroll_screen_split(a1)
-    ;move.l a0,v_scroll_screen_top(a1)                      ;COMMENTING THIS OUT BREAKS HORIZONTAL SCROLL
 
     lea Copper,a1                                           ;where to poke the bitplane pointer words.
     move #4-1,d0
@@ -306,7 +303,6 @@ TESTScroll:
     bra .switch_direction
 
 .scroll_right
-
     bsr TESTScrollRight                                      ;INPUT:d2,a0 (d1)
     bsr ScrollGetXYPositionRight
 
@@ -324,7 +320,6 @@ TESTScroll:
     bra .switch_direction
 
 .scroll_left
-
     bsr ScrollDecrementXPosition
     bsr TESTScrollLeft
     bsr ScrollGetXYPositionLeft
@@ -335,7 +330,6 @@ TESTScroll:
     rts
 
 .up
-
     bsr ScrollDecrementYPosition
 
     move.l #$FFFF0000,d4
@@ -353,7 +347,6 @@ TESTScroll:
 .blit_up_single
     bsr TileDraw
 .end_up
-    ;mcgeezer_special2
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
     move.b #2,d3;1
@@ -361,8 +354,6 @@ TESTScroll:
     bra .switch_direction
 
 .down
-    ;BUG? BP pointers get updated before blit at y=0... split shows up one row too early... until 2C...
-
     move.l #$10000,d4
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
@@ -568,9 +559,6 @@ FastData:
 ;v_scroll_screen_split
     dc.l 0
 
-;v_scroll_screen_top
-    dc.l 0
-
 ;v_scrollx_dest_offset_table
     dc.w $0B00,$1600,$2100,$2C00,$3700,$4200,$4D00,$5800
     dc.w $6300,$6E00,$7900,$8400,$8F00,$9A00,$A500,$B000
@@ -615,8 +603,6 @@ FastData:
     dc.b 1
 
     EVEN
-;v_scroll_buffer_start
-    dc.l 0
 
 *******************************************************************************
 * CHIPMEM
