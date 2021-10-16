@@ -44,7 +44,7 @@ Init:
 
     move.l a0,v_screen(a1)
     move.l a0,v_scroll_screen(a1)
-    move.l a0,v_scroll_screen_top(a1)
+    move.l a0,v_scroll_screen_top(a1)						;USING THIS BREAKS HORIZONTAL SCROLL
 
     lea screen_bytes_per_row*tile_height(a0),a0             ;skip first tile row
 
@@ -598,10 +598,10 @@ FastData:
     dc.b 0
 
 ;v_scroll_command
-    dc.b 2
+    dc.b 1
 
 ;v_scroll_previous_direction
-    dc.b 2
+    dc.b 1
 
 ;v_y_scroll_velocity
     dc.b 1
