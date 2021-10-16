@@ -244,8 +244,6 @@ ScrollUpdateBitplanePointers:
 ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
     movem.l d3-d4,-(sp)                                     ;Save used registers
 
-    mcgeezer_special
-
     move.l v_scroll_screen(a0),d3
     move.l v_scroll_screen_split(a0),d6
 
@@ -261,16 +259,16 @@ ScrollUpdateBitplanePointers:
 
 ;TODO: SCROLL VELOCITY
     neg.w d5
-    sub.l d5,d3
-    sub.l d5,d3
+    sub.l d5,d3                                             ;there's a bug here...need to keep these in sync
+    sub.l d5,d3                                             ;for vertical but they mess up horizontal
     sub.l d5,d6
     sub.l d5,d6
     bra .update_scroll_delay
 
 ;TODO: SCROLL VELOCITY
 .positive_x
-    add.l d5,d3
-    add.l d5,d3
+    add.l d5,d3                                             ;there's a bug here...need to keep these in sync
+    add.l d5,d3                                             ;for vertical but they mess up horizontal
     add.l d5,d6
     add.l d5,d6
 
@@ -373,6 +371,7 @@ ScrollCalculateVerticalSplit:
     btst.b #2,v_scroll_command(a0)                          ;if not upward scroll, skip the offset
     beq .end
 
+.continue
     move.w #vert_display_start+screen_height,d0
 
     clr.l d2
@@ -387,7 +386,12 @@ ScrollCalculateVerticalSplit:
     ;if there is no split, the bitplane pointers should be reset
     ;the code gets here first for scroll down
 
-.continue
+    bra .update_split ;temporarily skip this code
+
+
+
+
+
     move.l d3,d6
 
     move.l v_scroll_screen(a0),v_scroll_screen_split(a0)
@@ -397,14 +401,9 @@ ScrollCalculateVerticalSplit:
     ;TODO: If scrolling down, add screen_bytes_per_row "scroll y velocity" times
     ;here we're just adding it once (scroll y velocity=1 pixel)
     btst.b #1,v_scroll_command(a0)                          ;if downward scroll, move down a scan row
-    beq .check_down
+    beq .add_offset
 
     add.l #screen_bytes_per_row,d1                          ;just for down scroll, bitplane pointer is off by one row
-    bra .add_offset
-
-.check_down
-    btst.b #2,v_scroll_command(a0)                          ;if not upward scroll, skip the offset
-    beq .update_split
 
 .add_offset
     add.l d1,d6
@@ -414,13 +413,11 @@ ScrollCalculateVerticalSplit:
     sub.w d2,d0                                             ;d0 = d0 - (ypos % screen_buffer_height)
     cmp.w #$00ff,d0
     bhi .move
-    ;mcgeezer_special2
     sub.w #1,d0                                             ;compensates for vertical split glitch
 .move
     move.b d0,c_split(a1)                                   ;d0 is the second one
     and.w #$ff00,d0
     sne c_split_stop(a1)                                    ;set y=255 wait if position < $2C
-
 .end
     rts
 ;-----------------------------------------------

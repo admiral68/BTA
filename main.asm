@@ -45,8 +45,6 @@ Init:
     move.l a0,v_screen(a1)
     move.l a0,v_scroll_screen(a1)
 
-    ;TODO: THE BOTTOM LINE IS NEEDED FOR VERTICAL SCROLL (DOWN!)
-    ;I HAVE TO FIGURE OUT HOW TO COMPENSATE FOR THIS
     lea screen_bytes_per_row*tile_height(a0),a0             ;skip first tile row
 
     move.l a0,v_scroll_screen_split(a1)
@@ -68,7 +66,6 @@ Init:
     dbf d0,.bpl7
 
 ;test code ends
-    ;mcgeezer_special
 
     movem.l (sp)+,d0-a6
     rts
@@ -299,7 +296,7 @@ TESTScroll:
 
 .right
     ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
-    move.b #8,d3;2
+    move.b #2,d3
     cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width*2),d2              ;2048-352-tile_width*2
     blo .scroll_right
     bra .switch_direction
@@ -316,7 +313,7 @@ TESTScroll:
     rts
 
 .left
-    move.b #1,d3;2
+    move.b #4,d3
     cmp.w #tile_width,d2
     bhi .scroll_left
     bra .switch_direction
@@ -352,7 +349,7 @@ TESTScroll:
 .end_up
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
-    move.b #2,d3
+    move.b #1,d3
     bra .switch_direction
 
 .down
