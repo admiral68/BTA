@@ -349,7 +349,7 @@ TESTScroll:
 .end_up
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
-    move.b #2,d3;1
+    move.b #1,d3
     mcgeezer_special2
     bra .switch_direction
 
@@ -372,7 +372,7 @@ TESTScroll:
     bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d44
     cmp.w #screen_height+1,v_map_y_position(a0)             ;scroll through all pixels before changing direction
     bne .end_scroll
-    move.b #4,d3;8
+    move.b #8,d3
     mcgeezer_special2
     bra .switch_direction
 
