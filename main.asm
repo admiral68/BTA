@@ -48,6 +48,7 @@ Init:
     lea screen_bytes_per_row*tile_height(a0),a0             ;skip first tile row
 
     move.l a0,v_scroll_screen_split(a1)
+    move.l a0,v_scroll_screen_top(a1)
 
     lea Copper,a1                                           ;where to poke the bitplane pointer words.
     move #4-1,d0
@@ -313,6 +314,7 @@ TESTScroll:
     rts
 
 .left
+    mcgeezer_special2
     move.b #4,d3
     cmp.w #tile_width,d2
     bhi .scroll_left
@@ -358,7 +360,6 @@ TESTScroll:
     move.l #$10000,d4
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
-
     bsr ScrollGetXYPositionDown
 
     lea DecodedGraphic,a3
@@ -555,6 +556,9 @@ FastData:
     dc.l 0
 
 ;v_scroll_screen_split
+    dc.l 0
+
+;v_scroll_screen_top
     dc.l 0
 
 ;v_scrollx_dest_offset_table
