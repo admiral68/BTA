@@ -104,10 +104,11 @@ ScrollGetXYPositionDown:
 
 ;destination block in d3
 
-    add.w #1,d3                                             ;NEW need this adjustment for destination
-    cmp.w #map_tile_height,d3                               ;This is because the
-    ble .end                                                ;source bitmap is only map_tile_height blocks high
-    sub.w #map_tile_height,d3                               ;special case: grab source blocks from top of test bitmap
+;;COMMENTING THIS OUT BREAKS HORIZONTAL SCROLL
+;;    add.w #1,d3                                             ;NEW need this adjustment for destination
+;;    cmp.w #map_tile_height,d3                               ;This is because the
+;;    ble .end                                                ;source bitmap is only map_tile_height blocks high
+;;    sub.w #map_tile_height,d3                               ;special case: grab source blocks from top of test bitmap
 
 .end
     swap d3                                                 ;mapx (block)
@@ -478,7 +479,7 @@ ScrollCalculateVerticalSplit:
 .check_down
     btst.b #2,v_scroll_command(a0)                          ;if upward scroll, add one to the wait value
     beq .move
-    mcgeezer_special2
+    ;mcgeezer_special2
     add.w #1,d0
 .move
     move.b d0,c_split(a1)                                   ;d0 is the second one

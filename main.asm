@@ -44,11 +44,12 @@ Init:
 
     move.l a0,v_screen(a1)
     move.l a0,v_scroll_screen(a1)
+    move.l a0,v_scroll_screen_top(a1)
 
     lea screen_bytes_per_row*tile_height(a0),a0             ;skip first tile row
 
     move.l a0,v_scroll_screen_split(a1)
-    move.l a0,v_scroll_screen_top(a1)
+    ;move.l a0,v_scroll_screen_top(a1)                      ;COMMENTING THIS OUT BREAKS HORIZONTAL SCROLL
 
     lea Copper,a1                                           ;where to poke the bitplane pointer words.
     move #4-1,d0
@@ -350,6 +351,7 @@ TESTScroll:
 .blit_up_single
     bsr TileDraw
 .end_up
+    mcgeezer_special2
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
     move.b #2,d3;1
@@ -360,7 +362,7 @@ TESTScroll:
     move.l #$10000,d4
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
-	
+
     bsr ScrollGetXYPositionDown
 
     lea DecodedGraphic,a3
@@ -372,7 +374,7 @@ TESTScroll:
 .blit_down_single
     bsr TileDraw
 .end_down
-    bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4
+    bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d44
     cmp.w #screen_height+1,v_map_y_position(a0)             ;scroll through all pixels before changing direction
     bne .end_scroll
     move.b #4,d3;8
@@ -544,11 +546,13 @@ FastData:
 
 ;v_map_y_position
 ;v_map_x_position
-    dc.l $00100000
+    dc.l 0
+    ;dc.l $00100000                                          ;COMMENTING THIS OUT BREAKS HORIZONTAL SCROLL
 
 ;v_video_y_position
 ;v_video_x_position
-    dc.l $00100000
+    dc.l 0
+    ;dc.l $00100000                                          ;COMMENTING THIS OUT BREAKS HORIZONTAL SCROLL
 
 ;v_dest_graphic_vtile_offset
     dc.l 0
