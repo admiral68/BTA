@@ -32,6 +32,7 @@ v_scroll_command            = 154
 v_scroll_previous_direction = 155
 v_y_scroll_velocity         = 156
 v_x_scroll_velocity         = 157
+v_scroll_buffer_start       = 158
 
 c_horizontal_scroll_pos_01  = 2
 c_sprites_enable_01         = 6

@@ -250,7 +250,7 @@ ScrollUpdateBitplanePointers:
 ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
     movem.l d0/d3-d4,-(sp)                                  ;Save used registers
 
-    move.l v_scroll_screen_top(a0),d1
+    ;move.l v_scroll_screen_top(a0),d1
     move.l v_scroll_screen(a0),d3
     move.l v_scroll_screen_split(a0),d6
 
@@ -272,6 +272,8 @@ ScrollUpdateBitplanePointers:
     ;sub.l d5,d1
     sub.l d5,d6
     sub.l d5,d6
+    ;sub.l d5,v_scroll_buffer_start(a0)
+    ;sub.l d5,v_scroll_buffer_start(a0)
     bra .update_scroll_delay
 
 ;TODO: SCROLL VELOCITY
@@ -282,6 +284,8 @@ ScrollUpdateBitplanePointers:
     ;add.l d5,d1
     add.l d5,d6
     add.l d5,d6
+    ;add.l d5,v_scroll_buffer_start(a0)
+    ;add.l d5,v_scroll_buffer_start(a0)
 
 .update_scroll_delay
 
@@ -304,6 +308,7 @@ ScrollUpdateBitplanePointers:
 ;TODO: SCROLL VELOCITY
 .loop_sub_y
     sub.l #screen_bytes_per_row,d6
+    ;sub.l #screen_bytes_per_row,v_scroll_buffer_start(a0)
     dbf.w d5,.loop_sub_y
 
     bra .check_top_too_left
@@ -314,6 +319,7 @@ ScrollUpdateBitplanePointers:
 ;TODO: SCROLL VELOCITY
 .loop_add_y
     add.l #screen_bytes_per_row,d6
+    ;add.l #screen_bytes_per_row,v_scroll_buffer_start(a0)
     dbf.w d5,.loop_add_y
 
 ;check to see if the bitplane pointers
@@ -368,34 +374,55 @@ ScrollUpdateBitplanePointers:
     blt .update_pointer
     sub.l #screen_bytes_per_row*screen_buffer_height,d6
 
+
+;.check_start_of_buffer_too_low
+;    move.l v_screen(a0),d7
+;    cmp.l v_scroll_buffer_start(a0),d7
+;    blt .check_start_of_buffer_too_high
+;    add.l #screen_bytes_per_row*screen_buffer_height,v_scroll_buffer_start(a0)
+;    bra .update_pointer
+;
+;.check_start_of_buffer_too_high
+;    add.l #screen_bytes_per_row*screen_buffer_height,d7
+;    cmp.l v_scroll_buffer_start(a0),d7
+;    bge .update_pointer
+;    sub.l #screen_bytes_per_row*screen_buffer_height,v_scroll_buffer_start(a0)
+
+
 .update_pointer
 
     bsr ScrollCalculateVerticalSplit
 
-    move.l v_scroll_screen_top(a0),d1
+    ;move.l v_scroll_screen_top(a0),d1
 
-    ;TODO: IF we have d2 here (y % screen_buffer_height) we can calculate d1
 
-    btst.b #0,v_scroll_command(a0)
-    bne .calculate_horizontal_pointer_move
 
-    btst.b #3,v_scroll_command(a0)
-    beq .skip_calculate_horizontal_pointer_move
 
-.calculate_horizontal_pointer_move
-    move.l v_screen(a0),d1
+    ;CHECK TO SEE IF WE HAVE ANY HORIZONTAL SCROLL GOING
 
-    ;TODO: AVOID MULU! Pre-calculate table
-    add.w #tile_height,d2
-    cmp.w #screen_buffer_height,d2
-    blo .do_mulu
-    sub.w #screen_buffer_height,d2
-.do_mulu
-    mulu #screen_bytes_per_row,d2
-    add.l d2,d1
+;    btst.b #0,v_scroll_command(a0)
+;    bne .calculate_horizontal_pointer_move
+;
+;    btst.b #3,v_scroll_command(a0)
+;    beq .skip_calculate_horizontal_pointer_move
 
-.skip_calculate_horizontal_pointer_move
-    move.l d1,v_scroll_screen_top(a0)
+;.calculate_horizontal_pointer_move
+;    move.l v_screen(a0),d1
+;
+;    ;TODO: AVOID MULU! Pre-calculate table
+;    add.w #tile_height,d2
+;    cmp.w #screen_buffer_height,d2
+;    blo .do_mulu
+;    sub.w #screen_buffer_height,d2
+;.do_mulu
+;    mulu #screen_bytes_per_row,d2
+;    add.l d2,d1
+
+
+
+
+    move.l #screen_bytes_per_row*tile_height,d1
+    add.l d3,d1                                             ;v_scroll_screen+$B00
     move.l d3,v_scroll_screen(a0)
     move.l d6,v_scroll_screen_split(a0)
     move #4-1,d0
@@ -443,6 +470,7 @@ ScrollCalculateVerticalSplit:
 
     ;if there is no split, the bitplane pointers should be reset
     ;the code gets here first for scroll down
+
 
     bra .update_split ;temporarily skip this code
 
@@ -606,7 +634,8 @@ ScrollGetVTileOffsets:
     ;DESTINATION => d1 (d4)
     clr.l d3
     move.w d4,d3                                            ;y step;keep this for blit
-    move.l v_screen(a0),d1                                  ;D dest (frontbuffer)
+    ;move.l v_screen(a0),d1                                  ;D dest (frontbuffer)
+    move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
 
     swap d6                                                 ;mapy(offset for dest)
 
