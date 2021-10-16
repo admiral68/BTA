@@ -104,8 +104,12 @@ ScrollGetXYPositionDown:
 
 ;destination block in d3
 
-.end
+    add.w #1,d3                                             ;NEW need this adjustment for destination
+    cmp.w #map_tile_height,d3                               ;This is because the
+    ble .end                                                ;source bitmap is only map_tile_height blocks high
+    sub.w #map_tile_height,d3                               ;special case: grab source blocks from top of test bitmap
 
+.end
     swap d3                                                 ;mapx (block)
     rts
 
@@ -469,8 +473,13 @@ ScrollCalculateVerticalSplit:
 .update_split
     sub.w d2,d0                                             ;d0 = d0 - (ypos % screen_buffer_height)
     cmp.w #$00ff,d0
-    bhi .move
+    bhi .check_down
     sub.w #1,d0                                             ;compensates for vertical split glitch
+.check_down
+    btst.b #2,v_scroll_command(a0)                          ;if upward scroll, add one to the wait value
+    beq .move
+    mcgeezer_special2
+    add.w #1,d0
 .move
     move.b d0,c_split(a1)                                   ;d0 is the second one
     and.w #$ff00,d0
@@ -562,7 +571,6 @@ ScrollGetVTileOffsets:
     clr.l d5
     move.l d3,d6                                            ;for destination
 
-    swap d3                                                 ;mapy(offset for dest)
     swap d4                                                 ;actual mapy(source)
     move.w d4,d2
     swap d4                                                 ;y step
@@ -577,8 +585,7 @@ ScrollGetVTileOffsets:
 
 .skip_add
 
-    swap d3                                                 ;mapx
-    move.w d3,d2
+    move.w d3,d2                                            ;mapx
 
     asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
 
@@ -600,7 +607,7 @@ ScrollGetVTileOffsets:
     move.w d4,d3                                            ;y step;keep this for blit
     move.l v_screen(a0),d1                                  ;D dest (frontbuffer)
 
-    swap d6
+    swap d6                                                 ;mapy(offset for dest)
 
     move.w d6,d2
     cmp.w #0,d2

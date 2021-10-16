@@ -332,6 +332,7 @@ TESTScroll:
     rts
 
 .up
+    ;mcgeezer_special2
     bsr ScrollDecrementYPosition
 
     move.l #$FFFF0000,d4
@@ -356,10 +357,10 @@ TESTScroll:
 
 .down
     ;BUG? BP pointers get updated before blit at y=0... split shows up one row too early... until 2C...
-
     move.l #$10000,d4
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
+	
     bsr ScrollGetXYPositionDown
 
     lea DecodedGraphic,a3
@@ -543,11 +544,11 @@ FastData:
 
 ;v_map_y_position
 ;v_map_x_position
-    dc.l 0
+    dc.l $00100000
 
 ;v_video_y_position
 ;v_video_x_position
-    dc.l 0
+    dc.l $00100000
 
 ;v_dest_graphic_vtile_offset
     dc.l 0
