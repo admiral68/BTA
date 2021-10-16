@@ -351,7 +351,7 @@ TESTScroll:
 .end_up
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
-    move.b #1,d3
+    move.b #2,d3;1
     bra .switch_direction
 
 .down
@@ -374,7 +374,7 @@ TESTScroll:
     bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4
     cmp.w #screen_height+1,v_map_y_position(a0)             ;scroll through all pixels before changing direction
     bne .end_scroll
-    move.b #8,d3
+    move.b #4,d3;8
     bra .switch_direction
 
 .rightup
@@ -593,10 +593,10 @@ FastData:
     dc.b 0
 
 ;v_scroll_command
-    dc.b 1
+    dc.b 2
 
 ;v_scroll_previous_direction
-    dc.b 1
+    dc.b 2
 
 ;v_y_scroll_velocity
     dc.b 1
