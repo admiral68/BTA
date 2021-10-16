@@ -176,9 +176,6 @@ TESTUpdatePaletteDuringScroll:
 
 .check_left
 
-    btst.b #7,v_scroll_command(a0)                          ;0=r;1=l;d=2;u=3;rd=4;ru=5;ld=6;lu=7
-    beq .continue
-
     cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
     bhi .continue
 
@@ -564,8 +561,8 @@ FastData:
     dc.l 0
 
 ;v_scrollx_dest_offset_table
-    dc.w $0000,$0B00,$1600,$2100,$2C00,$3700,$4200,$4D00
-    dc.w $5800,$6300,$6E00,$7900,$8400,$8F00,$9A00,$A500
+    dc.w $0B00,$1600,$2100,$2C00,$3700,$4200,$4D00,$5800
+    dc.w $6300,$6E00,$7900,$8400,$8F00,$9A00,$A500,$B000
 
 ;v_scrolly_dest_offset_table
     dc.w $0002,$0004,$0006,$0008,$000A,$000C,$000E,$0012

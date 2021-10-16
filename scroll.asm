@@ -367,6 +367,12 @@ ScrollCalculateVerticalSplit:
 ;USES: d0,d1,d2
 ;OUTPUTS: d6
 
+    btst.b #1,v_scroll_command(a0)                          ;if downward scroll, continue
+    bne .continue
+
+    btst.b #2,v_scroll_command(a0)                          ;if not upward scroll, skip the offset
+    beq .end
+
     move.w #vert_display_start+screen_height,d0
 
     clr.l d2
@@ -381,6 +387,7 @@ ScrollCalculateVerticalSplit:
     ;if there is no split, the bitplane pointers should be reset
     ;the code gets here first for scroll down
 
+.continue
     move.l d3,d6
 
     move.l v_scroll_screen(a0),v_scroll_screen_split(a0)
@@ -390,9 +397,14 @@ ScrollCalculateVerticalSplit:
     ;TODO: If scrolling down, add screen_bytes_per_row "scroll y velocity" times
     ;here we're just adding it once (scroll y velocity=1 pixel)
     btst.b #1,v_scroll_command(a0)                          ;if downward scroll, move down a scan row
-    beq .add_offset
+    beq .check_down
 
     add.l #screen_bytes_per_row,d1                          ;just for down scroll, bitplane pointer is off by one row
+    bra .add_offset
+
+.check_down
+    btst.b #2,v_scroll_command(a0)                          ;if not upward scroll, skip the offset
+    beq .update_split
 
 .add_offset
     add.l d1,d6
@@ -402,13 +414,14 @@ ScrollCalculateVerticalSplit:
     sub.w d2,d0                                             ;d0 = d0 - (ypos % screen_buffer_height)
     cmp.w #$00ff,d0
     bhi .move
-    mcgeezer_special2
+    ;mcgeezer_special2
     sub.w #1,d0                                             ;compensates for vertical split glitch
 .move
     move.b d0,c_split(a1)                                   ;d0 is the second one
     and.w #$ff00,d0
     sne c_split_stop(a1)                                    ;set y=255 wait if position < $2C
 
+.end
     rts
 ;-----------------------------------------------
 ScrollGetHTileOffsets:
@@ -444,11 +457,13 @@ ScrollGetHTileOffsets:
     btst.b #0,v_scroll_command(a0)
     beq .left
 
-    mcgeezer_special2
     subi #1,d2                                              ;back a column
 
 .left
     subi #1,d2                                              ;ADDED LINE: NEW (BREAKING?) CHANGE back a column
+    bpl .asl
+    clr.w d2
+.asl
     asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
 
     ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
@@ -463,7 +478,6 @@ ScrollGetHTileOffsets:
     ;DESTINATION => d1 (d4)
     ;TODO: THIS MIGHT BE MESSED UP; ADD A TILE HEIGHT
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
-    add.l #screen_bytes_per_row*tile_height,d1              ;ADDED LINE: NEW (BREAKING?) CHANGE
 
     clr.l d2
 
