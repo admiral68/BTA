@@ -238,7 +238,7 @@ TESTScroll:
 
 .right
     move.b #2,d3
-    cmp.w #(test_cols_to_decode*tile_width-screen_width+tile_width),d2              ;2048-352-tile_width*2
+    cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
     blo .scroll_right
     bra .switch_direction
 
@@ -273,27 +273,41 @@ TESTScroll:
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
     rts
 
+
+
+
+
+
 .left
-    move.b #4,d3
-    cmp.w #0,d2
-    bhi .scroll_left
-    bra .switch_direction
-
-.scroll_left
     bsr ScrollDecrementXPosition
+    mcgeezer_special
 
-    cmp.w #15,d1
+    ;cmp.w #15,d1
+    cmp.w #0,d0
     bne .get_xy_position_left
+
+
+
 
     ;tile is completely scrolled through; time to move the pointers
 
     subi.w #1,v_tile_x_position(a0)
 
-    cmp.b #8,v_scroll_previous_direction(a0)
-    beq .decrement_x
-    
-    cmp.w #$11,d0
-    beq .get_xy_position_left
+    ;cmp.b #8,v_scroll_command(a0)                              ;SKIP DECREMENTING THE BP POINTERS
+    ;bne .decrement_x
+
+
+    ; THE SCROLL POSITION BUG IS FIXED FOR THE TOP, BUT NOW WE'RE BLITTING TO THE WRONG SPOTS
+    ; IT'S ALSO NOT FIXED FOR THE BOTTOM
+
+    mcgeezer_special2
+
+
+;    cmp.w #$11,d0
+;    beq .get_xy_position_left
+
+
+
 
 .decrement_x
     move.l #$0000FFFF,d4
@@ -309,11 +323,30 @@ TESTScroll:
     lea DecodedGraphic,a3
     bsr ScrollGetHTileOffsets
     bsr TileDraw                                            ;DrawBlock(x,y,mapx,mapy);
+
+    ;needed for change of direction
+    bsr ScrollGetStepAndDelay
+    cmp.w #-1,d2                                            ;map at x-1
+    bgt .update_left_scroll_pos
+
+    move.b #16,d3
+    move.w #0,v_map_x_position(a0)
+    move.w #0,v_video_x_position(a0)
+    bra .switch_direction
+
+.update_left_scroll_pos
+
     lea Copper,a1                                           ;Copper Horizontal Scroll pos
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
     rts
 
+
+
+
+
+
 .up
+    mcgeezer_special2
     bsr ScrollDecrementYPosition
 
     move.l #$FFFF0000,d4

@@ -442,8 +442,7 @@ ScrollGetHTileOffsets:
     bra .get_step
 
 .left2
-    sub.w v_video_x_bitplane_offset(a0),d2                  ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
-    add.w #screen_bpl_bytes_per_row-4,d2                    ;last column
+    sub.w #2,d2                                             ;last column
 
 .get_step
     move.w v_map_x_position(a0),d4
