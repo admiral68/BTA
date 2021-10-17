@@ -200,64 +200,6 @@ TESTUpdatePaletteDuringScroll:
     rts
 
 ;-----------------------------------------------
-TESTScrollRight:
-;INPUT:a0(FAST DATA)
-    cmp.w #0,d1
-    bne .update_horz_scroll_position
-
-   ;tile is completely scrolled through; time to move the pointers
-
-    addi.w #1,v_tile_x_position(a0)
-    cmp.w #1,v_tile_x_position(a0)                          ;If we're just starting, skip to the end
-    beq .update_horz_scroll_position
-
-    cmp.w #128,v_tile_x_position(a0)
-    beq .no_update
-
-    move.l #1,d4
-    lea Copper,a1
-    bsr ScrollUpdateBitplanePointers
-    rts
-
-.no_update
-    move.w #127,v_tile_x_position(a0)                       ;Tile position (current level max x)
-
-.update_horz_scroll_position
-
-    lea Copper,a1                                           ;Copper Horizontal Scroll pos
-    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
-
-    rts
-
-;-----------------------------------------------
-TESTScrollLeft:
-;INPUT:a0
-    cmp.w #15,d1
-    bne .update_horz_scroll_position
-
-    ;tile is completely scrolled through; time to move the pointers
-
-    subi.w #1,v_tile_x_position(a0)
-    cmp.w #-1,v_tile_x_position(a0)
-    beq .no_update
-
-.update
-    move.l #$0000FFFF,d4
-    lea Copper,a1
-    bsr ScrollUpdateBitplanePointers
-    bra .update_horz_scroll_position
-
-.no_update
-    move.w #0,v_tile_x_position(a0)
-
-.update_horz_scroll_position
-
-    lea Copper,a1                                           ;Copper Horizontal Scroll pos
-    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
-
-    rts
-
-;-----------------------------------------------
 TESTScroll:
 
     bsr TESTUpdatePaletteDuringScroll
@@ -295,38 +237,80 @@ TESTScroll:
     rts
 
 .right
-    ;if (mapposx >= (mapwidth * BLOCKWIDTH - SCREENWIDTH - BLOCKWIDTH)) return;
     move.b #2,d3
-    cmp.w #(test_cols_to_decode*tile_width-screen_width-tile_width*2),d2              ;2048-352-tile_width*2
+    cmp.w #(test_cols_to_decode*tile_width-screen_width+tile_width),d2              ;2048-352-tile_width*2
     blo .scroll_right
-    mcgeezer_special2
     bra .switch_direction
 
 .scroll_right
-    bsr TESTScrollRight                                      ;INPUT:d2,a0 (d1)
+
+    cmp.w #0,d1                                             ;INPUT:d2,a0 (d1)
+    bne .get_xy_position_right
+
+    ;tile is completely scrolled through; time to move the pointers
+
+    addi.w #1,v_tile_x_position(a0)
+
+    cmp.b #1,v_scroll_previous_direction(a0)
+    beq .increment_x
+    cmp.w #0,d0
+    beq .get_xy_position_right
+
+.increment_x
+    move.l #1,d4
+    lea Copper,a1
+    bsr ScrollUpdateBitplanePointers
+
+.get_xy_position_right
     bsr ScrollGetXYPositionRight
 
     lea DecodedGraphic,a3
     bsr ScrollGetHTileOffsets
     bsr TileDraw
     bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
+    bsr ScrollGetStepAndDelay
+    lea Copper,a1                                           ;Copper Horizontal Scroll pos
+    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
     rts
 
 .left
-    mcgeezer_special2
     move.b #4,d3
-    cmp.w #tile_width,d2
+    cmp.w #0,d2
     bhi .scroll_left
     bra .switch_direction
 
 .scroll_left
     bsr ScrollDecrementXPosition
-    bsr TESTScrollLeft
+
+    cmp.w #15,d1
+    bne .get_xy_position_left
+
+    ;tile is completely scrolled through; time to move the pointers
+
+    subi.w #1,v_tile_x_position(a0)
+
+    cmp.b #8,v_scroll_previous_direction(a0)
+    beq .decrement_x
+    
+    cmp.w #$11,d0
+    beq .get_xy_position_left
+
+.decrement_x
+    move.l #$0000FFFF,d4
+    lea Copper,a1
+    bsr ScrollUpdateBitplanePointers
+
+.get_xy_position_left
+
+    move.b #$08,v_scroll_previous_direction(a0)                             ;previous_direction = DIRECTION_LEFT
+
     bsr ScrollGetXYPositionLeft
 
     lea DecodedGraphic,a3
     bsr ScrollGetHTileOffsets
     bsr TileDraw                                            ;DrawBlock(x,y,mapx,mapy);
+    lea Copper,a1                                           ;Copper Horizontal Scroll pos
+    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
     rts
 
 .up
@@ -350,7 +334,6 @@ TESTScroll:
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
     move.b #1,d3
-    mcgeezer_special2
     bra .switch_direction
 
 .down
@@ -370,10 +353,9 @@ TESTScroll:
     bsr TileDraw
 .end_down
     bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d44
-    cmp.w #screen_height+1,v_map_y_position(a0)             ;scroll through all pixels before changing direction
+    cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
     bne .end_scroll
     move.b #8,d3
-    mcgeezer_special2
     bra .switch_direction
 
 .rightup
@@ -574,8 +556,8 @@ FastData:
     dc.w screen_bpl_bytes_per_row-2
 
 ;v_scroll_positions
-    dc.b $FF,$EE,$DD,$CC,$BB,$AA,$99,$88
-    dc.b $77,$66,$55,$44,$33,$22,$11,$00
+    dc.b $00,$FF,$EE,$DD,$CC,$BB,$AA,$99
+    dc.b $88,$77,$66,$55,$44,$33,$22,$11
 
 ;v_tile_y_blit_positions
     dc.b $F0,$E0,$D0,$C0,$B0,$A0,$90,$80
@@ -594,7 +576,7 @@ FastData:
     dc.b 1
 
 ;v_scroll_previous_direction
-    dc.b 1
+    dc.b 0
 
 ;v_y_scroll_velocity
     dc.b 1

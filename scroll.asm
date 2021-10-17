@@ -181,13 +181,13 @@ ScrollIncrementXPosition:
     addi.w #1,v_map_x_position(a0)                                           ;mapposx++;
     move.w v_map_x_position(a0),v_video_x_position(a0)                       ;videoposx = mapposx;
 
-    cmp.w #(screen_columns*tile_width),v_video_x_position(a0)                ;352 not quite
+    cmp.w #(screen_columns*tile_width),v_video_x_position(a0)               ;352 not quite
     bne .update
 
-    move.w #0,v_video_x_position(a0)                                         ;reset video x to zero
+    move.w #0,v_video_x_position(a0)                                        ;reset video x to zero
 
 .update
-    move.b #0,v_scroll_previous_direction(a0)                                ;previous_direction = DIRECTION_RIGHT;
+    move.b #1,v_scroll_previous_direction(a0)                               ;previous_direction = DIRECTION_RIGHT;
     rts
 
 ;-----------------------------------------------
@@ -218,7 +218,6 @@ ScrollIncrementYPosition:
     move.w #0,v_video_y_position(a0)                        ;reset video y to 0
 
 .update
-    move.b #2,v_scroll_previous_direction(a0)               ;previous_direction = DIRECTION_DOWN;
     rts
 
 ;-----------------------------------------------
@@ -236,7 +235,6 @@ ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3
     move.w #screen_buffer_height-1,v_video_y_position(a0)   ;reset video y to 287
 
 .end
-    bsr ScrollGetStepAndDelay
     rts
 
 ;-----------------------------------------------
@@ -263,7 +261,7 @@ ScrollUpdateBitplanePointers:
     sub.l d5,d3
     sub.l d5,d6
     sub.l d5,d6
-    bra .update_scroll_delay
+    bra .check_y
 
 ;TODO: SCROLL VELOCITY
 .positive_x
@@ -271,10 +269,6 @@ ScrollUpdateBitplanePointers:
     add.l d5,d3
     add.l d5,d6
     add.l d5,d6
-
-.update_scroll_delay
-
-    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
 
 .check_y
     swap d4
@@ -445,7 +439,13 @@ ScrollGetHTileOffsets:
 
     add.w v_video_x_bitplane_offset(a0),d2                  ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
                                                             ;or zero
+    bra .get_step
+
 .left2
+    sub.w v_video_x_bitplane_offset(a0),d2                  ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
+    add.w #screen_bpl_bytes_per_row-4,d2                    ;last column
+
+.get_step
     move.w v_map_x_position(a0),d4
     and.w #15,d4
 

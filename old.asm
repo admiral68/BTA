@@ -899,3 +899,46 @@ ScrollGetXYPositionUp2:
 .add_offset
     add.l d7,d6
     add.l d7,v_scroll_screen_split(a0)
+;-----------------------------------------------
+TESTScrollRight:
+;INPUT:a0(FAST DATA)
+    cmp.w #0,d1
+    bne .update_horz_scroll_position
+
+   ;tile is completely scrolled through; time to move the pointers
+
+    addi.w #1,v_tile_x_position(a0)
+    cmp.w #1,v_tile_x_position(a0)                          ;If we're just starting, skip to the end
+    beq .update_horz_scroll_position
+
+    move.l #1,d4
+    lea Copper,a1
+    bsr ScrollUpdateBitplanePointers
+
+.update_horz_scroll_position
+
+    ;lea Copper,a1                                           ;Copper Horizontal Scroll pos
+    ;move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
+
+    rts
+;-----------------------------------------------
+TESTScrollLeft:
+;INPUT:a0
+    cmp.w #15,d1
+    bne .update_horz_scroll_position
+
+    ;tile is completely scrolled through; time to move the pointers
+
+    subi.w #1,v_tile_x_position(a0)
+
+    move.l #$0000FFFF,d4
+    lea Copper,a1
+    bsr ScrollUpdateBitplanePointers
+
+.update_horz_scroll_position
+
+    ;lea Copper,a1                                           ;Copper Horizontal Scroll pos
+    ;move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
+
+    rts
+
