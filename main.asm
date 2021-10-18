@@ -283,17 +283,10 @@ TESTScroll:
     ; THE SCROLL POSITION BUG IS FIXED FOR THE TOP, BUT NOW WE'RE BLITTING TO THE WRONG SPOTS
     ; IT'S ALSO NOT FIXED FOR THE BOTTOM
 
-    ;cmp.w #15,d1                                                ;NEED THIS FOR BLIT POSITIONS (TOP SCROLL)
-    ;cmp.w #0,d0                                                 ;NEED THIS FOR X/Y SYNC (TOP SCROLL)
-    ;cmp.w #$00FF,d0                                             ;NEED THIS FOR X/Y SYNC (BOTTOM SCROLL)
+    ;cmp.w #$00FF,d0                                         ;NEED THIS FOR X/Y SYNC (BOTTOM SCROLL)
 
-    ;TOP SCROLL
-    cmp.w #0,d1                                                 ;NEED THIS FOR BLIT POSITIONS (TOP SCROLL)
+    cmp.w #0,d1                                             ;NEED THIS FOR BLIT POSITIONS (TOP SCROLL)
     bne .get_xy_position_left
-    ;END TOP SCROLL
-
-
-
 
     ;tile is completely scrolled through; time to move the pointers
 
@@ -305,11 +298,7 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_xy_position_left
-
-
-
-
-    move.b #$08,v_scroll_previous_direction(a0)                             ;previous_direction = DIRECTION_LEFT
+    move.b #$08,v_scroll_previous_direction(a0)          	;previous_direction = DIRECTION_LEFT
 
     bsr ScrollGetXYPositionLeft
 

@@ -1,75 +1,31 @@
 ScrollGetXYPositionRight:
 ;INPUT: fast data (a0)
     ;returns mapx/y in d3
-    ;returns x/y in d4
 
     ;get source ptrs
-
-    move.w v_map_x_position(a0),d3                          ;save for mapy
+    move.w v_map_x_position(a0),d3
+    and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
     swap d3
     move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
 
-    move.w #screen_columns,d4                               ;22
-
-    add.w d4,d3                                             ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
-    clr.l d4
-    move.w d3,d4
-    swap d3
-    and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
-
-    ;get dest ptrs
-
-    ;TODO: IF VERTICAL SCROLLING IS HAPPENING... NEED TO CALCULATE OFFSET FROM MAP (0,0)
-
-                                                            ;VideoX for Right Scroll is always 0
-                                                            ;always blitting to left column
-    clr.l d5
-    move.w d4,d5
-    divu #screen_columns,d5                                 ;bitplane pointers in screen buffer
-    swap d5
-    move.w d5,d4                                            ;x
-    swap d4                                                 ;y
-
-    move.w d3,d4                                            ;Map Position Y (which will need to be fixed)
-    asl.w #4,d4                                             ;y = tile_height * y
-
-    swap d3                                                 ;mapx
-    swap d4                                                 ;x
-
-    move.l d3,d6                                            ;preserve mapx/mapy
-
+    add.w #screen_columns,d3                                ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
     rts
 
 ;-----------------------------------------------
 ScrollGetXYPositionLeft:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
-;returns x/y in d4
 
-    move.w v_map_x_position(a0),d3                          ;save for mapy
-    sub.w #1,d3                                             ;NEW CODE
+    move.w v_map_x_position(a0),d4                          ;save for mapy
+    sub.w #1,d4                                             ;NEW CODE
+    move.w d4,d3                                            ;save for mapy
+    and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
     swap d3
-    move.w v_map_x_position(a0),d3                          ;mapposx
-    sub.w #1,d3                                             ;NEW CODE
+    move.w d4,d3                                            ;mapposx
     asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH
     subi.w #1,d3                                            ;because we have one blank column to the left
 
-    clr.l d4
-    swap d3
-    and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
-
-    lea v_tile_y_blit_positions(a0),a4
-    move.b (a4,d3.w),d4                                     ;y
-    swap d4                                                 ;x
-
-    ;TODO: IF VERTICAL SCROLLING IS HAPPENING... NEED TO CALCULATE OFFSET FROM MAP (0,0)
-
-    move.w #(screen_columns-1)*tile_width,d4                ;VideoX for Left Scroll is always 336
-                                                            ;always blitting to right column
-
-
-    swap d3                                                 ;mapx
     rts
 
 ;-----------------------------------------------
@@ -382,7 +338,6 @@ ScrollCalculateVerticalSplit:
 ;-----------------------------------------------
 ScrollGetHTileOffsets:
 ;INPUT: mapx/y in d3
-;       x/y in d4
 ;       x = in pixels
 ;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
 ;       DecodedGraphic=a3;FastData=a5
@@ -394,7 +349,6 @@ ScrollGetHTileOffsets:
     clr.l d5
 
     swap d3                                                 ;mapy
-    swap d4                                                 ;y
 
     move.w d3,d2
     cmp.w #0,d2
@@ -431,11 +385,11 @@ ScrollGetHTileOffsets:
     move.l a3,d5                                            ;A source (blocksbuffer)
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
 
-    ;DESTINATION => d1 (d4)
+    ;DESTINATION => d1
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
 
     clr.l d2
-    move.w v_map_x_position(a0),d4                          ;seems everything for left needs subtracted by 1
+    move.w v_map_x_position(a0),d4
 
     btst.b #0,v_scroll_command(a0)
     beq .left2
@@ -446,7 +400,7 @@ ScrollGetHTileOffsets:
 
 .left2
     sub.w #2,d2                                             ;last column
-    sub.w #1,d4                                             ;seems everything for left needs subtracted by 1
+    sub.w #1,d4                                             ;NEW CODE seems everything for left needs subtracted by 1
 
 .get_step
     and.w #15,d4
