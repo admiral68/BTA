@@ -240,10 +240,9 @@ TESTScroll:
 
 
 .right
-    move.b #8,d3;2
+    move.b #2,d3
     ;cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
-    ;cmp.w #480,d2
-    cmp.w #111,d2
+    cmp.w #320,d2
     blt .scroll_right
 
     bra .switch_direction
@@ -325,7 +324,7 @@ TESTScroll:
     cmp.w #1,d2                                             ;map at x=1
     bgt .end_left
 
-    move.b #1,d3;4
+    move.b #4,d3
 
     bra .switch_direction
 
@@ -358,7 +357,7 @@ TESTScroll:
 .end_up
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
-    move.b #8,d3;1
+    move.b #1,d3
     ;mcgeezer_special
     bra .switch_direction
 
@@ -382,7 +381,7 @@ TESTScroll:
     ;cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
     cmp.w #128,v_map_y_position(a0);192
     bne .end_scroll
-    move.b #1,d3;4
+    move.b #8,d3
     ;mcgeezer_special
     bra .switch_direction
 
@@ -593,7 +592,7 @@ FastData:
     dc.b 0
 
 ;v_scroll_command
-    dc.b 2
+    dc.b 1
 
 ;v_scroll_previous_direction
     dc.b 1
