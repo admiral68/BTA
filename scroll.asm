@@ -48,8 +48,10 @@ ScrollGetXYPositionLeft:
 ;returns x/y in d4
 
     move.w v_map_x_position(a0),d3                          ;save for mapy
+    sub.w #1,d3                                             ;NEW CODE
     swap d3
     move.w v_map_x_position(a0),d3                          ;mapposx
+    sub.w #1,d3                                             ;NEW CODE
     asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH
     subi.w #1,d3                                            ;because we have one blank column to the left
 
@@ -433,6 +435,7 @@ ScrollGetHTileOffsets:
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
 
     clr.l d2
+    move.w v_map_x_position(a0),d4                          ;seems everything for left needs subtracted by 1
 
     btst.b #0,v_scroll_command(a0)
     beq .left2
@@ -443,9 +446,9 @@ ScrollGetHTileOffsets:
 
 .left2
     sub.w #2,d2                                             ;last column
+    sub.w #1,d4                                             ;seems everything for left needs subtracted by 1
 
 .get_step
-    move.w v_map_x_position(a0),d4
     and.w #15,d4
 
     asl.w #1,d4

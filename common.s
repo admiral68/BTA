@@ -367,5 +367,5 @@ test_bmp_bp_bytes_per_raster_line   = test_bmp_horz_disp_words*2
 test_bmp_bytes_per_raster_line      = test_bmp_bp_bytes_per_raster_line*tile_bitplanes
 test_bmp_vtile_offset               = test_bmp_bytes_per_raster_line*tile_height
 
-test_right_scroll_extent			=(test_cols_to_decode+1)*tile_width-screen_width
+test_right_scroll_extent            =(test_cols_to_decode+1)*tile_width-screen_width
 
