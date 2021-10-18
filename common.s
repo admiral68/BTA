@@ -32,15 +32,16 @@ v_scroll_command            = 150
 v_scroll_previous_direction = 151
 v_y_scroll_velocity         = 152
 v_x_scroll_velocity         = 153
+v_test_started              = 154
 
-c_horizontal_scroll_pos_01  = 2
-c_sprites_enable_01         = 6
-c_palette_01                = 10
-c_display_enable_01         = 74
-c_bitplane_pointers_01      = 78
-c_split_stop                = 108
-c_split                     = 112
-c_bitplane_pointers_02      = 118
+c_horizontal_scroll_pos_01  = 34
+c_sprites_enable_01         = 38
+c_palette_01                = 42
+c_display_enable_01         = 106
+c_bitplane_pointers_01      = 110
+c_split_stop                = 140
+c_split                     = 144
+c_bitplane_pointers_02      = 150
 
     *-----------------*
     * constants:video *

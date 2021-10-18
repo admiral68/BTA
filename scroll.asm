@@ -1,19 +1,18 @@
-ScrollGetXYPositionRight:
+ScrollGetMapXYRight:
 ;INPUT: fast data (a0)
-    ;returns mapx/y in d3
+;returns mapx/y in d3
 
-    ;get source ptrs
     move.w v_map_x_position(a0),d3
     and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
     swap d3
     move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
+    add.w #screen_columns+1,d3                              ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
 
-    add.w #screen_columns,d3                                ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
     rts
 
 ;-----------------------------------------------
-ScrollGetXYPositionLeft:
+ScrollGetMapXYLeft:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
 
@@ -24,7 +23,6 @@ ScrollGetXYPositionLeft:
     swap d3
     move.w d4,d3                                            ;mapposx
     asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH
-    subi.w #1,d3                                            ;because we have one blank column to the left
 
     rts
 
@@ -140,12 +138,11 @@ ScrollIncrementXPosition:
     move.w v_map_x_position(a0),v_video_x_position(a0)                       ;videoposx = mapposx;
 
     cmp.w #(screen_columns*tile_width),v_video_x_position(a0)               ;352 not quite
-    bne .update
+    bne .end
 
     move.w #0,v_video_x_position(a0)                                        ;reset video x to zero
 
-.update
-    move.b #1,v_scroll_previous_direction(a0)                               ;previous_direction = DIRECTION_RIGHT;
+.end
     rts
 
 ;-----------------------------------------------
@@ -160,8 +157,6 @@ ScrollDecrementXPosition:
     move.w #(screen_columns*tile_width-1),v_video_x_position(a0)             ;reset video x to 351
 
 .end
-
-    bsr ScrollGetStepAndDelay
     rts
 
 ;-----------------------------------------------
@@ -461,12 +456,11 @@ ScrollGetVTileOffsets:
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
 
     swap d6                                                 ;mapy(offset for dest)
-
     move.w d6,d2
-    cmp.w #0,d2
-    beq .add_column_offsets
 
-************* CONVERT MAPY TO VIDEOY ********************
+    btst.b #1,v_scroll_command(a0)                          ;not scrolling down?
+    beq .convert_mapy_to_videoy
+    add.w #1,d2
 
 .convert_mapy_to_videoy
     cmp.w #screen_buffer_rows,d2
@@ -474,6 +468,11 @@ ScrollGetVTileOffsets:
 
     sub.w #screen_buffer_rows,d2
     bra .convert_mapy_to_videoy
+
+    cmp.w #0,d2
+    beq .add_column_offsets
+
+************* CONVERT MAPY TO VIDEOY ********************
 
 .add_rows
     move.w d2,d6                                            ;debug

@@ -236,23 +236,24 @@ TESTScroll:
 
     rts
 
+
+
+
 .right
     move.b #8,d3;2
-    cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
-    blo .scroll_right
+    ;cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
+    ;cmp.w #480,d2
+    cmp.w #111,d2
+    blt .scroll_right
+
     bra .switch_direction
 
 .scroll_right
-
     cmp.w #0,d1                                             ;INPUT:d2,a0 (d1)
     bne .get_xy_position_right
 
     ;tile is completely scrolled through; time to move the pointers
-
     addi.w #1,v_tile_x_position(a0)
-
-    cmp.w #0,v_map_x_position(a0)                           ;SKIP MOVING ON THE FIRST COLUMN (SPECIAL CASE)
-    beq .get_xy_position_right
 
 .increment_x
     move.l #1,d4
@@ -260,16 +261,25 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_xy_position_right
-    bsr ScrollGetXYPositionRight
+    bsr ScrollGetMapXYRight
 
     lea DecodedGraphic,a3
     bsr ScrollGetHTileOffsets
     bsr TileDraw
+
+
+
+    cmp.b #1,v_scroll_previous_direction(a0)
+    bne .skip_increment_x
     bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
+
+
+.skip_increment_x
     bsr ScrollGetStepAndDelay
     lea Copper,a1                                           ;Copper Horizontal Scroll pos
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
-
+    move.b #1,v_scroll_previous_direction(a0)               ;previous_direction = DIRECTION_RIGHT
+    mcgeezer_special
     rts
 
 
@@ -279,13 +289,11 @@ TESTScroll:
 
 .left
     bsr ScrollDecrementXPosition
+    bsr ScrollGetStepAndDelay
 
-    ; THE SCROLL POSITION BUG IS FIXED FOR THE TOP, BUT NOW WE'RE BLITTING TO THE WRONG SPOTS
-    ; IT'S ALSO NOT FIXED FOR THE BOTTOM
+    ; THE SCROLL POSITION BUG IS FIXED FOR THE TOP, BUT NOT FOR THE BOTTOM
 
-    ;cmp.w #$00FF,d0                                         ;NEED THIS FOR X/Y SYNC (BOTTOM SCROLL)
-
-    cmp.w #0,d1                                             ;NEED THIS FOR BLIT POSITIONS (TOP SCROLL)
+    cmp.w #0,d1
     bne .get_xy_position_left
 
     ;tile is completely scrolled through; time to move the pointers
@@ -298,9 +306,9 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_xy_position_left
-    move.b #$08,v_scroll_previous_direction(a0)          	;previous_direction = DIRECTION_LEFT
+    move.b #8,v_scroll_previous_direction(a0)               ;previous_direction = DIRECTION_LEFT
 
-    bsr ScrollGetXYPositionLeft
+    bsr ScrollGetMapXYLeft
 
     lea DecodedGraphic,a3
     bsr ScrollGetHTileOffsets
@@ -308,16 +316,20 @@ TESTScroll:
 
     ;needed for change of direction
     bsr ScrollGetStepAndDelay
-    cmp.w #0,d2                                             ;map at x-1
-    bgt .update_left_scroll_pos
-
-    move.b #16,d3
-    bra .switch_direction
 
 .update_left_scroll_pos
 
     lea Copper,a1                                           ;Copper Horizontal Scroll pos
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
+
+    cmp.w #1,d2                                             ;map at x=1
+    bgt .end_left
+
+    move.b #1,d3;4
+
+    bra .switch_direction
+
+.end_left
     rts
 
 
@@ -326,7 +338,7 @@ TESTScroll:
 
 
 .up
-    mcgeezer_special2
+    ;mcgeezer_special2
     bsr ScrollDecrementYPosition
 
     move.l #$FFFF0000,d4
@@ -346,7 +358,8 @@ TESTScroll:
 .end_up
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
-    move.b #1,d3
+    move.b #8,d3;1
+    ;mcgeezer_special
     bra .switch_direction
 
 .down
@@ -366,9 +379,11 @@ TESTScroll:
     bsr TileDraw
 .end_down
     bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d44
-    cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
+    ;cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
+    cmp.w #128,v_map_y_position(a0);192
     bne .end_scroll
-    move.b #8,d3
+    move.b #1,d3;4
+    ;mcgeezer_special
     bra .switch_direction
 
 .rightup
@@ -487,14 +502,6 @@ VBint:                                                      ;Blank template VERT
     move.w d0,INTREQ(a6)
     move.w d0,INTREQ(a6)
 
-    move.w #vert_display_start<<8+h_display_start,DIWSTRT(a6)
-    move.w #vert_display_stop<<8+h_display_stop,DIWSTOP(a6)
-    move.w #DMA_fetch_start,DDFSTRT(a6)                     ;$28 for 22 columns; $38 for 20 columns (etc)
-    move.w #DMA_fetch_stop,DDFSTOP(a6)                      ;$d0 for 22 columns; $c0 for 20 columns
-
-    move.w #screen_modulo,BPL1MOD(a6)
-    move.w #screen_modulo,BPL2MOD(a6)
-
     bsr TESTVBCode
     bsr VBCode
 
@@ -586,16 +593,19 @@ FastData:
     dc.b 0
 
 ;v_scroll_command
-    dc.b 1
+    dc.b 2
 
 ;v_scroll_previous_direction
-    dc.b 0
+    dc.b 1
 
 ;v_y_scroll_velocity
     dc.b 1
 
 ;v_x_scroll_velocity
     dc.b 1
+
+;v_test_started
+    dc.b 0
 
     EVEN
 
@@ -606,6 +616,17 @@ FastData:
     SECTION AllData,DATA_C
 
 Copper:
+
+    dc.w $0180,$0111
+    dc.w $2b01,$fffe
+
+    dc.b 0,DIWSTRT,vert_display_start,h_display_start
+    dc.b 0,DIWSTOP,vert_display_stop,h_display_stop
+    dc.w DDFSTRT,DMA_fetch_start                            ;$28 for 22 columns; $38 for 20 columns (etc)
+    dc.w DDFSTOP,DMA_fetch_stop                             ;$d0 for 22 columns; $c0 for 20 columns
+
+    dc.w BPL1MOD,screen_modulo
+    dc.w BPL2MOD,screen_modulo
 
 ;c_horizontal_scroll_pos_01
     dc.w BPLCON1,$00
