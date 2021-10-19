@@ -3,10 +3,12 @@
     INCLUDE "photon/Blitter-Register-List.S"
 
     INCLUDE "common.s"
+    INCLUDE "input.s"
     INCLUDE "tile.s"
     INCLUDE "test.asm"
     INCLUDE "tile.asm"
     INCLUDE "scroll.asm"
+    INCLUDE "input.asm"
 
 *******************************************************************************
 * GAME
@@ -61,6 +63,8 @@ Init:
     lea screen_bp_bytes_per_raster_line(a0),a0              ;every 44 bytes we'll have new bitplane data
     dbf d0,.bpl7
 
+    bsr InputInitControllers
+
 ;test code ends
 
     movem.l (sp)+,d0-a6
@@ -103,6 +107,16 @@ Main:
     movem.l d0-a6,-(sp)
 
 .WaitMouse
+
+    moveq #1,d0
+    bsr InputReadController
+    ;move.l d0,Button(a4)       ; set Button, UpDown, LeftRight
+
+
+
+
+    bsr InputInitControllers
+
     btst #6,$bfe001
     bne.s .WaitMouse
 
@@ -219,10 +233,12 @@ TESTScroll:
   *  ALGORITHM  *
   *-------------*
 
+  *****************************************************
   ** BLIT ORDER: R->D->U->L (BLIT IN ASCENDING MODE) **
+  *****************************************************
 
-    cmp.b #16,v_scroll_command(a0)                          ;16=kill code
-    bne .continue
+    btst.b #4,v_scroll_command(a0)                          ;16=kill code (fire button)
+    beq .continue
     rts
 
 .continue
@@ -247,6 +263,11 @@ TESTScroll:
     bne .left
 
     rts
+
+***********************************************
+*** R: All blocks fill column (left column) ***
+***                                         ***
+***********************************************
 
 .right
     move.b #2,d3
@@ -282,6 +303,11 @@ TESTScroll:
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
     move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
     rts
+
+************************************************
+*** L: All blocks fill column (right column) ***
+***    If D, skip [B]. If U, skip [D]        ***
+************************************************
 
 .left
     bsr ScrollDecrementXPosition
@@ -325,6 +351,11 @@ TESTScroll:
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
     rts
 
+*******************************************
+*** U: All blocks fill row (bottom row) ***
+***    If R, skip [C]                   ***
+*******************************************
+
 .up
     move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
     bsr ScrollDecrementYPosition
@@ -349,6 +380,11 @@ TESTScroll:
     move.b #1,d3
     bra .switch_direction
 
+****************************************
+*** D: All blocks fill row (top row) ***
+***    If R, skip [A]                ***
+****************************************
+
 .down
     move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
     move.l #$10000,d4
@@ -372,7 +408,9 @@ TESTScroll:
     bne .end_scroll
     move.b #8,d3
 
-
+************************************
+*** SWITCH DIRECTION (TEST CODE) ***
+************************************
 
 .switch_direction
     move.b d3,v_scroll_command(a0)
