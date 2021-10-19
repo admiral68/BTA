@@ -485,15 +485,25 @@ ScrollGetVTileOffsets:
 ************** ADD COLUMN OFFSETS ***********************
 .add_column_offsets
     clr.l d2
+    
     move.w v_map_y_position(a0),d4
     swap d4
     move.w v_map_y_position(a0),d4
     and.l #$000F000F,d4
 
     asl.w #1,d4
+
     add.w v_scrolly_dest_offset_table(a0,d4.w),d2
 
     add.l d2,d1                                             ;destination offset = mapy * mapwidth + mapx
+ 
+    move.w v_map_x_position(a0),d2                          ;when X is on an uneven tile boundary, compensate
+    and.w #$000f,d2                                         ;by blitting one block to the left
+    beq .skip_compensate_for_x
+
+    sub.w #2,d1
+
+.skip_compensate_for_x
 
     clr.l d2
     move.w v_scrolly_dest_offset_table(a0,d4.w),d2

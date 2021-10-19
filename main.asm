@@ -1,6 +1,3 @@
-    clr.w $102.w
-    lea DecodedGraphic,a3
-
     INCDIR ""
     INCLUDE "photon/PhotonsMiniWrapper1.04!.S"
     INCLUDE "photon/Blitter-Register-List.S"
@@ -10,7 +7,6 @@
     INCLUDE "test.asm"
     INCLUDE "tile.asm"
     INCLUDE "scroll.asm"
-
 
 *******************************************************************************
 * GAME
@@ -203,9 +199,23 @@ TESTUpdatePaletteDuringScroll:
 TESTScroll:
 
     bsr TESTUpdatePaletteDuringScroll
+
+    btst.b #3,v_scroll_command(a0)                          ;left?
+    bne .skip_increment_x
+
+    cmp.b #8,v_scroll_previous_x_direction(a0)              ;previous direction left?
+    bne .skip_increment_x
+
+   ;Compensate for x off by 1
+
+    bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
+    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
+
+.skip_increment_x
+
     bsr ScrollGetStepAndDelay
 
-    cmp.b #16,v_scroll_command(a0)                           ;16=kill code
+    cmp.b #16,v_scroll_command(a0)                          ;16=kill code
     bne .continue
     rts
 
@@ -236,13 +246,11 @@ TESTScroll:
 
     rts
 
-
-
-
 .right
     move.b #2,d3
-    ;cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
-    cmp.w #320,d2
+    cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
+    ;cmp.w #320,d2
+    ;cmp.w #160,d2
     blt .scroll_right
 
     bra .switch_direction
@@ -266,32 +274,25 @@ TESTScroll:
     bsr ScrollGetHTileOffsets
     bsr TileDraw
 
-
-
-    cmp.b #1,v_scroll_previous_direction(a0)
-    bne .skip_increment_x
     bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
-
-
-.skip_increment_x
     bsr ScrollGetStepAndDelay
     lea Copper,a1                                           ;Copper Horizontal Scroll pos
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
-    move.b #1,v_scroll_previous_direction(a0)               ;previous_direction = DIRECTION_RIGHT
-    mcgeezer_special
+    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
     rts
-
-
-
-
-
 
 .left
     bsr ScrollDecrementXPosition
     bsr ScrollGetStepAndDelay
 
-    ; THE SCROLL POSITION BUG IS FIXED FOR THE TOP, BUT NOT FOR THE BOTTOM
+    cmp.w #0,d2                                             ;map at x=1
+    bgt .continue_left
 
+    move.b #4,d3;4,2
+
+    bra .switch_direction
+
+.continue_left
     cmp.w #0,d1
     bne .get_xy_position_left
 
@@ -305,7 +306,7 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_xy_position_left
-    move.b #8,v_scroll_previous_direction(a0)               ;previous_direction = DIRECTION_LEFT
+    move.b #8,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_LEFT
 
     bsr ScrollGetMapXYLeft
 
@@ -320,24 +321,10 @@ TESTScroll:
 
     lea Copper,a1                                           ;Copper Horizontal Scroll pos
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
-
-    cmp.w #1,d2                                             ;map at x=1
-    bgt .end_left
-
-    move.b #4,d3
-
-    bra .switch_direction
-
-.end_left
     rts
 
-
-
-
-
-
 .up
-    ;mcgeezer_special2
+    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
     bsr ScrollDecrementYPosition
 
     move.l #$FFFF0000,d4
@@ -358,10 +345,10 @@ TESTScroll:
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
     move.b #1,d3
-    ;mcgeezer_special
     bra .switch_direction
 
 .down
+    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
     move.l #$10000,d4
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
@@ -378,11 +365,10 @@ TESTScroll:
     bsr TileDraw
 .end_down
     bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d44
-    ;cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
-    cmp.w #128,v_map_y_position(a0);192
+    cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
+    ;cmp.w #128,v_map_y_position(a0);192
     bne .end_scroll
     move.b #8,d3
-    ;mcgeezer_special
     bra .switch_direction
 
 .rightup
@@ -594,7 +580,7 @@ FastData:
 ;v_scroll_command
     dc.b 1
 
-;v_scroll_previous_direction
+;v_scroll_previous_x_direction
     dc.b 1
 
 ;v_y_scroll_velocity

@@ -5,43 +5,43 @@
     * pointer offsets *
     *-----------------*
 
-v_tile_y_position           = 0
-v_tile_x_position           = 2
-v_tile_decode_dest          = 4
-v_tile_decode_row_dest      = 8
-v_screen                    = 12
-v_tile_source               = 16
-v_map_y_position            = 20
-v_map_x_position            = 22
-v_video_y_position          = 24
-v_video_x_position          = 26
-v_dest_graphic_vtile_offset = 28
-v_scroll_screen             = 32
-v_scroll_screen_split       = 36
+v_tile_y_position                   = 0
+v_tile_x_position                   = 2
+v_tile_decode_dest                  = 4
+v_tile_decode_row_dest              = 8
+v_screen                            = 12
+v_tile_source                       = 16
+v_map_y_position                    = 20
+v_map_x_position                    = 22
+v_video_y_position                  = 24
+v_video_x_position                  = 26
+v_dest_graphic_vtile_offset         = 28
+v_scroll_screen                     = 32
+v_scroll_screen_split               = 36
 
-v_scrollx_dest_offset_table = 40
-v_scrolly_dest_offset_table = 72
-v_scroll_saveword           = 104
-v_video_x_bitplane_offset   = 106
-v_scroll_positions          = 108
-v_tile_y_blit_positions     = 124
-v_decoded_bitplane_bytes    = 140
-v_tile_columns_to_decode    = 148
-v_tile_rows_to_decode       = 149
-v_scroll_command            = 150
-v_scroll_previous_direction = 151
-v_y_scroll_velocity         = 152
-v_x_scroll_velocity         = 153
-v_test_started              = 154
+v_scrollx_dest_offset_table         = 40
+v_scrolly_dest_offset_table         = 72
+v_scroll_saveword                   = 104
+v_video_x_bitplane_offset           = 106
+v_scroll_positions                  = 108
+v_tile_y_blit_positions             = 124
+v_decoded_bitplane_bytes            = 140
+v_tile_columns_to_decode            = 148
+v_tile_rows_to_decode               = 149
+v_scroll_command                    = 150
+v_scroll_previous_x_direction       = 151
+v_y_scroll_velocity                 = 152
+v_x_scroll_velocity                 = 153
+v_test_started                      = 154
 
-c_horizontal_scroll_pos_01  = 34
-c_sprites_enable_01         = 38
-c_palette_01                = 42
-c_display_enable_01         = 106
-c_bitplane_pointers_01      = 110
-c_split_stop                = 140
-c_split                     = 144
-c_bitplane_pointers_02      = 150
+c_horizontal_scroll_pos_01          = 34
+c_sprites_enable_01                 = 38
+c_palette_01                        = 42
+c_display_enable_01                 = 106
+c_bitplane_pointers_01              = 110
+c_split_stop                        = 140
+c_split                             = 144
+c_bitplane_pointers_02              = 150
 
     *-----------------*
     * constants:video *
