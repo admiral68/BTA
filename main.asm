@@ -215,34 +215,36 @@ TESTScroll:
 
     bsr ScrollGetStepAndDelay
 
+  *-------------*
+  *  ALGORITHM  *
+  *-------------*
+
+  ** BLIT ORDER: R->D->U->L (BLIT IN ASCENDING MODE) **
+
     cmp.b #16,v_scroll_command(a0)                          ;16=kill code
     bne .continue
     rts
 
 .continue
-    cmp.b #1,v_scroll_command(a0)
-    beq .right
 
-    cmp.b #8,v_scroll_command(a0)
-    beq .left
+    btst.b #0,v_scroll_command(a0)                          ;right?
+    beq .check_down
+    bsr .right
 
-    cmp.b #2,v_scroll_command(a0)
-    beq .down
+.check_down
+    btst.b #1,v_scroll_command(a0)                          ;down?
+    beq .check_up
+    bsr .down
+    bra .check_left
 
-    cmp.b #4,v_scroll_command(a0)
-    beq .up
+.check_up
+    btst.b #2,v_scroll_command(a0)                          ;up?
+    beq .check_left
+    bsr .up
 
-    cmp.b #3,v_scroll_command(a0)
-    beq .rightdown
-
-    cmp.b #5,v_scroll_command(a0)
-    beq .rightup
-
-    cmp.b #10,v_scroll_command(a0)
-    beq .leftdown
-
-    cmp.b #12,v_scroll_command(a0)
-    beq .leftup
+.check_left
+    btst.b #3,v_scroll_command(a0)                          ;left?
+    bne .left
 
     rts
 
@@ -369,19 +371,8 @@ TESTScroll:
     ;cmp.w #128,v_map_y_position(a0);192
     bne .end_scroll
     move.b #8,d3
-    bra .switch_direction
 
-.rightup
-    rts
 
-.rightdown
-    rts
-
-.leftup
-    rts
-
-.leftdown
-    rts
 
 .switch_direction
     move.b d3,v_scroll_command(a0)
