@@ -270,7 +270,7 @@ TESTScroll:
 ***********************************************
 
 .right
-    move.b #8,d3;2
+    move.b #2,d3
     ;cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
     cmp.w #320,d2
     ;cmp.w #160,d2
@@ -320,7 +320,7 @@ TESTScroll:
     cmp.w #0,d2                                             ;map at x=1
     bgt .continue_left
 
-    move.b #1,d3;4,2
+    move.b #4,d3;4,2
 
     bra .switch_direction
 
@@ -582,8 +582,8 @@ FastData:
     dc.l 0
 
 ;v_scrollx_dest_offset_table
-    dc.w $BB00,$0000,$0B00,$2100,$2C00,$3700,$4200,$4D00
-    dc.w $5800,$6300,$6E00,$7900,$8400,$8F00,$9A00,$A500
+    dc.w $0000,$0B00,$2100,$2C00,$3700,$4200,$4D00,$5800
+    dc.w $6300,$6E00,$7900,$8400,$8F00,$9A00,$A500,$BB00
 
 ;v_scrolly_dest_offset_table
     dc.w $0002,$0004,$0006,$0008,$000A,$000C,$000E,$0012

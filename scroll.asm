@@ -341,6 +341,10 @@ ScrollGetHTileOffsets:
 
     ;SOURCE => d5 (d3=offset)
 
+****************************************
+***           SOURCE                 ***
+****************************************
+
     clr.l d1
     clr.l d2
     clr.l d5
@@ -359,26 +363,23 @@ ScrollGetHTileOffsets:
     add.l #map_bytes_per_tile_row,d1
     dbf d2,.addo
 
-
 .skip_add
 
     move.w d3,d2
 
-    cmp.w #2,d2                                             ;position=2
+    cmp.w #1,d2                                             ;position=1
     ble .add_no_rows
 
-    cmp.w #$0F,d2                                           ;position=F
-    blt .add_one_row
+    cmp.w #$0E,d2                                           ;position=E
+    ble .add_one_row
 
 .add_two_rows
     add.l #map_bytes_per_tile_row,d1
-	
+
 .add_one_row
     add.l #map_bytes_per_tile_row,d1
 
 .add_no_rows
-
-
 
     swap d3                                                 ;mapx
     move.w d3,d2
@@ -407,24 +408,24 @@ ScrollGetHTileOffsets:
 
     sub.l #map_bytes_per_tile_row,d5                        ;We're starting one source row higher
 
-
-
-
-
     ;IF the source pointer is out of range, skip the blit
     cmp.l a3,d5
     bge .check_past_end_of_source
-	
-	add.l #map_bytes,d5
+
+    add.l #map_bytes,d5
 
 .check_past_end_of_source
     cmp.l a5,d5
     blt .destination
-	
-	sub.l #map_bytes,d5
+
+    sub.l #map_bytes,d5
+
+****************************************
+***         DESTINATION              ***
+****************************************
 
 .destination
-    
+
     ;DESTINATION => d1
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
 
@@ -441,7 +442,7 @@ ScrollGetHTileOffsets:
     sub.w #2,d2                                             ;last column
 
 .get_step
-    ;mcgeezer_special
+
     and.w #15,d4
     move.w d4,d6
 
@@ -457,15 +458,12 @@ ScrollGetHTileOffsets:
 
     ;TODO: IF LEFT SCROLL, CHECK U and D
 
-    ;mcgeezer_special
-
-
 .check_position
-    sub.w #2,d6                                             ;position=2
+    sub.w #1,d6                                             ;position=1
     beq .double
 
-    addq #2,d6
-    eor.w #$0F,d6                                           ;position=F
+    addq #1,d6
+    eor.w #$0E,d6                                           ;position=E
     bne .single
 
 .double
@@ -475,7 +473,6 @@ ScrollGetHTileOffsets:
     addq #1,d7
     asl.w #2,d7
 .none
-    mcgeezer_special
     rts
 
 ;-----------------------------------------------
