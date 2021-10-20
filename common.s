@@ -68,6 +68,8 @@ map_tile_height                     = test_rows_to_decode
 map_bpl_bytes_per_row               = map_width/8
 map_bitplanes                       = 4
 map_bytes_per_row                   = map_bpl_bytes_per_row*map_bitplanes
+map_bytes_per_tile_row              = map_bytes_per_row*tile_height
+map_bytes                           = map_bytes_per_tile_row*map_tile_height
 
 DMA_fetch_start                     = $28                                   ;CONVERT $28 for 22 columns;$38 for 20 columns
 DMA_fetch_stop                      = $d0                                   ;CONVERT $d0 for 22 columns;$c0 for 20 columns

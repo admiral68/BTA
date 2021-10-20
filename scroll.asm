@@ -17,7 +17,7 @@ ScrollGetMapXYLeft:
 ;returns mapx/y in d3
 
     move.w v_map_x_position(a0),d4                          ;save for mapy
-    sub.w #1,d4                                             ;NEW CODE
+    sub.w #1,d4
     move.w d4,d3                                            ;save for mapy
     and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
     swap d3
@@ -126,7 +126,9 @@ ScrollGetStepAndDelay:
     and.w #$000F,d1
     clr.l d0
 
-    move.b v_scroll_positions(a0,d1.w),d0
+    move.l a0,a4
+    add.l #v_scroll_positions,a4
+    move.b (a4,d1.w),d0
 
     rts
 
@@ -335,13 +337,16 @@ ScrollGetHTileOffsets:
 ;INPUT: mapx/y in d3
 ;       x = in pixels
 ;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
-;       DecodedGraphic=a3;FastData=a5
+;       DecodedGraphic=a3;DecodedGraphicE=a5
 
     ;SOURCE => d5 (d3=offset)
 
     clr.l d1
     clr.l d2
     clr.l d5
+
+    move.w v_map_x_position(a0),d4
+    subi #1,d4                                              ;seems everything for left needs subtracted by 1
 
     swap d3                                                 ;mapy
 
@@ -351,10 +356,29 @@ ScrollGetHTileOffsets:
     sub.w #1,d2
 
 .addo                                                       ;mapy * mapwidth
-    add.l #$4000,d1
+    add.l #map_bytes_per_tile_row,d1
     dbf d2,.addo
 
+
 .skip_add
+
+    move.w d3,d2
+
+    cmp.w #2,d2                                             ;position=2
+    ble .add_no_rows
+
+    cmp.w #$0F,d2                                           ;position=F
+    blt .add_one_row
+
+.add_two_rows
+    add.l #map_bytes_per_tile_row,d1
+	
+.add_one_row
+    add.l #map_bytes_per_tile_row,d1
+
+.add_no_rows
+
+
 
     swap d3                                                 ;mapx
     move.w d3,d2
@@ -363,6 +387,7 @@ ScrollGetHTileOffsets:
     beq .left
 
     subi #1,d2                                              ;back a column
+    addi #1,d4
 
 .left
     subi #1,d2                                              ;ADDED LINE: NEW (BREAKING?) CHANGE back a column
@@ -380,11 +405,30 @@ ScrollGetHTileOffsets:
     move.l a3,d5                                            ;A source (blocksbuffer)
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
 
+    sub.l #map_bytes_per_tile_row,d5                        ;We're starting one source row higher
+
+
+
+
+
+    ;IF the source pointer is out of range, skip the blit
+    cmp.l a3,d5
+    bge .check_past_end_of_source
+	
+	add.l #map_bytes,d5
+
+.check_past_end_of_source
+    cmp.l a5,d5
+    blt .destination
+	
+	sub.l #map_bytes,d5
+
+.destination
+    
     ;DESTINATION => d1
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
 
     clr.l d2
-    move.w v_map_x_position(a0),d4
 
     btst.b #0,v_scroll_command(a0)
     beq .left2
@@ -395,16 +439,43 @@ ScrollGetHTileOffsets:
 
 .left2
     sub.w #2,d2                                             ;last column
-    sub.w #1,d4                                             ;NEW CODE seems everything for left needs subtracted by 1
 
 .get_step
+    ;mcgeezer_special
     and.w #15,d4
+    move.w d4,d6
 
     asl.w #1,d4
     add.w v_scrollx_dest_offset_table(a0,d4.w),d2
 
     move.l d2,d4                                            ;(for debugging)
     add.l d2,d1                                             ;frontbuffer + y + x
+
+.figure_out_num_blocks_to_blit
+
+    moveq #0,d7
+
+    ;TODO: IF LEFT SCROLL, CHECK U and D
+
+    ;mcgeezer_special
+
+
+.check_position
+    sub.w #2,d6                                             ;position=2
+    beq .double
+
+    addq #2,d6
+    eor.w #$0F,d6                                           ;position=F
+    bne .single
+
+.double
+    addq #1,d7
+
+.single
+    addq #1,d7
+    asl.w #2,d7
+.none
+    mcgeezer_special
     rts
 
 ;-----------------------------------------------
@@ -428,7 +499,7 @@ ScrollGetVTileOffsets:
     sub.w #1,d2
 
 .addo                                                       ;mapy * mapwidth
-    add.l #$4000,d1
+    add.l #map_bytes_per_tile_row,d1
     dbf d2,.addo
 
 .skip_add
@@ -485,7 +556,7 @@ ScrollGetVTileOffsets:
 ************** ADD COLUMN OFFSETS ***********************
 .add_column_offsets
     clr.l d2
-    
+
     move.w v_map_y_position(a0),d4
     swap d4
     move.w v_map_y_position(a0),d4
@@ -496,7 +567,7 @@ ScrollGetVTileOffsets:
     add.w v_scrolly_dest_offset_table(a0,d4.w),d2
 
     add.l d2,d1                                             ;destination offset = mapy * mapwidth + mapx
- 
+
     move.w v_map_x_position(a0),d2                          ;when X is on an uneven tile boundary, compensate
     and.w #$000f,d2                                         ;by blitting one block to the left
     beq .skip_compensate_for_x
