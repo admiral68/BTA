@@ -456,7 +456,25 @@ ScrollGetHTileOffsets:
 
     moveq #0,d7
 
-    ;TODO: IF LEFT SCROLL, CHECK U and D
+****************************************
+***      LEFT SCROLL CHECKS          ***
+****************************************
+
+    btst.b #3,v_scroll_command(a0)
+    beq .check_position
+
+    btst.b #1,v_scroll_command(a0)                          ;also scrolling down?
+    beq .check_upward_scroll
+
+    tst.w d6
+    beq .none                                               ;If D, skip [B]
+
+.check_upward_scroll
+    btst.b #2,v_scroll_command(a0)                          ;also scrolling up?
+    beq .check_position
+
+    cmp.w #$0F,d6
+    beq .none                                               ;If U, skip [D]
 
 .check_position
     sub.w #1,d6                                             ;position=1
