@@ -694,7 +694,7 @@ Copper:
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
-    dc.w $0180,$0FF9
+;   dc.w $0180,$0FF9
 
     dc.w $ffff,$fffe
 
