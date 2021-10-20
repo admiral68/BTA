@@ -375,7 +375,10 @@ TESTScroll:
     bsr ScrollGetXYPositionUp
 
     lea DecodedGraphic,a3
+    lea DecodedGraphicE,a5
     bsr ScrollGetVTileOffsets
+	
+	mcgeezer_special
 
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
@@ -394,7 +397,7 @@ TESTScroll:
 .end_up
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
-    move.b #1,d3
+    move.b #2,d3;1
     bra .switch_direction
 
 ****************************************
@@ -411,9 +414,10 @@ TESTScroll:
     bsr ScrollGetXYPositionDown
 
     lea DecodedGraphic,a3
+	lea DecodedGraphicE,a5
     bsr ScrollGetVTileOffsets
 
-    mcgeezer_special
+    ;mcgeezer_special
 
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
@@ -637,7 +641,7 @@ FastData:
     dc.b 0
 
 ;v_scroll_command
-    dc.b 1
+    dc.b 2
 
 ;v_scroll_previous_x_direction
     dc.b 1
