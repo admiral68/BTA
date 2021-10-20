@@ -597,16 +597,45 @@ ScrollGetVTileOffsets:
     add.l d2,d5
 
 .figure_out_num_blocks_to_blit
+    moveq #0,d7
+    asr.w #1,d4
 
-    cmp.w #5,d3
+    btst.b #0,v_scroll_command(a0)                          ;also scrolling right?
+    beq .check_position                                     ;if not, skip these checks
+
+****************************************
+***      DOWN SCROLL CHECKS          ***
+****************************************
+
+    btst.b #1,v_scroll_command(a0)                          ;down?
+    beq .check_up
+
+    tst.w d4
+    beq .none                                               ;If R, skip [A]
+
+****************************************
+***       UP SCROLL CHECKS           ***
+****************************************
+
+.check_up
+    btst.b #2,v_scroll_command(a0)                          ;up?
+    beq .check_position
+
+    cmp.w #$0F,d4
+    beq .none                                               ;If R, skip [C]
+
+.check_position
+    cmp.w #3,d4                                             ;positions 0-3 (single block)
     ble .single
 
-    and.w #1,d3
+    and.w #1,d4                                             ;odd positions > 3 (single block)
     bne .single
 
-    moveq #1,d3
-    rts
+.double
+    addq #1,d7
 
 .single
-    moveq #0,d3
+    addq #1,d7
+    asl.w #2,d7
+.none
     rts
