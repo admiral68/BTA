@@ -520,25 +520,15 @@ ScrollGetVTileOffsets:
 .skip_add
 
     move.w d3,d2                                            ;mapx
-
     asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
-
-
 
     ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
     add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
-    
-	move.w d3,d2                                            ;mapx
-
-
-
+    move.w d3,d2                                            ;mapx
 
     sub.l #2,d1                                             ;NEW CODE--takes care of column 0
-	
-	
 
-
-	move.w d3,d2                                            ;mapx
+    move.w d3,d2                                            ;mapx
     move.l d1,d3                                            ;for debugging purposes
 
     WAITBLIT                                                ;TODO: PUT BACK IN WHEN NOT DEBUGGING
@@ -548,6 +538,7 @@ ScrollGetVTileOffsets:
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
 
 ;IF the source pointer is out of range, skip the blit
+
     moveq #0,d7
 
     tst.w d2                                                ;blitting into first column?
@@ -601,24 +592,14 @@ ScrollGetVTileOffsets:
     and.l #$000F000F,d4
 
     asl.w #1,d4
-
     add.w v_scrolly_dest_offset_table(a0,d4.w),d2
-
     add.l d2,d1                                             ;destination offset = mapy * mapwidth + mapx
-
-
-
-
 
     move.w v_map_x_position(a0),d2                          ;when X is on an uneven tile boundary, compensate
     and.w #$000f,d2                                         ;by blitting one block to the left
     beq .skip_compensate_for_x
 
     sub.w #2,d1
-
-
-
-
 
 .skip_compensate_for_x
 
@@ -632,10 +613,6 @@ ScrollGetVTileOffsets:
     blt .figure_out_num_blocks_to_blit
 
     sub.l #map_bytes,d5                                     ;TODO: Maybe this isn't correct
-
-
-
-
 
 .figure_out_num_blocks_to_blit
     moveq #0,d7
