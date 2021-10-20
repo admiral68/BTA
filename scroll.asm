@@ -534,6 +534,9 @@ ScrollGetVTileOffsets:
     ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
 
+
+
+
 ****************** DESTINATION **************************
 
     ;DESTINATION => d1 (d4)
@@ -583,11 +586,14 @@ ScrollGetVTileOffsets:
 
     add.l d2,d1                                             ;destination offset = mapy * mapwidth + mapx
 
+
+
     move.w v_map_x_position(a0),d2                          ;when X is on an uneven tile boundary, compensate
     and.w #$000f,d2                                         ;by blitting one block to the left
     beq .skip_compensate_for_x
 
     sub.w #2,d1
+
 
 .skip_compensate_for_x
 
@@ -595,6 +601,11 @@ ScrollGetVTileOffsets:
     move.w v_scrolly_dest_offset_table(a0,d4.w),d2
     sub.w #2,d2
     add.l d2,d5
+
+
+
+
+
 
 .figure_out_num_blocks_to_blit
     moveq #0,d7

@@ -376,12 +376,21 @@ TESTScroll:
 
     lea DecodedGraphic,a3
     bsr ScrollGetVTileOffsets
-    beq .blit_up_single
-.blit_up_double
-    bsr TileDrawTwoHorizontal
-    bra .end_up
-.blit_up_single
-    bsr TileDraw
+
+    lea TileDrawHorizontalJumpTable,a4
+    move.l (a4,d7.w),a4
+    jsr (a4)
+
+
+;    beq .blit_up_single
+;.blit_up_double
+;    bsr TileDrawTwoHorizontal
+;    bra .end_up
+;.blit_up_single
+;    bsr TileDraw
+
+
+
 .end_up
     cmp.w #0,v_map_y_position(a0)
     bne .end_scroll
@@ -403,12 +412,27 @@ TESTScroll:
 
     lea DecodedGraphic,a3
     bsr ScrollGetVTileOffsets
-    beq .blit_down_single
-.blit_down_double
-    bsr TileDrawTwoHorizontal
-    bra .end_down
-.blit_down_single
-    bsr TileDraw
+
+    mcgeezer_special
+
+    lea TileDrawHorizontalJumpTable,a4
+    move.l (a4,d7.w),a4
+    jsr (a4)
+
+
+
+
+;    beq .blit_down_single
+;.blit_down_double
+;    bsr TileDrawTwoHorizontal
+;    bra .end_down
+;.blit_down_single
+;    bsr TileDraw
+
+
+
+
+
 .end_down
     bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d44
     cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
