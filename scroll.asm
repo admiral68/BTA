@@ -311,10 +311,10 @@ ScrollCalculateVerticalSplit:
     divu #screen_buffer_height,d2                           ;bitplane pointers in screen buffer
     swap d2                                                 ;(ypos % screen_buffer_height)
 
-    btst.b #1,v_scroll_command(a0)                          ;if downward scroll, continue
+    btst.b #1,v_joystick_value(a0)                          ;if downward scroll, continue
     bne .update_split
 
-    btst.b #2,v_scroll_command(a0)                          ;if not upward scroll, skip the offset
+    btst.b #2,v_joystick_value(a0)                          ;if not upward scroll, skip the offset
     beq .end
 
 .update_split
@@ -323,7 +323,7 @@ ScrollCalculateVerticalSplit:
     bhi .check_down
     sub.w #1,d0                                             ;compensates for vertical split glitch
 .check_down
-    btst.b #2,v_scroll_command(a0)                          ;if upward scroll, add one to the wait value
+    btst.b #2,v_joystick_value(a0)                          ;if upward scroll, add one to the wait value
     beq .move
     add.w #1,d0
 .move
@@ -384,7 +384,7 @@ ScrollGetHTileOffsets:
     swap d3                                                 ;mapx
     move.w d3,d2
 
-    btst.b #0,v_scroll_command(a0)
+    btst.b #0,v_joystick_value(a0)
     beq .left
 
     subi #1,d2                                              ;back a column
@@ -431,7 +431,7 @@ ScrollGetHTileOffsets:
 
     clr.l d2
 
-    btst.b #0,v_scroll_command(a0)
+    btst.b #0,v_joystick_value(a0)
     beq .left2
 
     add.w v_video_x_bitplane_offset(a0),d2                  ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
@@ -460,17 +460,17 @@ ScrollGetHTileOffsets:
 ***      LEFT SCROLL CHECKS          ***
 ****************************************
 
-    btst.b #3,v_scroll_command(a0)
+    btst.b #3,v_joystick_value(a0)
     beq .check_position
 
-    btst.b #1,v_scroll_command(a0)                          ;also scrolling down?
+    btst.b #1,v_joystick_value(a0)                          ;also scrolling down?
     beq .check_upward_scroll
 
     tst.w d6
     beq .none                                               ;If D, skip [B]
 
 .check_upward_scroll
-    btst.b #2,v_scroll_command(a0)                          ;also scrolling up?
+    btst.b #2,v_joystick_value(a0)                          ;also scrolling up?
     beq .check_position
 
     cmp.w #$0F,d6
@@ -558,7 +558,7 @@ ScrollGetVTileOffsets:
     swap d6                                                 ;mapy(offset for dest)
     move.w d6,d2
 
-    btst.b #1,v_scroll_command(a0)                          ;not scrolling down?
+    btst.b #1,v_joystick_value(a0)                          ;not scrolling down?
     beq .convert_mapy_to_videoy
     add.w #1,d2
 
@@ -618,14 +618,14 @@ ScrollGetVTileOffsets:
     moveq #0,d7
     asr.w #1,d4
 
-    btst.b #0,v_scroll_command(a0)                          ;also scrolling right?
+    btst.b #0,v_joystick_value(a0)                          ;also scrolling right?
     beq .check_position                                     ;if not, skip these checks
 
 ****************************************
 ***      DOWN SCROLL CHECKS          ***
 ****************************************
 
-    btst.b #1,v_scroll_command(a0)                          ;down?
+    btst.b #1,v_joystick_value(a0)                          ;down?
     beq .check_up
 
     tst.w d4
@@ -636,7 +636,7 @@ ScrollGetVTileOffsets:
 ****************************************
 
 .check_up
-    btst.b #2,v_scroll_command(a0)                          ;up?
+    btst.b #2,v_joystick_value(a0)                          ;up?
     beq .check_position
 
     tst.w d4

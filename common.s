@@ -28,11 +28,11 @@ v_tile_y_blit_positions             = 124
 v_decoded_bitplane_bytes            = 140
 v_tile_columns_to_decode            = 148
 v_tile_rows_to_decode               = 149
-v_scroll_command                    = 150
+v_joystick_value                    = 150
 v_scroll_previous_x_direction       = 151
 v_y_scroll_velocity                 = 152
 v_x_scroll_velocity                 = 153
-v_test_started                      = 154
+v_previous_joystick_value           = 154
 
 c_horizontal_scroll_pos_01          = 34
 c_sprites_enable_01                 = 38

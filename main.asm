@@ -112,7 +112,7 @@ Main:
     lea FastData,a0
     bsr InputReadController
 
-    btst.b #4,v_scroll_command(a0)                          ;16=kill code (fire button)
+    btst.b #4,v_joystick_value(a0)                          ;16=kill code (fire button)
     bne .quit
 
     btst #6,$bfe001
@@ -150,10 +150,10 @@ TESTCode:
 TESTUpdatePaletteDuringScroll:
     movem.l d0-a6,-(sp)
 
-    btst.b #3,v_scroll_command(a0)                          ;left?
+    btst.b #3,v_joystick_value(a0)                          ;left?
     bne .check_left
 
-    btst.b #0,v_scroll_command(a0)                          ;right?
+    btst.b #0,v_joystick_value(a0)                          ;right?
     beq .continue
 
     cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
@@ -214,9 +214,16 @@ TESTScroll:
     bsr TESTUpdatePaletteDuringScroll
 
     ;TODO: Work out locations of unblitted blocks so that they get blitted to the
-    ;      proper locations; we have probably changed x/y since the last blit
+    ;      proper locations; we have probably changed x/y since the last blit.
+    ;      Use v_previous_joystick_value(a0)
 
-    btst.b #3,v_scroll_command(a0)                          ;left?
+
+
+
+
+
+
+    btst.b #3,v_joystick_value(a0)                          ;left?
     bne .pre_decrement_x
 
     cmp.b #8,v_scroll_previous_x_direction(a0)              ;previous direction left?
@@ -233,7 +240,7 @@ TESTScroll:
     ;bsr ScrollDecrementXPosition
 
 .check_pre_decrement_y
-    ;btst.b #2,v_scroll_command(a0)                          ;up?
+    ;btst.b #2,v_joystick_value(a0)                          ;up?
     ;beq .continue
 
     ;cmp.w #0,v_map_y_position(a0)
@@ -252,34 +259,38 @@ TESTScroll:
 .continue
     bsr ScrollGetStepAndDelay
 
-    btst.b #0,v_scroll_command(a0)                          ;right?
+    btst.b #0,v_joystick_value(a0)                          ;right?
     beq .check_down
     bsr .right
 
 .check_down
-    btst.b #1,v_scroll_command(a0)                          ;down?
+    btst.b #1,v_joystick_value(a0)                          ;down?
     beq .check_up
     bsr .down
     bra .check_left
 
 .check_up
-    btst.b #2,v_scroll_command(a0)                          ;up?
+    btst.b #2,v_joystick_value(a0)                          ;up?
     beq .check_left
     bsr .up
 
 .check_left
-    btst.b #3,v_scroll_command(a0)                          ;left?
-    bne .left
+    btst.b #3,v_joystick_value(a0)                          ;left?
+    beq .update_joystick
+    bsr .left
+
+.update_joystick
+    move.b v_joystick_value(a0),v_previous_joystick_value(a0)
 
 ;.check_post_decrement
-;    btst.b #0,v_scroll_command(a0)                          ;right?
+;    btst.b #0,v_joystick_value(a0)                          ;right?
 ;    beq .check_post_decrement_y
 
 ;    bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
 ;    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
 
 ;.check_post_decrement_y
-;    btst.b #1,v_scroll_command(a0)                          ;down?
+;    btst.b #1,v_joystick_value(a0)                          ;down?
 ;    beq .end_post_decrement
 
 ;    bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4
@@ -640,7 +651,7 @@ FastData:
 ;v_tile_rows_to_decode
     dc.b 0
 
-;v_scroll_command
+;v_joystick_value
     dc.b 1
 
 ;v_scroll_previous_x_direction
@@ -652,7 +663,7 @@ FastData:
 ;v_x_scroll_velocity
     dc.b 1
 
-;v_test_started
+;v_previous_joystick_value
     dc.b 0
 
     EVEN

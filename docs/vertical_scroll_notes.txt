@@ -42,7 +42,7 @@ mapx = mapposy & 15;
 ;
 ;   move.w #$F,v_map_y_position(a0)
 ;   move.w #$F,v_video_y_position(a0)
-;   move.b #2,v_scroll_command(a0);up
+;   move.b #2,v_joystick_value(a0);up
 ;
 ;   bsr ScrollGetXYPositionUp
 ;
@@ -88,7 +88,7 @@ mapx = mapposy & 15;
 ;
 ;   move.w #$160,v_map_x_position(a0)
 ;   move.w #$160,v_video_x_position(a0)
-;   move.b #4,v_scroll_command(a0)
+;   move.b #4,v_joystick_value(a0)
 ;
 ;   ;bsr ScrollGetStepAndDelay
 ;   ;bsr TESTScrollDown                                      ;INPUT:d2,a0 (d1)
