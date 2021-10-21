@@ -245,22 +245,48 @@ TESTScroll:
 .continue
     bsr ScrollGetStepAndDelay
 
+    move.b v_joystick_value(a0),d2
+    or.b d2,v_previous_joystick_value(a0)
+    eor.b d2,v_previous_joystick_value(a0)                  ;captures changes in direction
+
+    move.b #0,d2    ;FOR DEBUG
+
+    btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
+    beq .continue_right
+    bsr .get_xy_position_right
+
+.continue_right
     btst.b #0,v_joystick_value(a0)                          ;right?
     beq .check_down
     bsr .right
 
 .check_down
+    btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
+    beq .continue_down
+    bsr .get_xy_position_down
+
+.continue_down
     btst.b #1,v_joystick_value(a0)                          ;down?
     beq .check_up
     bsr .down
     bra .check_left
 
 .check_up
+    btst.b #2,v_previous_joystick_value(a0)                 ;up (unblitted)?
+    beq .continue_up
+    bsr .get_xy_position_up
+
+.continue_up
     btst.b #2,v_joystick_value(a0)                          ;up?
     beq .check_left
     bsr .up
 
 .check_left
+    btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
+    beq .continue_left
+    bsr .get_xy_position_left
+
+.continue_left
     btst.b #3,v_joystick_value(a0)                          ;left?
     beq .update_joystick
     bsr .left
@@ -302,6 +328,9 @@ TESTScroll:
     move.l (a4,d7.w),a4
     jsr (a4)
 
+    btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
+    bne .end_scroll
+
     bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
     bsr ScrollGetStepAndDelay
     lea Copper,a1                                           ;Copper Horizontal Scroll pos
@@ -321,7 +350,6 @@ TESTScroll:
     cmp.w #0,d2                                             ;map at x=1
     ble .end_scroll
 
-.continue_left
     cmp.w #0,d1
     bne .get_xy_position_left
 
@@ -335,8 +363,12 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_xy_position_left
+    btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
+    bne .get_map_xy_left
+
     move.b #8,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_LEFT
 
+.get_map_xy_left
     bsr ScrollGetMapXYLeft
 
     lea DecodedGraphic,a3
@@ -346,6 +378,9 @@ TESTScroll:
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
     jsr (a4)
+
+    btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
+    bne .end_scroll
 
     ;needed for change of direction
     bsr ScrollGetStepAndDelay
@@ -373,6 +408,7 @@ TESTScroll:
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
+.get_xy_position_up
     bsr ScrollGetXYPositionUp
 
     lea DecodedGraphic,a3
@@ -399,6 +435,7 @@ TESTScroll:
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
+.get_xy_position_down
     bsr ScrollGetXYPositionDown
 
     lea DecodedGraphic,a3
@@ -408,6 +445,9 @@ TESTScroll:
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
     jsr (a4)
+
+    btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
+    bne .end_scroll
 
 .end_down
     bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4

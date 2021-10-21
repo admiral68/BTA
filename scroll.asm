@@ -2,6 +2,9 @@ ScrollGetMapXYRight:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
 
+    btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
+
+
     move.w v_map_x_position(a0),d3
     and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
     swap d3
@@ -15,6 +18,8 @@ ScrollGetMapXYRight:
 ScrollGetMapXYLeft:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
+
+    btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
 
     move.w v_map_x_position(a0),d4                          ;save for mapy
     sub.w #1,d4
@@ -33,6 +38,9 @@ ScrollGetXYPositionDown:
 
 ;at this point, the scroll bitplane pointer has already moved down
 ;and the vertical split has been calculated
+
+    btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
+
 
     clr.l d4
     move.w v_map_y_position(a0),d3                          ;save for mapy
@@ -71,6 +79,8 @@ ScrollGetXYPositionUp:
 
 ;at this point, the scroll bitplane pointer has not moved down
 ;and the vertical split has not been calculated
+
+    btst.b #2,v_previous_joystick_value(a0)                 ;up (unblitted)?
 
     clr.l d4
     move.w v_map_y_position(a0),d3                          ;save for mapy
@@ -338,12 +348,21 @@ ScrollGetHTileOffsets:
 ;       x = in pixels
 ;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
 ;       DecodedGraphic=a3;DecodedGraphicE=a5
+;SOURCE => d5 (d3=offset)
 
-    ;SOURCE => d5 (d3=offset)
+
+
+    btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
+    btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
+
+
+
+
 
 ****************************************
 ***           SOURCE                 ***
 ****************************************
+
 
     clr.l d1
     clr.l d2
@@ -499,6 +518,17 @@ ScrollGetVTileOffsets:
 ;       y step/actual mapy(source) in d4
 
     ;SOURCE => d5 (d3=offset)
+
+
+    btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
+    btst.b #2,v_previous_joystick_value(a0)                 ;up (unblitted)?
+
+
+
+
+
+
+
 
     clr.l d1
     clr.l d2
