@@ -109,17 +109,16 @@ Main:
 .WaitMouse
 
     moveq #1,d0
+    lea FastData,a0
     bsr InputReadController
-    ;move.l d0,Button(a4)       ; set Button, UpDown, LeftRight
 
-
-
-
-    bsr InputInitControllers
+    btst.b #4,v_scroll_command(a0)                          ;16=kill code (fire button)
+    bne .quit
 
     btst #6,$bfe001
     bne.s .WaitMouse
 
+.quit
     movem.l (sp)+,d0-a6
     rts
 
@@ -270,13 +269,8 @@ TESTScroll:
 ***********************************************
 
 .right
-    move.b #2,d3
-    ;cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
-    cmp.w #320,d2
-    ;cmp.w #160,d2
-    blt .scroll_right
-
-    bra .switch_direction
+    cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
+    bge .end_scroll
 
 .scroll_right
     cmp.w #0,d1                                             ;INPUT:d2,a0 (d1)
@@ -318,11 +312,7 @@ TESTScroll:
     bsr ScrollGetStepAndDelay
 
     cmp.w #0,d2                                             ;map at x=1
-    bgt .continue_left
-
-    move.b #4,d3;4,2
-
-    bra .switch_direction
+    ble .end_scroll
 
 .continue_left
     cmp.w #0,d1
@@ -366,6 +356,10 @@ TESTScroll:
 
 .up
     move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
+
+    cmp.w #0,v_map_y_position(a0)
+    ble .end_scroll
+
     bsr ScrollDecrementYPosition
 
     move.l #$FFFF0000,d4
@@ -381,12 +375,7 @@ TESTScroll:
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
     jsr (a4)
-
-.end_up
-    cmp.w #0,v_map_y_position(a0)
-    bne .end_scroll
-    move.b #1,d3
-    bra .switch_direction
+    rts
 
 ****************************************
 *** D: All blocks fill row (top row) ***
@@ -395,6 +384,10 @@ TESTScroll:
 
 .down
     move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
+
+    cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
+    bge .end_scroll
+
     move.l #$10000,d4
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
@@ -405,25 +398,13 @@ TESTScroll:
     lea DecodedGraphicE,a5
     bsr ScrollGetVTileOffsets
 
-    ;mcgeezer_special
-
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
     jsr (a4)
 
 .end_down
-    bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d44
-    cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
-    ;cmp.w #128,v_map_y_position(a0);192
-    bne .end_scroll
-    move.b #8,d3
+    bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4
 
-************************************
-*** SWITCH DIRECTION (TEST CODE) ***
-************************************
-
-.switch_direction
-    move.b d3,v_scroll_command(a0)
 .end_scroll
     rts
 
