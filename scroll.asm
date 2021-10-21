@@ -639,7 +639,7 @@ ScrollGetVTileOffsets:
     btst.b #2,v_scroll_command(a0)                          ;up?
     beq .check_position
 
-    cmp.w #$0F,d4
+    tst.w d4
     beq .none                                               ;If R, skip [C]
 
 .check_position

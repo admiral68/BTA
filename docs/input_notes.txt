@@ -1,0 +1,133 @@
+ciaa_pra  = $bfe001
+joy1dat   = $dff00c
+potgor    = $dff016
+bit_joyb1 = 7
+bit_joyb2 = 14
+
+ReadJoystick   btst     #bit_joyb2 & 7, potgor
+               seq      d0
+               add.w    d0, d0
+
+               btst     #bit_joyb1, ciaa_pra
+               seq      d0
+               add.w    d0, d0
+
+               move.w   joy1dat, d1
+               ror.b    #2, d1
+               lsr.w    #6, d1
+               and.w    #%1111, d1
+               move.b   (.conv, pc, d1.w), d0
+               rts
+
+.conv          dc.b      0, 5, 4, 3, 1, 0, 3, 2, 8, 7, 0, 1, 7, 6, 5, 0
+
+
+1 is north, 2 is north-east, and so on clockwise around the dial. 0 means centered. 
+I think this table is more correct, which sets all illegal values to 0:
+0, 5, 4, 3, 1, 0, 0, 2, 8, 0, 0, 0, 7, 6, 0, 0
+
+
+
+First byte: button pressed ($ff), not pressed ($00)
+Second byte: up ($ff), down ($01) or neither ($00)
+Fourth byte: left ($ff), right ($01) or neither ($00)
+
+
+
+
+Joystick:
+		move.w	joy1dat(a5),d0	;12c
+		move.w	d0,d1		;4c
+		add.w	d1,d1		;4c
+		eor.w	d0,d1		;4c
+		move.w	#514,d2		;8c
+		and.w	d2,d0		;4c
+		and.w	d2,d1		;4c
+		lea	left(pc),a0	;8c
+		move.w	d0,(a0)+	;8c
+		move.w	d1,(a0)		;8c, total 64c
+		rts			;16c (with rts 80c :))
+
+left:		dc.b	0
+right:		dc.b	0
+up:		dc.b	0
+down:		dc.b	0
+
+
+
+		lea	left(pc),a0
+		tst.b	(a0)+
+		beq	.right
+
+		;do something for left direction
+
+.right
+		tst.b	(a0)+
+		beq	.up
+
+		;right direction
+.up
+		;and so on...
+		
+This can be done in an easier way. Simply write a zero to JoyTest, then read Joy1Dat. No need for reading Joy1Dat, then anding, rotating, shifting and what not.
+
+
+
+
+    move.w  joy1dat(a5),d0
+    and.w   #$0303,d0
+    move.w  d0,d1
+    add.w   d1,d1
+    add.w   #$0101,d0
+    add.w   d1,d0
+Now you can use btst on d0.
+
+Code:
+Bits:
+
+01 = right
+02 = down
+09 = left
+10 = up
+
+
+
+
+    move.l  joy0dat(a5),d0
+    and.l   #$03030303,d0
+    move.l  d0,d1
+    add.l   d1,d1
+    add.l   #$01010101,d0
+    add.l   d1,d0
+
+Bits:
+
+direction   joy0dat     joy1dat
+right            17           1
+down             18           2
+left             25           9
+up               26          10
+
+
+
+I can understand that. The code I posted before the last snippet can be used that way. Now it also makes sense why you'd want the buttons in there as well. It should be easy to add. Perhaps like this (untested):
+Code:
+    move.l  joy0dat(a5),d0
+    and.l   #$03030303,d0
+    move.l  d0,d1
+    add.l   d1,d1
+    add.l   #$01010101,d0
+    add.l   d1,d0
+
+    move.b  $bfe001,d1
+    and.b   #$c0,d1
+    or.b    d1,d0
+
+    swap    d0
+    
+    move.w  potgor(a5),d1
+    and.w   #$5500,d1
+    rol.w   #4,d1
+    lsl.b   #4,d1
+    or.w    d1,d0
+Now everything is in d0, that is, all directions for both ports, and all three buttons for both ports... if I didn't make a mistake 
