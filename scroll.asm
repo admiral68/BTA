@@ -529,7 +529,6 @@ ScrollGetVTileOffsets:
 
     ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
     sub.l #2,d1                                             ;NEW CODE--takes care of column 0
-    move.l d1,v_tile_unblitted_src_y(a0)
 
     add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
     move.w d3,d2                                            ;mapx
@@ -540,9 +539,9 @@ ScrollGetVTileOffsets:
     WAITBLIT                                                ;TODO: PUT BACK IN WHEN NOT DEBUGGING
 
     move.l a3,d5                                            ;A source (blocksbuffer)
-    add.l d5,v_tile_unblitted_src_y(a0)                     ;STARTING BLOCK (0)
     ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
+    move.l d5,v_tile_unblitted_src_y(a0)
 
 ;IF the source pointer is out of range, skip the blit
 

@@ -249,7 +249,9 @@ TESTScroll:
     or.b d2,v_previous_joystick_value(a0)
     eor.b d2,v_previous_joystick_value(a0)                  ;captures changes in direction
 
-    move.b #0,d2    ;FOR DEBUG
+
+    move.b #0,v_previous_joystick_value(a0)                 ;FOR DEBUG (disables unblitted blocks from blitting)
+
 
     btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
     beq .continue_right
@@ -293,25 +295,66 @@ TESTScroll:
 
 .update_joystick
     move.b v_joystick_value(a0),v_previous_joystick_value(a0)
-
     rts
 
 .blit_unblitted_x
     rts
-    ;TODO: LOAD PTRS. IF NON-ZERO, CONTINUE
-    ;      USE PREVIOUS STEP TO FIGURE OUT HOW MANY BLOCKS TO BLIT
-    ;      AND PUT THAT IN d7
+	
+    tst.b v_previous_x_step_value(a0)
+    bne .continue_x_blit
+    rts
 
+    move.l DecodedGraphic,d1
+    cmp.l v_tile_unblitted_src_x(a0),d1
+    bge .continue_x_blit
+    rts
+
+.continue_x_blit
+
+    clr.l d7
+    move.b v_previous_x_step_value(a0),d7
+
+    btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
+    beq .do_x_blit
+
+    move.b #16,d7
+    sub.b v_previous_x_step_value(a0),d7
+
+.do_x_blit
+    asl.w #2,d7
+    move.l v_tile_unblitted_src_x(a0),d5
+    move.l v_tile_unblitted_dest_x(a0),d1
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
     jmp (a4)
 
 .blit_unblitted_y
     rts
-    ;TODO: LOAD PTRS. IF NON-ZERO, CONTINUE
-    ;      USE PREVIOUS STEP TO FIGURE OUT HOW MANY BLOCKS TO BLIT
-    ;      AND PUT THAT IN d7
 
+    tst.b v_previous_y_step_value(a0)
+    bne .continue_y_blit
+    rts
+
+    move.l DecodedGraphic,d1
+    cmp.l v_tile_unblitted_src_y(a0),d1
+    bge .continue_y_blit
+    rts
+
+.continue_y_blit
+
+    clr.l d7
+    move.b v_previous_y_step_value(a0),d7
+
+    btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
+    beq .do_y_blit
+
+    move.b #16,d7
+    sub.b v_previous_y_step_value(a0),d7
+
+.do_y_blit
+    asl.w #2,d7
+    move.l v_tile_unblitted_src_y(a0),d5
+    move.l v_tile_unblitted_dest_y(a0),d1
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
     jmp (a4)
@@ -452,8 +495,6 @@ TESTScroll:
     lea DecodedGraphic,a3
     lea DecodedGraphicE,a5
     bsr ScrollGetVTileOffsets
-    mcgeezer_special
-    move.w #2,d2
 
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
