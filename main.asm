@@ -253,7 +253,7 @@ TESTScroll:
 
     btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
     beq .continue_right
-    bsr .get_xy_position_right
+    bsr .blit_unblitted_x
 
 .continue_right
     btst.b #0,v_joystick_value(a0)                          ;right?
@@ -263,7 +263,7 @@ TESTScroll:
 .check_down
     btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
     beq .continue_down
-    bsr .get_xy_position_down
+    bsr .blit_unblitted_y
 
 .continue_down
     btst.b #1,v_joystick_value(a0)                          ;down?
@@ -274,7 +274,7 @@ TESTScroll:
 .check_up
     btst.b #2,v_previous_joystick_value(a0)                 ;up (unblitted)?
     beq .continue_up
-    bsr .get_xy_position_up
+    bsr .blit_unblitted_y
 
 .continue_up
     btst.b #2,v_joystick_value(a0)                          ;up?
@@ -284,7 +284,7 @@ TESTScroll:
 .check_left
     btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
     beq .continue_left
-    bsr .get_xy_position_left
+    bsr .blit_unblitted_x
 
 .continue_left
     btst.b #3,v_joystick_value(a0)                          ;left?
@@ -295,6 +295,26 @@ TESTScroll:
     move.b v_joystick_value(a0),v_previous_joystick_value(a0)
 
     rts
+
+.blit_unblitted_x
+    rts
+    ;TODO: LOAD PTRS. IF NON-ZERO, CONTINUE
+    ;      USE PREVIOUS STEP TO FIGURE OUT HOW MANY BLOCKS TO BLIT
+    ;      AND PUT THAT IN d7
+
+    lea TileDrawVerticalJumpTable,a4
+    move.l (a4,d7.w),a4
+    jmp (a4)
+
+.blit_unblitted_y
+    rts
+    ;TODO: LOAD PTRS. IF NON-ZERO, CONTINUE
+    ;      USE PREVIOUS STEP TO FIGURE OUT HOW MANY BLOCKS TO BLIT
+    ;      AND PUT THAT IN d7
+
+    lea TileDrawHorizontalJumpTable,a4
+    move.l (a4,d7.w),a4
+    jmp (a4)
 
 ***********************************************
 *** R: All blocks fill column (left column) ***
@@ -328,9 +348,6 @@ TESTScroll:
     move.l (a4,d7.w),a4
     jsr (a4)
 
-    btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
-    bne .end_scroll
-
     bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
     bsr ScrollGetStepAndDelay
     lea Copper,a1                                           ;Copper Horizontal Scroll pos
@@ -363,9 +380,6 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_xy_position_left
-    btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
-    bne .get_map_xy_left
-
     move.b #8,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_LEFT
 
 .get_map_xy_left
@@ -378,9 +392,6 @@ TESTScroll:
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
     jsr (a4)
-
-    btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
-    bne .end_scroll
 
     ;needed for change of direction
     bsr ScrollGetStepAndDelay
@@ -441,13 +452,12 @@ TESTScroll:
     lea DecodedGraphic,a3
     lea DecodedGraphicE,a5
     bsr ScrollGetVTileOffsets
+    mcgeezer_special
+    move.w #2,d2
 
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
     jsr (a4)
-
-    btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
-    bne .end_scroll
 
 .end_down
     bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4
@@ -611,6 +621,18 @@ FastData:
 ;v_scroll_screen_split
     dc.l 0
 
+;v_tile_unblitted_src_x
+    dc.l 0
+
+;v_tile_unblitted_src_y
+    dc.l 0
+
+;v_tile_unblitted_dest_x
+    dc.l 0
+
+;v_tile_unblitted_dest_y
+    dc.l 0
+
 ;v_scrollx_dest_offset_table
     dc.w $0000,$0B00,$2100,$2C00,$3700,$4200,$4D00,$5800
     dc.w $6300,$6E00,$7900,$8400,$8F00,$9A00,$A500,$BB00
@@ -643,7 +665,7 @@ FastData:
     dc.b 0
 
 ;v_joystick_value
-    dc.b 1
+    dc.b 0
 
 ;v_scroll_previous_x_direction
     dc.b 1
@@ -655,6 +677,12 @@ FastData:
     dc.b 1
 
 ;v_previous_joystick_value
+    dc.b 0
+
+;v_previous_x_step_value
+    dc.b 0
+
+;v_previous_y_step_value
     dc.b 0
 
     EVEN

@@ -2,9 +2,6 @@ ScrollGetMapXYRight:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
 
-    btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
-
-
     move.w v_map_x_position(a0),d3
     and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
     swap d3
@@ -18,8 +15,6 @@ ScrollGetMapXYRight:
 ScrollGetMapXYLeft:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
-
-    btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
 
     move.w v_map_x_position(a0),d4                          ;save for mapy
     sub.w #1,d4
@@ -38,9 +33,6 @@ ScrollGetXYPositionDown:
 
 ;at this point, the scroll bitplane pointer has already moved down
 ;and the vertical split has been calculated
-
-    btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
-
 
     clr.l d4
     move.w v_map_y_position(a0),d3                          ;save for mapy
@@ -79,8 +71,6 @@ ScrollGetXYPositionUp:
 
 ;at this point, the scroll bitplane pointer has not moved down
 ;and the vertical split has not been calculated
-
-    btst.b #2,v_previous_joystick_value(a0)                 ;up (unblitted)?
 
     clr.l d4
     move.w v_map_y_position(a0),d3                          ;save for mapy
@@ -350,15 +340,6 @@ ScrollGetHTileOffsets:
 ;       DecodedGraphic=a3;DecodedGraphicE=a5
 ;SOURCE => d5 (d3=offset)
 
-
-
-    btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
-    btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
-
-
-
-
-
 ****************************************
 ***           SOURCE                 ***
 ****************************************
@@ -423,6 +404,8 @@ ScrollGetHTileOffsets:
     WAITBLIT                                                ;HardWaitBlit();
 
     move.l a3,d5                                            ;A source (blocksbuffer)
+    move.l d5,v_tile_unblitted_src_x(a0)
+    add.l d2,v_tile_unblitted_src_x(a0)                     ;STARTING BLOCK (0)
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
 
     sub.l #map_bytes_per_tile_row,d5                        ;We're starting one source row higher
@@ -447,6 +430,7 @@ ScrollGetHTileOffsets:
 
     ;DESTINATION => d1
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
+    move.l v_scroll_screen(a0),v_tile_unblitted_dest_x(a0)  ;save it for next time
 
     clr.l d2
 
@@ -464,6 +448,8 @@ ScrollGetHTileOffsets:
 
     and.w #15,d4
     move.w d4,d6
+
+    move.b d4,v_previous_x_step_value(a0)                   ;for unblitted blocks
 
     asl.w #1,d4
     add.w v_scrollx_dest_offset_table(a0,d4.w),d2
@@ -519,17 +505,6 @@ ScrollGetVTileOffsets:
 
     ;SOURCE => d5 (d3=offset)
 
-
-    btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
-    btst.b #2,v_previous_joystick_value(a0)                 ;up (unblitted)?
-
-
-
-
-
-
-
-
     clr.l d1
     clr.l d2
     clr.l d5
@@ -553,10 +528,11 @@ ScrollGetVTileOffsets:
     asl.w #1,d2                                             ;mapx=col;*2=bp byte offset
 
     ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
+    sub.l #2,d1                                             ;NEW CODE--takes care of column 0
+    move.l d1,v_tile_unblitted_src_y(a0)
+
     add.l d2,d1                                             ;source offset = mapy * mapwidth + mapx
     move.w d3,d2                                            ;mapx
-
-    sub.l #2,d1                                             ;NEW CODE--takes care of column 0
 
     move.w d3,d2                                            ;mapx
     move.l d1,d3                                            ;for debugging purposes
@@ -564,6 +540,7 @@ ScrollGetVTileOffsets:
     WAITBLIT                                                ;TODO: PUT BACK IN WHEN NOT DEBUGGING
 
     move.l a3,d5                                            ;A source (blocksbuffer)
+    add.l d5,v_tile_unblitted_src_y(a0)                     ;STARTING BLOCK (0)
     ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
 
@@ -620,6 +597,8 @@ ScrollGetVTileOffsets:
     swap d4
     move.w v_map_y_position(a0),d4
     and.l #$000F000F,d4
+
+    move.b d4,v_previous_y_step_value(a0)                   ;for unblitted
 
     asl.w #1,d4
     add.w v_scrolly_dest_offset_table(a0,d4.w),d2
