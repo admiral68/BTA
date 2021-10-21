@@ -224,29 +224,15 @@ TESTScroll:
 
 
     btst.b #3,v_joystick_value(a0)                          ;left?
-    bne .pre_decrement_x
+    bne .continue
 
     cmp.b #8,v_scroll_previous_x_direction(a0)              ;previous direction left?
-    bne .check_pre_decrement_y
+    bne .continue
 
    ;Compensate for x off by 1
 
     bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
     move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
-
-    bra .check_pre_decrement_y
-
-.pre_decrement_x
-    ;bsr ScrollDecrementXPosition
-
-.check_pre_decrement_y
-    ;btst.b #2,v_joystick_value(a0)                          ;up?
-    ;beq .continue
-
-    ;cmp.w #0,v_map_y_position(a0)
-    ;ble .continue
-
-    ;bsr ScrollDecrementYPosition
 
   *-------------*
   *  ALGORITHM  *
@@ -281,25 +267,6 @@ TESTScroll:
 
 .update_joystick
     move.b v_joystick_value(a0),v_previous_joystick_value(a0)
-
-;.check_post_decrement
-;    btst.b #0,v_joystick_value(a0)                          ;right?
-;    beq .check_post_decrement_y
-
-;    bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
-;    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
-
-;.check_post_decrement_y
-;    btst.b #1,v_joystick_value(a0)                          ;down?
-;    beq .end_post_decrement
-
-;    bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4
-
-;.end_post_decrement
-;    bsr ScrollGetStepAndDelay
-
-;    lea Copper,a1                                           ;Copper Horizontal Scroll pos
-;    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
 
     rts
 
@@ -340,11 +307,6 @@ TESTScroll:
     lea Copper,a1                                           ;Copper Horizontal Scroll pos
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
     move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
-;    bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
-;    bsr ScrollGetStepAndDelay
-;    lea Copper,a1                                           ;Copper Horizontal Scroll pos
-;    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
-;    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
     rts
 
 ************************************************
@@ -355,8 +317,6 @@ TESTScroll:
 .left
     bsr ScrollDecrementXPosition
     bsr ScrollGetStepAndDelay
-    ;bsr ScrollDecrementXPosition
-    ;bsr ScrollGetStepAndDelay
 
     cmp.w #0,d2                                             ;map at x=1
     ble .end_scroll
@@ -394,12 +354,6 @@ TESTScroll:
 
     lea Copper,a1                                           ;Copper Horizontal Scroll pos
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
-;    bsr ScrollGetStepAndDelay
-;
-;.update_left_scroll_pos
-;
-;    lea Copper,a1                                           ;Copper Horizontal Scroll pos
-;    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
     rts
 
 *******************************************
@@ -414,7 +368,6 @@ TESTScroll:
     ble .end_scroll
 
     bsr ScrollDecrementYPosition
-;    bsr ScrollDecrementYPosition
 
     move.l #$FFFF0000,d4
     lea Copper,a1
@@ -458,8 +411,6 @@ TESTScroll:
 
 .end_down
     bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4
-;.end_down
-;    bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4
 
 .end_scroll
     rts
@@ -761,5 +712,3 @@ DecodedGraphic:
     ds.b map_bytes                                          ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
                                                             ;REMEMBER, the test bitmap is only 16 tiles high (256)
 DecodedGraphicE:
-
-
