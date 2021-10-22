@@ -404,8 +404,6 @@ ScrollGetHTileOffsets:
     WAITBLIT                                                ;HardWaitBlit();
 
     move.l a3,d5                                            ;A source (blocksbuffer)
-    move.l d5,v_tile_unblitted_src_x(a0)
-    add.l d2,v_tile_unblitted_src_x(a0)                     ;STARTING BLOCK (0)
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
 
     sub.l #map_bytes_per_tile_row,d5                        ;We're starting one source row higher
@@ -430,14 +428,13 @@ ScrollGetHTileOffsets:
 
     ;DESTINATION => d1
     move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
-    move.l v_scroll_screen(a0),v_tile_unblitted_dest_x(a0)  ;save it for next time
 
     clr.l d2
 
     btst.b #0,v_joystick_value(a0)
     beq .left2
 
-    add.w v_video_x_bitplane_offset(a0),d2                  ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
+    move.w v_video_x_bitplane_offset(a0),d2                 ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
                                                             ;or zero
     bra .get_step
 
@@ -541,7 +538,6 @@ ScrollGetVTileOffsets:
     move.l a3,d5                                            ;A source (blocksbuffer)
     ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
-    move.l d5,v_tile_unblitted_src_y(a0)
 
 ;IF the source pointer is out of range, skip the blit
 
@@ -665,3 +661,87 @@ ScrollGetVTileOffsets:
     asl.w #2,d7
 .none
     rts
+
+;-----------------------------------------------
+ScrollUpdateSaveWordRight:
+    cmp.b #8,v_scroll_previous_x_direction(a0)              ;if (previous_direction == DIRECTION_LEFT)
+    bne .update_saveword
+
+    WAITBLIT
+
+    move.l v_scroll_ptr_saveword(a0),a4
+    move.w v_scroll_saveword(a0),(a4)                       ;*savewordpointer = saveword;
+
+.update_saveword
+
+    ;savewordpointer = address of the last planeline that will be overblitted
+    ;savewordpointer = (WORD *)(d2 + (y + BLOCKPLANELINES - 1) * BITMAPBYTESPERROW);
+
+    clr.l d1
+
+    move.l v_scroll_screen(a0),d2                           ;frontbuffer
+    move.w v_video_x_position(a0),d1                        ;videoposx
+    and.l #$FFFFFFF0,d1                                     ;ROUND2BLOCKWIDTH(videoposx)
+    add.l #screen_width,d1                                  ;x = BITMAPWIDTH + ROUND2BLOCKWIDTH(videoposx)
+
+
+    asr.w #3,d1                                             ;(x / 8)
+    add.l d1,d2                                             ;frontbuffer + (x / 8)
+
+    clr.l d1
+
+    move.w v_video_y_position(a0),d1
+    and.w #$000F,d1                                         ;mapy = mapposx & (NUMSTEPS - 1);
+    asl.w #6,d1                                             ;y = mapy * tile_height * tile_planes
+
+    add.w #tile_plane_lines-1,d1                            ;(y + tile_plane_lines - 1)
+    mulu #screen_bytes_per_row,d1                           ;* screen_bytes_per_row
+    add.l d1,d2
+    move.l d2,a4                                            ;(WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
+    move.l a4,v_scroll_ptr_saveword(a0)                     ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
+    move.w (a4),v_scroll_saveword(a0)                       ;saveword = *savewordpointer;
+
+    rts
+
+
+;-----------------------------------------------
+ScrollUpdateSaveWordLeft:
+    cmp.b #1,v_scroll_previous_x_direction(a0)              ;if (previous_direction == DIRECTION_RIGHT)
+    bne .update_saveword
+
+    WAITBLIT
+
+    move.l v_scroll_ptr_saveword(a0),a4
+    move.w v_scroll_saveword(a0),(a4)                       ;*savewordpointer = saveword;
+
+.update_saveword
+    mcgeezer_special
+
+    ;savewordpointer = address of the first planeline that will be overblitted
+    ;savewordpointer = (WORD *)(frontbuffer + y * BITMAPBYTESPERROW + (x / 8));
+
+    clr.l d1
+    clr.l d2
+
+    move.w v_video_y_position(a0),d1
+    and.w #$000F,d1                                         ;mapy
+    asl.w #6,d1                                             ;y = mapy * tile_height * tile_planes
+    mulu #screen_bytes_per_row,d1                           ;y * Width of bitmap in bytes
+
+    move.l v_scroll_screen(a0),d2                           ;frontbuffer
+    add.l d1,d2                                             ;frontbuffer + y * Width of bitmap in bytes
+
+    clr.l d1
+
+    move.w v_video_x_position(a0),d1                        ;videoposx
+    and.l #$FFFFFFF0,d1                                     ;x = ROUND2BLOCKWIDTH(videoposx)
+    asr.w #3,d1                                             ;(x / 8)
+    add.l d1,d2                                             ;(frontbuffer + y * Width of bitmap in bytes + (x / 8))
+
+    move.l d2,a4                                            ;(WORD *)(frontbuffer + y * bitmap_bytes_per_row + (x / 8));
+    move.l a4,v_scroll_ptr_saveword(a0)                     ;savewordpointer = (WORD *)(frontbuffer + y * bitmap_bytes_per_row + (x / 8));
+    move.w (a4),v_scroll_saveword(a0)                       ;saveword = *savewordpointer;
+
+    rts
+
+;-----------------------------------------------

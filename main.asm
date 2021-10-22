@@ -218,21 +218,18 @@ TESTScroll:
     ;      Use v_previous_joystick_value(a0)
 
 
+;    btst.b #3,v_joystick_value(a0)                          ;left?
+;    bne .continue
+;
+;    cmp.b #8,v_scroll_previous_x_direction(a0)              ;previous direction left?
+;    bne .continue
+;
+;   ;Compensate for x off by 1
+;
+;    bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
+;    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
 
 
-
-
-
-    btst.b #3,v_joystick_value(a0)                          ;left?
-    bne .continue
-
-    cmp.b #8,v_scroll_previous_x_direction(a0)              ;previous direction left?
-    bne .continue
-
-   ;Compensate for x off by 1
-
-    bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
-    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
 
   *-------------*
   *  ALGORITHM  *
@@ -245,119 +242,37 @@ TESTScroll:
 .continue
     bsr ScrollGetStepAndDelay
 
-    move.b v_joystick_value(a0),d2
-    or.b d2,v_previous_joystick_value(a0)
-    eor.b d2,v_previous_joystick_value(a0)                  ;captures changes in direction
-
-
-    move.b #0,v_previous_joystick_value(a0)                 ;FOR DEBUG (disables unblitted blocks from blitting)
-
-
-    btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
-    beq .continue_right
-    bsr .blit_unblitted_x
-
-.continue_right
     btst.b #0,v_joystick_value(a0)                          ;right?
     beq .check_down
+
+    ;cmp.w #$120,v_map_x_position(a0)
+    ;bge .end_scroll
+
     bsr .right
 
 .check_down
-    btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
-    beq .continue_down
-    bsr .blit_unblitted_y
-
-.continue_down
     btst.b #1,v_joystick_value(a0)                          ;down?
     beq .check_up
     bsr .down
     bra .check_left
 
 .check_up
-    btst.b #2,v_previous_joystick_value(a0)                 ;up (unblitted)?
-    beq .continue_up
-    bsr .blit_unblitted_y
-
-.continue_up
     btst.b #2,v_joystick_value(a0)                          ;up?
     beq .check_left
     bsr .up
 
 .check_left
-    btst.b #3,v_previous_joystick_value(a0)                 ;left (unblitted)?
-    beq .continue_left
-    bsr .blit_unblitted_x
-
-.continue_left
     btst.b #3,v_joystick_value(a0)                          ;left?
     beq .update_joystick
+
+    ;cmp.w #$0,v_map_x_position(a0)
+    ;blt .end_scroll
+
     bsr .left
 
 .update_joystick
     move.b v_joystick_value(a0),v_previous_joystick_value(a0)
     rts
-
-.blit_unblitted_x
-    rts
-	
-    tst.b v_previous_x_step_value(a0)
-    bne .continue_x_blit
-    rts
-
-    move.l DecodedGraphic,d1
-    cmp.l v_tile_unblitted_src_x(a0),d1
-    bge .continue_x_blit
-    rts
-
-.continue_x_blit
-
-    clr.l d7
-    move.b v_previous_x_step_value(a0),d7
-
-    btst.b #0,v_previous_joystick_value(a0)                 ;right (unblitted)?
-    beq .do_x_blit
-
-    move.b #16,d7
-    sub.b v_previous_x_step_value(a0),d7
-
-.do_x_blit
-    asl.w #2,d7
-    move.l v_tile_unblitted_src_x(a0),d5
-    move.l v_tile_unblitted_dest_x(a0),d1
-    lea TileDrawVerticalJumpTable,a4
-    move.l (a4,d7.w),a4
-    jmp (a4)
-
-.blit_unblitted_y
-    rts
-
-    tst.b v_previous_y_step_value(a0)
-    bne .continue_y_blit
-    rts
-
-    move.l DecodedGraphic,d1
-    cmp.l v_tile_unblitted_src_y(a0),d1
-    bge .continue_y_blit
-    rts
-
-.continue_y_blit
-
-    clr.l d7
-    move.b v_previous_y_step_value(a0),d7
-
-    btst.b #1,v_previous_joystick_value(a0)                 ;down (unblitted)?
-    beq .do_y_blit
-
-    move.b #16,d7
-    sub.b v_previous_y_step_value(a0),d7
-
-.do_y_blit
-    asl.w #2,d7
-    move.l v_tile_unblitted_src_y(a0),d5
-    move.l v_tile_unblitted_dest_y(a0),d1
-    lea TileDrawHorizontalJumpTable,a4
-    move.l (a4,d7.w),a4
-    jmp (a4)
 
 ***********************************************
 *** R: All blocks fill column (left column) ***
@@ -382,6 +297,7 @@ TESTScroll:
 
 .get_xy_position_right
     bsr ScrollGetMapXYRight
+    bsr ScrollUpdateSaveWordRight
 
     lea DecodedGraphic,a3
     lea DecodedGraphicE,a5
@@ -411,7 +327,7 @@ TESTScroll:
     ble .end_scroll
 
     cmp.w #0,d1
-    bne .get_xy_position_left
+    bne .get_map_xy_left
 
     ;tile is completely scrolled through; time to move the pointers
 
@@ -422,11 +338,9 @@ TESTScroll:
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers
 
-.get_xy_position_left
-    move.b #8,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_LEFT
-
 .get_map_xy_left
     bsr ScrollGetMapXYLeft
+    bsr ScrollUpdateSaveWordLeft
 
     lea DecodedGraphic,a3
     lea DecodedGraphicE,a5
@@ -443,6 +357,7 @@ TESTScroll:
 
     lea Copper,a1                                           ;Copper Horizontal Scroll pos
     move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
+    move.b #8,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_LEFT
     rts
 
 *******************************************
@@ -451,8 +366,6 @@ TESTScroll:
 *******************************************
 
 .up
-    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
-
     cmp.w #0,v_map_y_position(a0)
     ble .end_scroll
 
@@ -480,8 +393,6 @@ TESTScroll:
 ****************************************
 
 .down
-    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
-
     cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
     bge .end_scroll
 
@@ -662,7 +573,7 @@ FastData:
 ;v_scroll_screen_split
     dc.l 0
 
-;v_tile_unblitted_src_x
+;v_scroll_ptr_saveword
     dc.l 0
 
 ;v_tile_unblitted_src_y
