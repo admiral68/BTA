@@ -1,26 +1,12 @@
-ScrollGetMapXYRight:
+ScrollGetMapXY:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
 
-    move.w v_map_x_position(a0),d3
+    move.w v_map_x_position(a0),d3                          ;save for mapy
     and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
     swap d3
+
     move.w v_map_x_position(a0),d3                          ;mapposx
-    asr.w #4,d3                                             ;mapposx / BLOCKWIDTH
-    add.w #screen_columns+1,d3                              ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
-
-    rts
-
-;-----------------------------------------------
-ScrollGetMapXYLeft:
-;INPUT: fast data (a0)
-;returns mapx/y in d3
-
-    move.w v_map_x_position(a0),d4                          ;save for mapy
-    move.w d4,d3                                            ;save for mapy
-    and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
-    swap d3
-    move.w d4,d3                                            ;mapposx
     asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH
 
     rts
@@ -342,7 +328,6 @@ ScrollGetHTileOffsets:
 ****************************************
 ***           SOURCE                 ***
 ****************************************
-
 
     clr.l d1
     clr.l d2

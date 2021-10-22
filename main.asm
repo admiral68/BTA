@@ -272,7 +272,9 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_xy_position_right
-    bsr ScrollGetMapXYRight
+    bsr ScrollGetMapXY
+    add.w #screen_columns+1,d3                              ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
+
     bsr ScrollUpdateSaveWordRight
 
     lea DecodedGraphic,a3
@@ -315,7 +317,7 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_map_xy_left
-    bsr ScrollGetMapXYLeft
+    bsr ScrollGetMapXY
     bsr ScrollUpdateSaveWordLeft
 
     lea DecodedGraphic,a3
