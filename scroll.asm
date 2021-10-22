@@ -17,7 +17,6 @@ ScrollGetMapXYLeft:
 ;returns mapx/y in d3
 
     move.w v_map_x_position(a0),d4                          ;save for mapy
-    sub.w #1,d4
     move.w d4,d3                                            ;save for mapy
     and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
     swap d3
@@ -350,7 +349,6 @@ ScrollGetHTileOffsets:
     clr.l d5
 
     move.w v_map_x_position(a0),d4
-    subi #1,d4                                              ;seems everything for left needs subtracted by 1
 
     swap d3                                                 ;mapy
 
@@ -388,7 +386,6 @@ ScrollGetHTileOffsets:
     beq .left
 
     subi #1,d2                                              ;back a column
-    addi #1,d4
 
 .left
     subi #1,d2                                              ;ADDED LINE: NEW (BREAKING?) CHANGE back a column
@@ -445,8 +442,6 @@ ScrollGetHTileOffsets:
 
     and.w #15,d4
     move.w d4,d6
-
-    move.b d4,v_previous_x_step_value(a0)                   ;for unblitted blocks
 
     asl.w #1,d4
     add.w v_scrollx_dest_offset_table(a0,d4.w),d2
@@ -593,8 +588,6 @@ ScrollGetVTileOffsets:
     move.w v_map_y_position(a0),d4
     and.l #$000F000F,d4
 
-    move.b d4,v_previous_y_step_value(a0)                   ;for unblitted
-
     asl.w #1,d4
     add.w v_scrolly_dest_offset_table(a0,d4.w),d2
     add.l d2,d1                                             ;destination offset = mapy * mapwidth + mapx
@@ -670,6 +663,8 @@ ScrollUpdateSaveWordRight:
     WAITBLIT
 
     move.l v_scroll_ptr_saveword(a0),a4
+    cmp.l v_screen(a0),a4
+    blt .update_saveword
     move.w v_scroll_saveword(a0),(a4)                       ;*savewordpointer = saveword;
 
 .update_saveword
@@ -684,25 +679,31 @@ ScrollUpdateSaveWordRight:
     and.l #$FFFFFFF0,d1                                     ;ROUND2BLOCKWIDTH(videoposx)
     add.l #screen_width,d1                                  ;x = BITMAPWIDTH + ROUND2BLOCKWIDTH(videoposx)
 
-
     asr.w #3,d1                                             ;(x / 8)
     add.l d1,d2                                             ;frontbuffer + (x / 8)
 
     clr.l d1
 
-    move.w v_video_y_position(a0),d1
+    move.w v_video_x_position(a0),d1
+    add.w #1,d1
     and.w #$000F,d1                                         ;mapy = mapposx & (NUMSTEPS - 1);
-    asl.w #6,d1                                             ;y = mapy * tile_height * tile_planes
+    add.w d1,d1
 
-    add.w #tile_plane_lines-1,d1                            ;(y + tile_plane_lines - 1)
-    mulu #screen_bytes_per_row,d1                           ;* screen_bytes_per_row
+    move.w v_scrollx_dest_offset_table(a0,d1.w),d1
+    bne .subtract
+    sub.l #screen_bytes_per_row,d2
+    bra .add
+
+.subtract
+    sub.l #screen_bytes_per_row,d1
+
+.add
     add.l d1,d2
     move.l d2,a4                                            ;(WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
     move.l a4,v_scroll_ptr_saveword(a0)                     ;savewordpointer = (WORD *)(frontbuffer + (y + tile_plane_lines - 1) * bitmap_bytes_per_row + (x / 8));
     move.w (a4),v_scroll_saveword(a0)                       ;saveword = *savewordpointer;
 
     rts
-
 
 ;-----------------------------------------------
 ScrollUpdateSaveWordLeft:
@@ -711,24 +712,26 @@ ScrollUpdateSaveWordLeft:
 
     WAITBLIT
 
+    mcgeezer_special
+
     move.l v_scroll_ptr_saveword(a0),a4
+    cmp.l v_screen(a0),a4
+    blt .update_saveword
     move.w v_scroll_saveword(a0),(a4)                       ;*savewordpointer = saveword;
 
 .update_saveword
-    mcgeezer_special
 
     ;savewordpointer = address of the first planeline that will be overblitted
     ;savewordpointer = (WORD *)(frontbuffer + y * BITMAPBYTESPERROW + (x / 8));
 
     clr.l d1
-    clr.l d2
-
-    move.w v_video_y_position(a0),d1
-    and.w #$000F,d1                                         ;mapy
-    asl.w #6,d1                                             ;y = mapy * tile_height * tile_planes
-    mulu #screen_bytes_per_row,d1                           ;y * Width of bitmap in bytes
-
     move.l v_scroll_screen(a0),d2                           ;frontbuffer
+
+    move.w v_video_x_position(a0),d1
+    and.w #$000F,d1                                         ;mapy = mapposx & (NUMSTEPS - 1);
+    add.w d1,d1
+
+    move.w v_scrollx_dest_offset_table(a0,d1.w),d1
     add.l d1,d2                                             ;frontbuffer + y * Width of bitmap in bytes
 
     clr.l d1

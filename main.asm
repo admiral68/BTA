@@ -213,24 +213,6 @@ TESTScroll:
 
     bsr TESTUpdatePaletteDuringScroll
 
-    ;TODO: Work out locations of unblitted blocks so that they get blitted to the
-    ;      proper locations; we have probably changed x/y since the last blit.
-    ;      Use v_previous_joystick_value(a0)
-
-
-;    btst.b #3,v_joystick_value(a0)                          ;left?
-;    bne .continue
-;
-;    cmp.b #8,v_scroll_previous_x_direction(a0)              ;previous direction left?
-;    bne .continue
-;
-;   ;Compensate for x off by 1
-;
-;    bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
-;    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
-
-
-
   *-------------*
   *  ALGORITHM  *
   *-------------*
@@ -244,9 +226,6 @@ TESTScroll:
 
     btst.b #0,v_joystick_value(a0)                          ;right?
     beq .check_down
-
-    ;cmp.w #$120,v_map_x_position(a0)
-    ;bge .end_scroll
 
     bsr .right
 
@@ -264,9 +243,6 @@ TESTScroll:
 .check_left
     btst.b #3,v_joystick_value(a0)                          ;left?
     beq .update_joystick
-
-    ;cmp.w #$0,v_map_x_position(a0)
-    ;blt .end_scroll
 
     bsr .left
 
@@ -320,11 +296,11 @@ TESTScroll:
 ************************************************
 
 .left
+    tst.w v_map_x_position(a0)
+    beq .end_scroll
+
     bsr ScrollDecrementXPosition
     bsr ScrollGetStepAndDelay
-
-    cmp.w #0,d2                                             ;map at x=1
-    ble .end_scroll
 
     cmp.w #0,d1
     bne .get_map_xy_left
