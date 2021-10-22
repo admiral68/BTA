@@ -1,4 +1,4 @@
-ScrollGetMapXY:
+ScrollGetMapXYForHorizontal:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
 
@@ -12,7 +12,7 @@ ScrollGetMapXY:
     rts
 
 ;-----------------------------------------------
-ScrollGetXYPositionDown:
+ScrollGetMapXYForVertical:
 ;returns mapx/mapy (source blocks) in d3
 ;        scroll step/mapy (dest block) in d4
 
@@ -46,47 +46,6 @@ ScrollGetXYPositionDown:
 ;destination block in d3
 
 .end
-    swap d3                                                 ;mapx (block)
-    rts
-
-;-----------------------------------------------
-ScrollGetXYPositionUp:
-;returns mapx/mapy (source blocks) in d3
-;        scroll step/mapy (dest block) in d4
-
-;at this point, the scroll bitplane pointer has not moved down
-;and the vertical split has not been calculated
-
-    clr.l d4
-    move.w v_map_y_position(a0),d3                          ;save for mapy
-    move.w d3,d4                                            ;mapposy (if scrolling down, we're one behind)
-    and.w #15,d4                                            ;scroll step y
-
-    swap d3
-    move.w v_map_x_position(a0),d3                          ;mapposx
-    asr.w #4,d3                                             ;mapx (block)
-
-    swap d3                                                 ;mapposy
-
-    asr.w #4,d3                                             ;mapy (block)
-
-    cmp.w #map_tile_height,d3                               ;This is because the
-    ble .save_mapy                                          ;source bitmap is only map_tile_height blocks high
-
-    sub.w #map_tile_height,d3                               ;special case: grab source blocks from top of test bitmap
-
-.save_mapy
-
-    swap d4
-    move.w d3,d4                                            ;mapy (block) in d4
-    swap d4                                                 ;scroll step y
-
-;destination block in d3
-
-    add.w #1,d3                                             ;mapy+1--row under visible screen
-
-.end
-
     swap d3                                                 ;mapx (block)
     rts
 

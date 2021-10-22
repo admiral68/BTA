@@ -272,7 +272,7 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_xy_position_right
-    bsr ScrollGetMapXY
+    bsr ScrollGetMapXYForHorizontal
     add.w #screen_columns+1,d3                              ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
 
     bsr ScrollUpdateSaveWordRight
@@ -317,7 +317,7 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_map_xy_left
-    bsr ScrollGetMapXY
+    bsr ScrollGetMapXYForHorizontal
     bsr ScrollUpdateSaveWordLeft
 
     lea DecodedGraphic,a3
@@ -354,7 +354,10 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
 .get_xy_position_up
-    bsr ScrollGetXYPositionUp
+    bsr ScrollGetMapXYForVertical
+    swap d3
+    add.w #1,d3                                             ;mapy+1--row under visible screen
+    swap d3
 
     lea DecodedGraphic,a3
     lea DecodedGraphicE,a5
@@ -379,7 +382,7 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
 .get_xy_position_down
-    bsr ScrollGetXYPositionDown
+    bsr ScrollGetMapXYForVertical
 
     lea DecodedGraphic,a3
     lea DecodedGraphicE,a5
