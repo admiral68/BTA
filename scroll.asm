@@ -659,8 +659,8 @@ ScrollUpdateSaveWordRight:
 
     clr.l d1
 
-    move.l v_scroll_screen(a0),d2                           ;frontbuffer
-    move.w v_video_x_position(a0),d1                        ;videoposx
+    move.l v_screen(a0),d2                                  ;frontbuffer
+    move.w v_map_x_position(a0),d1                          ;videoposx
     and.l #$FFFFFFF0,d1                                     ;ROUND2BLOCKWIDTH(videoposx)
     add.l #screen_width,d1                                  ;x = BITMAPWIDTH + ROUND2BLOCKWIDTH(videoposx)
 
@@ -697,8 +697,6 @@ ScrollUpdateSaveWordLeft:
 
     WAITBLIT
 
-    mcgeezer_special
-
     move.l v_scroll_ptr_saveword(a0),a4
     cmp.l v_screen(a0),a4
     blt .update_saveword
@@ -710,7 +708,7 @@ ScrollUpdateSaveWordLeft:
     ;savewordpointer = (WORD *)(frontbuffer + y * BITMAPBYTESPERROW + (x / 8));
 
     clr.l d1
-    move.l v_scroll_screen(a0),d2                           ;frontbuffer
+    move.l v_screen(a0),d2                                  ;frontbuffer
 
     move.w v_video_x_position(a0),d1
     and.w #$000F,d1                                         ;mapy = mapposx & (NUMSTEPS - 1);
@@ -721,7 +719,7 @@ ScrollUpdateSaveWordLeft:
 
     clr.l d1
 
-    move.w v_video_x_position(a0),d1                        ;videoposx
+    move.w v_map_x_position(a0),d1                          ;videoposx
     and.l #$FFFFFFF0,d1                                     ;x = ROUND2BLOCKWIDTH(videoposx)
     asr.w #3,d1                                             ;(x / 8)
     add.l d1,d2                                             ;(frontbuffer + y * Width of bitmap in bytes + (x / 8))
