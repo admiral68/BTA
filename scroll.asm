@@ -23,8 +23,8 @@ ScrollGetMapXYForVertical:
     move.w v_map_y_position(a0),d3                          ;save for mapy
     move.w d3,d4                                            ;mapposy (if scrolling down, we're one behind)
     and.w #15,d4                                            ;scroll step y
-
     swap d3
+	
     move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapx (block)
 
@@ -546,7 +546,6 @@ ScrollGetVTileOffsets:
 
     clr.l d2
     move.w v_scrolly_dest_offset_table(a0,d4.w),d2
-    ;sub.w #2,d2
     add.l d2,d5
 
 .check_past_end_of_source
@@ -558,9 +557,6 @@ ScrollGetVTileOffsets:
 .figure_out_num_blocks_to_blit
     moveq #0,d7
     asr.w #1,d4
-
-    btst.b #0,v_joystick_value(a0)                          ;also scrolling right?
-    beq .check_position                                     ;if not, skip these checks
 
 ****************************************
 ***      DOWN SCROLL CHECKS          ***
