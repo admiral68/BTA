@@ -144,6 +144,15 @@ TESTCode:
     lea TilesToDecode,a2
     lea ScrollDataLev1,a1
     bsr TESTLoadLevel1Tiles
+
+    lea DebugStringMapX,a1
+    lea DebugStringMapXBitmap,a2
+    bsr TESTPreRenderDebugString
+
+    lea DebugStringMapY,a1
+    lea DebugStringMapYBitmap,a2
+    bsr TESTPreRenderDebugString
+
     rts
 
 ;-----------------------------------------------
@@ -517,6 +526,9 @@ EncodedTilesSource: INCBIN "gfx/gfx2.bin"
 ScrollDataLev1: INCBIN "data/lev_1_scroll_data.bin"
     EVEN
 
+DebugBitmapSource: INCBIN "gfx/debug_alpha80x32x4.raw"
+    EVEN
+
 TilesToDecode:
     ds.w (test_cols_to_decode+1)*(test_rows_to_decode+1)*tile_height
 
@@ -618,7 +630,23 @@ FastData:
 ;v_previous_y_step_value
     dc.b 0
 
+;v_debug_char_lut
+    ;blk.b 16,9
+    dc.b $09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09
+    dc.b $1C,$1E,$1F,$20,$21,$22,$23,$24,$25,$26,$09,$09,$09,$09,$09,$09
+    dc.b $09,$00,$01,$02,$03,$04,$05,$06,$07,$08,$10,$11,$12,$13,$14,$15
+    dc.b $16,$17,$18,$20,$21,$22,$23,$24,$25,$26,$27,$09,$09,$09,$09,$09
+
+;v_debug_hexchar_lut
+    dc.b $1C,$1E,$1F,$20,$21,$22,$23,$24,$25,$26,$00,$01,$02,$03,$04,$05
+
     EVEN
+
+DebugStringMapX:
+    dc.b "MAPX ",0
+
+DebugStringMapY:
+    dc.b "MAPY ",0
 
 *******************************************************************************
 * CHIPMEM
@@ -690,6 +718,16 @@ Copper:
     dc.w $ffff,$fffe
 
 CopperE:
+
+    EVEN
+
+DebugStringMapXBitmap:
+    ds.b debug_string_mapx_size
+
+    EVEN
+
+DebugStringMapYBitmap:
+    ds.b debug_string_mapy_size
 
     EVEN
 

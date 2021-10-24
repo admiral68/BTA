@@ -38,6 +38,8 @@ v_x_scroll_velocity                 = 169
 v_previous_joystick_value           = 170
 v_previous_x_step_value             = 171
 v_previous_y_step_value             = 172
+v_debug_char_lut                    = 173
+v_debug_hexchar_lut                 = 237
 
 c_horizontal_scroll_pos_01          = 34
 c_sprites_enable_01                 = 38
@@ -75,6 +77,21 @@ map_bitplanes                       = 4
 map_bytes_per_row                   = map_bpl_bytes_per_row*map_bitplanes
 map_bytes_per_tile_row              = map_bytes_per_row*tile_height
 map_bytes                           = map_bytes_per_tile_row*map_tile_height
+
+debug_font_bitmap_width             = 80
+debug_font_bitmap_height            = 32
+debug_font_char_width               = 8
+debug_font_char_height              = 8
+debug_font_bitmap_bpl_bytes_per_row = debug_font_bitmap_width/8
+debug_font_bitmap_bytes_per_row     = debug_font_bitmap_bpl_bytes_per_row*screen_bitplanes
+debug_font_row_height               = debug_font_bitmap_bytes_per_row*debug_font_char_height
+debug_font_col_width                = debug_font_char_width
+debug_string_char_pixel_width       = debug_font_char_width
+debug_string_char_pixel_height      = debug_font_char_height
+debug_string_mapx_bytes_per_row     = 5*debug_font_char_width*screen_bitplanes/8
+debug_string_mapy_bytes_per_row     = 5*debug_font_char_width*screen_bitplanes/8
+debug_string_mapx_size              = 5*screen_bitplanes*debug_string_char_pixel_width*debug_string_char_pixel_height/8
+debug_string_mapy_size              = 5*screen_bitplanes*debug_string_char_pixel_width*debug_string_char_pixel_height/8
 
 DMA_fetch_start                     = $28                                   ;CONVERT $28 for 22 columns;$38 for 20 columns
 DMA_fetch_stop                      = $d0                                   ;CONVERT $d0 for 22 columns;$c0 for 20 columns
