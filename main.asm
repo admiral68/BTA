@@ -78,9 +78,11 @@ StartGame:
     bsr.w Init
 
     lea $DFF000,a6
-    move.w #$87C0,DMACON(a6)                                ;SET+BLTPRI+DMAEN+BPLEN+COPEN+BLTEN
+    move.w #$7FFF,DMACON(a6)                                ;disable all bits in DMACON
+    move.w #$87E0,DMACON(a6)                                ;SET+BLTPRI+DMAEN+BPLEN+COPEN+BLTEN+SPREN
 
     move.w #0,$01fc(a6)                                     ;slow fetch mode, AGA compatibility
+    move.w #$24,BPLCON2(a6)
     move.w #$200,BPLCON0(a6)
     move.w #vert_display_start<<8+h_display_start,DIWSTRT(a6)
     move.w #vert_display_stop<<8+h_display_stop,DIWSTOP(a6)
@@ -132,26 +134,72 @@ TESTVBCode:
 
 ;-----------------------------------------------
 TESTCode:
-    lea FastData,a0
+    lea     FastData,a0
 
-    move.b #test_cols_to_decode,v_tile_columns_to_decode(a0)
-    move.b #test_rows_to_decode,v_tile_rows_to_decode(a0)
-    move.l #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
+    move.b  #test_cols_to_decode,v_tile_columns_to_decode(a0)
+    move.b  #test_rows_to_decode,v_tile_rows_to_decode(a0)
+    move.l  #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
 
-    lea EncodedTilesSource,a1
-    move.l a1,v_tile_source(a0)
+    lea     EncodedTilesSource,a1
+    move.l  a1,v_tile_source(a0)
 
-    lea TilesToDecode,a2
-    lea ScrollDataLev1,a1
-    bsr TESTLoadLevel1Tiles
+    lea     TilesToDecode,a2
+    lea     ScrollDataLev1,a1
+    bsr     TESTLoadLevel1Tiles
 
-    lea DebugStringMapX,a1
-    lea DebugStringMapXBitmap,a2
-    bsr TESTPreRenderDebugString
+;    lea     DebugStringMapX,a1
+;    lea     DebugStringMapXBitmap,a2
+;    bsr     TESTPreRenderDebugString
 
-    lea DebugStringMapY,a1
-    lea DebugStringMapYBitmap,a2
-    bsr TESTPreRenderDebugString
+;    lea     DebugStringMapY,a1
+;    lea     DebugStringMapYBitmap,a2
+;    bsr     TESTPreRenderDebugString
+
+    lea     Copper,a3
+
+    lea     DebugFontBitmapSourceE-4*2+2,a2
+    lea     c_sprite01_cols+2(a3),a1
+    moveq   #3-1,d0
+.coll:
+    move.w  (a2)+,(a1)+
+    addq.w  #2,a1
+    dbf     d0,.coll
+
+    lea     DebugFontBitmapSourceE-4*2+2,a2
+    lea     c_sprite02_cols+2(a3),a1
+    moveq   #3-1,d0
+.col2:
+    move.w  (a2)+,(a1)+
+    addq.w  #2,a1
+    dbf     d0,.col2
+
+    lea     c_sprite01(a3),a1
+    lea     Sprite01,a2
+    move.l  a2,d1
+    swap    d1
+    move.w  d1,2(a1)
+    swap    d1
+    move.w  d1,6(a1)
+
+    lea     c_sprite02(a3),a1
+    lea     Sprite02,a2
+    move.l  a2,d1
+    swap    d1
+    move.w  d1,2(a1)
+    swap    d1
+    move.w  d1,6(a1)
+
+    lea     NullSpr,a2
+    move.l  a2,d1
+    moveq   #6-1,d0
+
+.sprpl:
+    addq.w  #8,a1
+    swap    d1
+    move.w  d1,2(a1)
+    swap    d1
+    move.w  d1,6(a1)
+    dbf     d0,.sprpl
 
     rts
 
@@ -526,7 +574,8 @@ EncodedTilesSource: INCBIN "gfx/gfx2.bin"
 ScrollDataLev1: INCBIN "data/lev_1_scroll_data.bin"
     EVEN
 
-DebugBitmapSource: INCBIN "gfx/debug_alpha80x32x4.raw"
+DebugFontBitmapSource: INCBIN "gfx/debug_alpha80x32x2.raw"
+DebugFontBitmapSourceE:
     EVEN
 
 TilesToDecode:
@@ -634,8 +683,8 @@ FastData:
     ;blk.b 16,9
     dc.b $09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09
     dc.b $1C,$1E,$1F,$20,$21,$22,$23,$24,$25,$26,$09,$09,$09,$09,$09,$09
-    dc.b $09,$00,$01,$02,$03,$04,$05,$06,$07,$08,$10,$11,$12,$13,$14,$15
-    dc.b $16,$17,$18,$20,$21,$22,$23,$24,$25,$26,$27,$09,$09,$09,$09,$09
+    dc.b $09,$00,$01,$02,$03,$04,$05,$06,$07,$08,$0A,$0B,$0C,$0D,$0E,$0F
+    dc.b $10,$11,$12,$14,$15,$16,$17,$18,$19,$1A,$1B,$09,$09,$09,$09,$09
 
 ;v_debug_hexchar_lut
     dc.b $1C,$1E,$1F,$20,$21,$22,$23,$24,$25,$26,$00,$01,$02,$03,$04,$05
@@ -657,8 +706,9 @@ DebugStringMapY:
 Copper:
 
     dc.w $0180,$0111
-    dc.w $2b01,$fffe
+    dc.w $1801,$fffe                                        ;dc.w $2b01,$fffe
 
+    dc.w BPLCON0,$0200
     dc.b 0,DIWSTRT,vert_display_start,h_display_start
     dc.b 0,DIWSTOP,vert_display_stop,h_display_stop
     dc.w DDFSTRT,DMA_fetch_start                            ;$28 for 22 columns; $38 for 20 columns (etc)
@@ -668,16 +718,14 @@ Copper:
     dc.w BPL2MOD,screen_modulo
 
 ;c_horizontal_scroll_pos_01
-    dc.w BPLCON1,$00
+    dc.w BPLCON1,$0000
 
 ;c_sprites_enable_01
-    dc.w BPLCON2,0                                          ;move.w #$24,BPLCON2(a6)
+    dc.w BPLCON2,$0009                                      ;move.w #$24,BPLCON2(a6)
+    ;dc.w $01fe,$0000
 
 ;c_palette_01
     tile_pal_0f
-
-;c_display_enable_01
-    dc.w BPLCON0,$4200
 
 ;c_bitplane_pointers_01
     dc.w $00e0,0                                            ;1
@@ -692,6 +740,41 @@ Copper:
 ;   dc.w $00f2,0
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
+
+;c_sprite01_cols
+    dc.w $1a2,0
+    dc.w $1a4,0
+    dc.w $1a6,0
+
+;c_sprite02_cols
+    dc.w $1a8,0
+    dc.w $1aa,0
+    dc.w $1ac,0
+
+;c_sprite01
+    dc.w $120,0                     ;SPR0PTH
+    dc.w $122,0                     ;SPR0PTL
+
+;c_sprite02
+    dc.w $124,0                     ;SPR1PTH
+    dc.w $126,0                     ;SPR1PTL
+
+;c_null_sprites
+    dc.w $128,0
+    dc.w $12a,0
+    dc.w $12c,0
+    dc.w $12e,0
+    dc.w $130,0
+    dc.w $132,0
+    dc.w $134,0
+    dc.w $136,0
+    dc.w $138,0
+    dc.w $13a,0
+    dc.w $13c,0
+    dc.w $13e,0
+
+;c_display_enable_01
+    dc.w BPLCON0,$4200
 
 ;c_split_stop
     dc.w $ffdf,$fffe
@@ -721,15 +804,59 @@ CopperE:
 
     EVEN
 
+Sprite01:
+    dc.w $3040,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
 DebugStringMapXBitmap:
-    ds.b debug_string_mapx_size
+    dc.w $C318,$2404
+    dc.w $6618,$9904
+    dc.w $7E3C,$0102
+    dc.w $7E24,$011A
+    dc.w $667E,$1901
+    dc.w $6642,$193D
+    dc.w $E7E7,$1810
+    dc.w $0000,$FFFF
+    dc.w 0,0
+    dc.w 0,0
+    dc.w $C318,$2404
+    dc.w $6618,$9904
+    dc.w $7E3C,$0102
+    dc.w $7E24,$011A
+    dc.w $667E,$1901
+    dc.w $6642,$193D
+    dc.w $E7E7,$1810
+    dc.w $0000,$FFFF
 
-    EVEN
+    ;ds.b debug_string_mapx_size
+    dc.w 0,0
 
+Sprite02:
+    dc.w $3048,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
 DebugStringMapYBitmap:
-    ds.b debug_string_mapy_size
+    dc.w $FCE7,$0210
+    dc.w $6666,$1999
+    dc.w $663C,$1142
+    dc.w $6618,$1124
+    dc.w $7C3C,$0302
+    dc.w $6066,$1E19
+    dc.w $F0E7,$0810
+    dc.w $0000,$F8F7
+    dc.w 0,0
+    dc.w 0,0
+    dc.w $FCE7,$0210
+    dc.w $6666,$1991
+    dc.w $663C,$1142
+    dc.w $6618,$1124
+    dc.w $7C18,$0304
+    dc.w $6018,$1E04
+    dc.w $F03C,$0802
+    dc.w $0000,$F83E
+    ;ds.b debug_string_mapy_size
+    dc.w 0,0
 
-    EVEN
+NullSpr:
+    dc.w $2a20,$2b00
+    dc.w 0,0
+    dc.w 0,0
 
 *******************************************************************************
 * BUFFERS

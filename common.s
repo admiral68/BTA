@@ -41,14 +41,19 @@ v_previous_y_step_value             = 172
 v_debug_char_lut                    = 173
 v_debug_hexchar_lut                 = 237
 
-c_horizontal_scroll_pos_01          = 34
-c_sprites_enable_01                 = 38
-c_palette_01                        = 42
-c_display_enable_01                 = 106
+c_horizontal_scroll_pos_01          = 38
+c_sprites_enable_01                 = 42
+c_palette_01                        = 46
 c_bitplane_pointers_01              = 110
-c_split_stop                        = 140
-c_split                             = 144
-c_bitplane_pointers_02              = 150
+c_sprite01_cols                     = 140
+c_sprite02_cols                     = 152
+c_sprite01                          = 164
+c_sprite02                          = 172
+c_null_sprites                      = 180
+c_display_enable_01                 = 228
+c_split_stop                        = 232
+c_split                             = 236
+c_bitplane_pointers_02              = 242
 
     *-----------------*
     * constants:video *
@@ -82,16 +87,20 @@ debug_font_bitmap_width             = 80
 debug_font_bitmap_height            = 32
 debug_font_char_width               = 8
 debug_font_char_height              = 8
+debug_font_bitplanes                = 2
 debug_font_bitmap_bpl_bytes_per_row = debug_font_bitmap_width/8
-debug_font_bitmap_bytes_per_row     = debug_font_bitmap_bpl_bytes_per_row*screen_bitplanes
+debug_font_bitmap_bytes_per_row     = debug_font_bitmap_bpl_bytes_per_row*debug_font_bitplanes
 debug_font_row_height               = debug_font_bitmap_bytes_per_row*debug_font_char_height
 debug_font_col_width                = debug_font_char_width
+
 debug_string_char_pixel_width       = debug_font_char_width
 debug_string_char_pixel_height      = debug_font_char_height
-debug_string_mapx_bytes_per_row     = 5*debug_font_char_width*screen_bitplanes/8
-debug_string_mapy_bytes_per_row     = 5*debug_font_char_width*screen_bitplanes/8
-debug_string_mapx_size              = 5*screen_bitplanes*debug_string_char_pixel_width*debug_string_char_pixel_height/8
-debug_string_mapy_size              = 5*screen_bitplanes*debug_string_char_pixel_width*debug_string_char_pixel_height/8
+debug_string_width                  = 6*debug_font_char_width
+debug_string_bpl_bytes_per_row      = debug_string_width/8
+debug_string_mapx_bytes_per_row     = debug_string_bpl_bytes_per_row*debug_font_bitplanes
+debug_string_mapy_bytes_per_row     = debug_string_bpl_bytes_per_row*debug_font_bitplanes
+debug_string_mapx_size              = debug_string_mapx_bytes_per_row*debug_font_char_height
+debug_string_mapy_size              = debug_string_mapy_bytes_per_row*debug_font_char_height
 
 DMA_fetch_start                     = $28                                   ;CONVERT $28 for 22 columns;$38 for 20 columns
 DMA_fetch_stop                      = $d0                                   ;CONVERT $d0 for 22 columns;$c0 for 20 columns
