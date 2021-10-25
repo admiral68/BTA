@@ -49,13 +49,18 @@ c_sprite01_cols                     = 140
 c_sprite02_cols                     = 152
 c_sprite01                          = 164
 c_sprite02                          = 172
-c_sprite03                          = 180
-c_sprite04                          = 188
-c_null_sprites                      = 196
-c_display_enable_01                 = 244
-c_split_stop                        = 248
-c_split                             = 252
-c_bitplane_pointers_02              = 258
+c_null_sprites                      = 180
+c_display_enable_01                 = 228
+c_split_stop                        = 232
+c_split                             = 236
+c_bitplane_pointers_02              = 242
+;c_sprite03                          = 180
+;c_sprite04                          = 188
+;c_null_sprites                      = 196
+;c_display_enable_01                 = 244
+;c_split_stop                        = 248
+;c_split                             = 252
+;c_bitplane_pointers_02              = 258
 
     *-----------------*
     * constants:video *

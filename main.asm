@@ -191,12 +191,12 @@ TESTCode:
 
     WRITEBPP a3,c_sprite01,Sprite01
     WRITEBPP a3,c_sprite02,Sprite02
-    WRITEBPP a3,c_sprite03,Sprite03
-    WRITEBPP a3,c_sprite04,Sprite04
+;    WRITEBPP a3,c_sprite03,Sprite03
+;    WRITEBPP a3,c_sprite04,Sprite04
 
     lea     NullSpr,a2
     move.l  a2,d1
-    moveq   #4-1,d0
+    moveq   #6-1,d0
 
 .sprpl:
     addq.w  #8,a1
