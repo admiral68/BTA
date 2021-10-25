@@ -191,12 +191,12 @@ TESTCode:
 
     WRITEBPP a3,c_sprite01,Sprite01
     WRITEBPP a3,c_sprite02,Sprite02
-    WRITEBPP a3,c_sprite03,Sprite03
-    WRITEBPP a3,c_sprite04,Sprite04
+;    WRITEBPP a3,c_sprite03,Sprite03
+;    WRITEBPP a3,c_sprite04,Sprite04
 
     lea     NullSpr,a2
     move.l  a2,d1
-    moveq   #4-1,d0
+    moveq   #6-1,d0
 
 .sprpl:
     addq.w  #8,a1
@@ -731,16 +731,16 @@ Copper:
     dc.w BPL1MOD,screen_modulo
     dc.w BPL2MOD,screen_modulo
 
-;c_horizontal_scroll_pos_01                                 ;36
+;c_horizontal_scroll_pos_01
     dc.w BPLCON1,$0000
 
-;c_sprites_enable_01                                        ;40
+;c_sprites_enable_01
     dc.w $01fe,$0000                                        ;NOP
 
-;c_palette_01                                               ;44
+;c_palette_01
     tile_pal_0f
 
-;c_bitplane_pointers_01                                     ;108
+;c_bitplane_pointers_01
     dc.w $00e0,0                                            ;1
     dc.w $00e2,0
     dc.w $00e4,0                                            ;2
@@ -754,33 +754,33 @@ Copper:
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
-;c_sprite01_cols                                            ;140
+;c_sprite01_cols
     dc.w $1a2,0
     dc.w $1a4,0
     dc.w $1a6,0
 
-;c_sprite02_cols                                            ;152
+;c_sprite02_cols
     dc.w $1a8,0
     dc.w $1aa,0
     dc.w $1ac,0
 
-;c_sprite01                                                 ;164
+;c_sprite01
     dc.w $120,0                                             ;SPR0PTH
     dc.w $122,0                                             ;SPR0PTL
 
-;c_sprite02                                                 ;172
+;c_sprite02
     dc.w $124,0                                             ;SPR1PTH
     dc.w $126,0                                             ;SPR1PTL
 
-;c_sprite03                                                 ;180
+;c_sprite03
     dc.w $128,0
     dc.w $12a,0
 
-;c_sprite04                                                 ;188
+;c_sprite04
     dc.w $12c,0
     dc.w $12e,0
 
-;c_null_sprites                                             ;196
+;c_null_sprites
     dc.w $130,0
     dc.w $132,0
     dc.w $134,0
@@ -790,16 +790,16 @@ Copper:
     dc.w $13c,0
     dc.w $13e,0
 
-;c_display_enable_01                                        ;228
+;c_display_enable_01
     dc.w BPLCON0,$4200
 
-;c_split_stop                                               ;232
+;c_split_stop
     dc.w $ffdf,$fffe
 
-;c_split                                                    ;236
+;c_split
     dc.w $2c01,$fffe
 
-;c_bitplane_pointers_02                                     ;240
+;c_bitplane_pointers_02
     dc.w $00e0,0                                            ;1
     dc.w $00e2,0
     dc.w $00e4,0                                            ;2
