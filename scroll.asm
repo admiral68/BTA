@@ -309,18 +309,6 @@ ScrollGetHTileOffsets:
 
     move.w d3,d2
 
-    cmp.w #1,d2                                             ;position=1
-    ble .add_no_rows
-
-    cmp.w #$0E,d2                                           ;position=E
-    ble .add_one_row
-
-.add_two_rows
-    add.l #map_bytes_per_tile_row,d1
-
-.add_one_row
-    add.l #map_bytes_per_tile_row,d1
-
 .add_no_rows
 
     swap d3                                                 ;mapx
@@ -402,7 +390,7 @@ ScrollGetHTileOffsets:
 ****************************************
 
     btst.b #3,v_joystick_value(a0)
-    beq .check_position
+    beq .single
 
     btst.b #1,v_joystick_value(a0)                          ;also scrolling down?
     beq .check_upward_scroll
@@ -412,21 +400,10 @@ ScrollGetHTileOffsets:
 
 .check_upward_scroll
     btst.b #2,v_joystick_value(a0)                          ;also scrolling up?
-    beq .check_position
+    beq .single
 
     cmp.w #$0F,d6
     beq .none                                               ;If U, skip [D]
-
-.check_position
-    sub.w #1,d6                                             ;position=1
-    beq .double
-
-    addq #1,d6
-    eor.w #$0E,d6                                           ;position=E
-    bne .single
-
-.double
-    addq #1,d7
 
 .single
     addq #1,d7
@@ -580,10 +557,10 @@ ScrollGetVTileOffsets:
     beq .none                                               ;If R, skip [C]
 
 .check_position
-    cmp.w #3,d4                                             ;positions 0-3 (single block)
-    ble .single
+    cmp.w #4,d4                                             ;positions 4 & B have doubles
+    beq .double
 
-    and.w #1,d4                                             ;odd positions > 3 (single block)
+    cmp.w #$B,d4                                            ;odd positions > 3 (single block)
     bne .single
 
 .double

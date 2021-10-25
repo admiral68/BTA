@@ -174,29 +174,21 @@ TESTCode:
     lea     Copper,a3
 
     lea     DebugFontBitmapSourceE-4*2+2,a2
-    lea     c_sprite01_cols+2(a3),a1
+    lea     c_sprites01_cols+2(a3),a1
     moveq   #3-1,d0
 .coll:
     move.w  (a2)+,(a1)+
     addq.w  #2,a1
     dbf     d0,.coll
 
-    lea     DebugFontBitmapSourceE-4*2+2,a2
-    lea     c_sprite02_cols+2(a3),a1
-    moveq   #3-1,d0
-.col2:
-    move.w  (a2)+,(a1)+
-    addq.w  #2,a1
-    dbf     d0,.col2
-
     WRITEBPP a3,c_sprite01,Sprite01
     WRITEBPP a3,c_sprite02,Sprite02
-;    WRITEBPP a3,c_sprite03,Sprite03
+    WRITEBPP a3,c_sprite03,Sprite03
 ;    WRITEBPP a3,c_sprite04,Sprite04
 
     lea     NullSpr,a2
     move.l  a2,d1
-    moveq   #6-1,d0
+    moveq   #5-1,d0
 
 .sprpl:
     addq.w  #8,a1
@@ -633,12 +625,12 @@ FastData:
     dc.l 0
 
 ;v_scrollx_dest_offset_table
-    dc.w $0000,$0B00,$2100,$2C00,$3700,$4200,$4D00,$5800
-    dc.w $6300,$6E00,$7900,$8400,$8F00,$9A00,$A500,$BB00
+    dc.w $0000,$0900,$1200,$1B00,$2400,$2D00,$3600,$3F00
+    dc.w $4800,$5100,$5A00,$6300,$6C00,$7500,$7E00,$8700
 
 ;v_scrolly_dest_offset_table
-    dc.w $0000,$0002,$0004,$0006,$0008,$000C,$000E,$0012
-    dc.w $0014,$0018,$001A,$001E,$0020,$0024,$0026,$002A
+    dc.w $0000,$0002,$0004,$0006,$0008,$000C,$000E,$0010
+    dc.w $0012,$0014,$0016,$0018,$001C,$001E,$0020,$0022
 
 ;v_scroll_saveword
     dc.w 0
@@ -754,15 +746,15 @@ Copper:
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
-;c_sprite01_cols
+;c_sprites01_cols
     dc.w $1a2,0
     dc.w $1a4,0
     dc.w $1a6,0
 
-;c_sprite02_cols
-    dc.w $1a8,0
-    dc.w $1aa,0
-    dc.w $1ac,0
+;c_sprites23_cols
+    dc.w $1a8,$0000
+    dc.w $1aa,$0111
+    dc.w $1ac,$0ddd
 
 ;c_sprite01
     dc.w $120,0                                             ;SPR0PTH
@@ -828,25 +820,26 @@ DebugStringMapYBitmap:
     ds.b debug_string_mapy_size
 
 Sprite01:
-    dc.w $3040,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
+    dc.w $304C,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
     ds.w 20
 Sprite01Line02:
     ds.w 18
 
 Sprite02:
-    dc.w $3048,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
+    dc.w $3054,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
     ds.w 20
 Sprite02Line02:
     ds.w 18
 
 Sprite03:
-    dc.w $3054,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
-    ds.w 20
-Sprite03Line02:
-    ds.w 18
+    dc.w $2C40,$0000    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
+    REPT 256
+    dc.w $FFFF,$0000
+    ENDR
+    dc.w 0,0
 
 Sprite04:
-    dc.w $305c,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
+    dc.w $3066,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
     ds.w 20
 Sprite04Line02:
     ds.w 18

@@ -45,8 +45,8 @@ c_horizontal_scroll_pos_01          = 38
 c_sprites_enable_01                 = 42
 c_palette_01                        = 46
 c_bitplane_pointers_01              = 110
-c_sprite01_cols                     = 140
-c_sprite02_cols                     = 152
+c_sprites01_cols                    = 140
+c_sprites23_cols                    = 152
 c_sprite01                          = 164
 c_sprite02                          = 172
 c_sprite03                          = 180
@@ -61,9 +61,9 @@ c_bitplane_pointers_02              = 242
     * constants:video *
     *-----------------*
 
-screen_width                        = 352                                               ;CONVERT
-screen_height                       = 256                                               ;CONVERT
-screen_buffer_height                = 288                                               ;CONVERT
+screen_width                        = 288                                               ;was 352
+screen_height                       = 224                                               ;was 256
+screen_buffer_height                = 256                                               ;was 288
 screen_columns                      = screen_width/tile_width
 screen_rows                         = screen_height/tile_height
 screen_buffer_rows                  = screen_buffer_height/tile_height
@@ -104,12 +104,12 @@ debug_string_mapy_bytes_per_row     = debug_string_bpl_bytes_per_row*debug_font_
 debug_string_mapx_size              = debug_string_mapx_bytes_per_row*debug_font_char_height
 debug_string_mapy_size              = debug_string_mapy_bytes_per_row*debug_font_char_height
 
-DMA_fetch_start                     = $28                                   ;CONVERT $28 for 22 columns;$38 for 20 columns
-DMA_fetch_stop                      = $d0                                   ;CONVERT $d0 for 22 columns;$c0 for 20 columns
+DMA_fetch_start                     = $38                                   ;was $28: CONVERT $28 for 22 columns;$38 for 20 columns;$48 for 18 columns
+DMA_fetch_stop                      = $c0                                   ;was $d0: CONVERT $d0 for 22 columns;$c0 for 20 columns;$b0 for 18 columns
 vert_display_start                  = $2c                                   ;CONVERT
-vert_display_stop                   = $2c                                   ;CONVERT $12c
-h_display_start                     = $71                                   ;CONVERT $81 for non-scrolling display; $91 otherwise
-h_display_stop                      = $c1                                   ;CONVERT $c1 for non-scrolling display
+vert_display_stop                   = $0c                                   ;was $2c; CONVERT $12c
+h_display_start                     = $81                                   ;was $71: CONVERT $81 for non-scrolling display; $91 otherwise
+h_display_stop                      = $91                                   ;was $c1: CONVERT $c1 for non-scrolling display
 
 bpls                                = 3                                     ;handy values:
 
