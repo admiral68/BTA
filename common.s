@@ -41,10 +41,10 @@ v_previous_y_step_value             = 172
 v_debug_char_lut                    = 173
 v_debug_hexchar_lut                 = 237
 
-c_horizontal_scroll_pos_01          = 38
-c_sprites_enable_01                 = 42
-c_palette_01                        = 46
-c_bitplane_pointers_01              = 110
+c_horizontal_scroll_pos_01          = 36
+c_sprites_enable_01                 = 40
+c_palette_01                        = 44
+c_bitplane_pointers_01              = 108
 c_sprite01_cols                     = 140
 c_sprite02_cols                     = 152
 c_sprite01                          = 164
@@ -52,10 +52,10 @@ c_sprite02                          = 172
 c_sprite03                          = 180
 c_sprite04                          = 188
 c_null_sprites                      = 196
-c_display_enable_01                 = 244
-c_split_stop                        = 248
-c_split                             = 252
-c_bitplane_pointers_02              = 258
+c_display_enable_01                 = 228
+c_split_stop                        = 232
+c_split                             = 236
+c_bitplane_pointers_02              = 240
 
     *-----------------*
     * constants:video *
@@ -125,20 +125,20 @@ vlines_per_graphic                  = 48                                    ;32
     *-----------------*
 
 
-INTREQR         = $1F
-COP1LCH         = $80
-DIWSTRT         = $8E                                                       ;Start of the screen window
-DIWSTOP         = $90                                                       ;End of the screen window
-DDFSTRT         = $92                                                       ;Bit=plane DMA Start
-DDFSTOP         = $94                                                       ;Bit-Plane DMA Stop
-INTENA          = $9A
-INTREQ          = $9C
+INTREQR         = $001F
+COP1LCH         = $0080
+DIWSTRT         = $008E                                                     ;Start of the screen window
+DIWSTOP         = $0090                                                     ;End of the screen window
+DDFSTRT         = $0092                                                     ;Bit=plane DMA Start
+DDFSTOP         = $0094                                                     ;Bit-Plane DMA Stop
+INTENA          = $009A
+INTREQ          = $009C
 
-BPLCON0         = $100                                                      ;Bitplane control register 0
-BPLCON1         = $102                                                      ;1 (Scroll value)
-BPLCON2         = $104                                                      ;2 (Sprite <> Playfield priority)
-BPL1MOD         = $108                                                      ;Modulo-Value for odd bit-planes
-BPL2MOD         = $10A                                                      ;Modulo-Value for even bit-planes
+BPLCON0         = $0100                                                     ;Bitplane control register 0
+BPLCON1         = $0102                                                     ;1 (Scroll value)
+BPLCON2         = $0104                                                     ;2 (Sprite <> Playfield priority)
+BPL1MOD         = $0108                                                     ;Modulo-Value for odd bit-planes
+BPL2MOD         = $010A                                                     ;Modulo-Value for even bit-planes
 
 *******************************************************************************
 * MACROS
