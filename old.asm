@@ -941,4 +941,40 @@ TESTScrollLeft:
     ;move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
 
     rts
+TESTCopyScreenFromDecodedLongBitmapForRightScroll:
+;Does a rectangular blit to the the visible screen, then a strip blit from the edge
+    ;lea DecodedGraphic,a3
+    ;lea Screen,a4
+
+    move.l  a3,d3
+    move.l  a4,d4
+    add.l   #2+screen_bytes_per_row*tile_height,d4          ;blits to the upper left corner of the visible area - 2
+
+    add.l   #127*2,d3                                       ;move source to last column
+
+    move.w  #$09F0,BLTCON0(a6)                              ;use A and D. Op: D = A
+    move.w  #$0000,BLTCON1(a6)
+    move.w  #$FFFF,BLTAFWM(a6)
+    move.w  #$FFFF,BLTALWM(a6)
+    move.w  #254,BLTAMOD(a6)                                ;skip 127 columns (copy 1)
+    move.w  #42,BLTDMOD(a6)                                 ;skip 21 columns (copy 1)
+    move.l  d3,BLTAPTH(a6)
+    move.l  d4,BLTDPTH(a6)
+
+    move.w  #1,BLTSIZE(a6)                                  ;one column
+
+    WAITBLIT
+
+    move.l  a3,d3
+    move.l  a4,d4
+    add.l   #4+screen_bytes_per_row*tile_height,d4
+
+    move.w  #214,BLTAMOD(a6)                                ;skip 107 columns (copy 21)
+    move.w  #2,BLTDMOD(a6)                                  ;skip 1 column (copy 21)
+    move.l  d3,BLTAPTH(a6)
+    move.l  d4,BLTDPTH(a6)
+
+    move.w  #(screen_width-tile_width)/16,BLTSIZE(a6)       ;no "h" term needed since it's 1024. Thanks ross @eab!
+    rts
+;-----------------------------------------------
 

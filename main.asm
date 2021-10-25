@@ -735,7 +735,7 @@ Copper:
     dc.w BPLCON1,$0000
 
 ;c_sprites_enable_01
-    dc.w $01fe,$0000                                         ;NOP
+    dc.w $01fe,$0000                                        ;NOP
 
 ;c_palette_01
     tile_pal_0f
@@ -765,18 +765,22 @@ Copper:
     dc.w $1ac,0
 
 ;c_sprite01
-    dc.w $120,0                     ;SPR0PTH
-    dc.w $122,0                     ;SPR0PTL
+    dc.w $120,0                                             ;SPR0PTH
+    dc.w $122,0                                             ;SPR0PTL
 
 ;c_sprite02
-    dc.w $124,0                     ;SPR1PTH
-    dc.w $126,0                     ;SPR1PTL
+    dc.w $124,0                                             ;SPR1PTH
+    dc.w $126,0                                             ;SPR1PTL
 
-;c_null_sprites
+;c_sprite03
     dc.w $128,0
     dc.w $12a,0
+
+;c_sprite04
     dc.w $12c,0
     dc.w $12e,0
+
+;c_null_sprites
     dc.w $130,0
     dc.w $132,0
     dc.w $134,0
