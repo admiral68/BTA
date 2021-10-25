@@ -378,13 +378,13 @@ TESTCopyScreenFromDecodedLongBitmapForRightScroll:
     move.w  #(screen_width-tile_width)/16,BLTSIZE(a6)       ;no "h" term needed since it's 1024. Thanks ross @eab!
     rts
 ;-----------------------------------------------
-TESTPreRenderDebugString:
+TESTPreRenderDebugString6Chars:
 ;THIS IS HARDCODED TO debug_string_mapx_bytes_per_row (6 chars)
 ; a1=text
 ; a2=Rendered Text Buffer
 
-    moveq   #0,d0
 .loop:
+    moveq   #0,d0
     lea     v_debug_char_lut(a0),a3
     move.b  (a1)+,d0
     beq     .exit
@@ -427,21 +427,72 @@ TESTPreRenderDebugString:
 .exit
     rts
 ;-----------------------------------------------
-TESTRenderDebugString:
-;THIS IS HARDCODED TO screen_bytes_per_row
+TESTPreRenderDebugStringToSprite:
+;THIS IS HARDCODED TO debug_string_mapx_bytes_per_row (6 chars)
 ; a1=text
 ; a2=Rendered Text Buffer
 
-    moveq   #0,d0
+    moveq   #1,d3
 .loop:
+    moveq   #0,d0
     lea     v_debug_char_lut(a0),a3
     move.b  (a1)+,d0
-    beq.s   .exit
+    beq     .exit
     sub.b   #32,d0
 
     move.b  (a3,d0.w),d0
     divu    #10,d0                                          ;row
     move.l  d0,d1
+    clr.w   d1
+    swap    d1                                              ;remainder (column)
+
+    mulu    #debug_font_row_height,d0
+    add.l   d1,d0                                           ;offset into font bitmap
+    add.l   #DebugFontBitmapSource,d0
+
+.draw:
+    move.l  d0,a3                                           ;index into character
+
+    move.b  (a3),(a2)
+    move.b  debug_font_bitmap_bytes_per_row*1(a3),4(a2)
+    move.b  debug_font_bitmap_bytes_per_row*2(a3),8(a2)
+    move.b  debug_font_bitmap_bytes_per_row*3(a3),12(a2)
+    move.b  debug_font_bitmap_bytes_per_row*4(a3),16(a2)
+    move.b  debug_font_bitmap_bytes_per_row*5(a3),20(a2)
+    move.b  debug_font_bitmap_bytes_per_row*6(a3),24(a2)
+    move.b  debug_font_bitmap_bytes_per_row*7(a3),28(a2)
+
+    move.b  debug_font_bitmap_bpl_bytes_per_row(a3),2(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*1(a3),6(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*2(a3),10(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*3(a3),14(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*4(a3),18(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*5(a3),22(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*6(a3),26(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*7(a3),30(a2)
+
+    addq.w  #1,a2
+    dbf     d3,.loop
+
+.exit
+    rts
+;-----------------------------------------------
+TESTRenderDebugStringToScreen:
+;THIS IS HARDCODED TO screen_bytes_per_row
+; a1=text
+; a2=Screen Buffer Location
+
+.loop:
+    moveq   #0,d0
+    lea     v_debug_char_lut(a0),a3
+    move.b  (a1)+,d0
+    beq     .exit
+    sub.b   #32,d0
+
+    move.b  (a3,d0.w),d0
+    divu    #10,d0                                          ;row
+    move.l  d0,d1
+    clr.w   d1
     swap    d1                                              ;remainder (column)
 
     mulu    #debug_font_row_height,d0
@@ -459,6 +510,16 @@ TESTRenderDebugString:
     move.b  debug_font_bitmap_bytes_per_row*5(a3),screen_bytes_per_row*5(a2)
     move.b  debug_font_bitmap_bytes_per_row*6(a3),screen_bytes_per_row*6(a2)
     move.b  debug_font_bitmap_bytes_per_row*7(a3),screen_bytes_per_row*7(a2)
+
+    move.b  debug_font_bitmap_bpl_bytes_per_row(a3),debug_string_bpl_bytes_per_row(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*1(a3),screen_bpl_bytes_per_row+screen_bytes_per_row*1(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*2(a3),screen_bpl_bytes_per_row+screen_bytes_per_row*2(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*3(a3),screen_bpl_bytes_per_row+screen_bytes_per_row*3(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*4(a3),screen_bpl_bytes_per_row+screen_bytes_per_row*4(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*5(a3),screen_bpl_bytes_per_row+screen_bytes_per_row*5(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*6(a3),screen_bpl_bytes_per_row+screen_bytes_per_row*6(a2)
+    move.b  debug_font_bitmap_bpl_bytes_per_row+debug_font_bitmap_bytes_per_row*7(a3),screen_bpl_bytes_per_row+screen_bytes_per_row*7(a2)
+
     addq.w  #1,a2
     bra     .loop
 

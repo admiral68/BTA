@@ -147,13 +147,13 @@ TESTCode:
     lea     ScrollDataLev1,a1
     bsr     TESTLoadLevel1Tiles
 
-;    lea     DebugStringMapX,a1
-;    lea     DebugStringMapXBitmap,a2
-;    bsr     TESTPreRenderDebugString
+    lea     DebugStringMapX,a1
+    lea     DebugStringMapXBitmap,a2
+    bsr     TESTPreRenderDebugString6Chars
 
-;    lea     DebugStringMapY,a1
-;    lea     DebugStringMapYBitmap,a2
-;    bsr     TESTPreRenderDebugString
+    lea     DebugStringMapY,a1
+    lea     DebugStringMapYBitmap,a2
+    bsr     TESTPreRenderDebugString6Chars
 
     lea     Copper,a3
 
@@ -721,8 +721,7 @@ Copper:
     dc.w BPLCON1,$0000
 
 ;c_sprites_enable_01
-    dc.w BPLCON2,$0009                                      ;move.w #$24,BPLCON2(a6)
-    ;dc.w $01fe,$0000
+    dc.w $01fe,$0000                                         ;NOP
 
 ;c_palette_01
     tile_pal_0f
@@ -804,9 +803,14 @@ CopperE:
 
     EVEN
 
+DebugStringMapXBitmap:
+    ds.b debug_string_mapx_size
+
+DebugStringMapYBitmap:
+    ds.b debug_string_mapy_size
+
 Sprite01:
     dc.w $3040,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
-DebugStringMapXBitmap:
     dc.w $C318,$2404
     dc.w $6618,$9904
     dc.w $7E3C,$0102
@@ -825,13 +829,10 @@ DebugStringMapXBitmap:
     dc.w $6642,$193D
     dc.w $E7E7,$1810
     dc.w $0000,$FFFF
-
-    ;ds.b debug_string_mapx_size
     dc.w 0,0
 
 Sprite02:
     dc.w $3048,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
-DebugStringMapYBitmap:
     dc.w $FCE7,$0210
     dc.w $6666,$1999
     dc.w $663C,$1142
@@ -850,7 +851,6 @@ DebugStringMapYBitmap:
     dc.w $6018,$1E04
     dc.w $F03C,$0802
     dc.w $0000,$F83E
-    ;ds.b debug_string_mapy_size
     dc.w 0,0
 
 NullSpr:
