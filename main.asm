@@ -155,6 +155,22 @@ TESTCode:
     lea     DebugStringMapYBitmap,a2
     bsr     TESTPreRenderDebugString6Chars
 
+    lea     DebugStringMa,a1
+    lea     Sprite01+4,a2
+    bsr     TESTPreRenderDebugStringToSprite
+
+    lea     DebugStringMa,a1
+    lea     Sprite01Line02,a2
+    bsr     TESTPreRenderDebugStringToSprite
+
+    lea     DebugStringPx,a1
+    lea     Sprite02+4,a2
+    bsr     TESTPreRenderDebugStringToSprite
+
+    lea     DebugStringPy,a1
+    lea     Sprite02Line02,a2
+    bsr     TESTPreRenderDebugStringToSprite
+
     lea     Copper,a3
 
     lea     DebugFontBitmapSourceE-4*2+2,a2
@@ -173,25 +189,14 @@ TESTCode:
     addq.w  #2,a1
     dbf     d0,.col2
 
-    lea     c_sprite01(a3),a1
-    lea     Sprite01,a2
-    move.l  a2,d1
-    swap    d1
-    move.w  d1,2(a1)
-    swap    d1
-    move.w  d1,6(a1)
-
-    lea     c_sprite02(a3),a1
-    lea     Sprite02,a2
-    move.l  a2,d1
-    swap    d1
-    move.w  d1,2(a1)
-    swap    d1
-    move.w  d1,6(a1)
+    WRITEBPP a3,c_sprite01,Sprite01
+    WRITEBPP a3,c_sprite02,Sprite02
+    WRITEBPP a3,c_sprite03,Sprite03
+    WRITEBPP a3,c_sprite04,Sprite04
 
     lea     NullSpr,a2
     move.l  a2,d1
-    moveq   #6-1,d0
+    moveq   #4-1,d0
 
 .sprpl:
     addq.w  #8,a1
@@ -697,6 +702,15 @@ DebugStringMapX:
 DebugStringMapY:
     dc.b "MAPY ",0
 
+DebugStringMa:
+    dc.b "MA",0
+
+DebugStringPx:
+    dc.b "PX",0
+
+DebugStringPy:
+    dc.b "PY",0
+
 *******************************************************************************
 * CHIPMEM
 *******************************************************************************
@@ -811,47 +825,27 @@ DebugStringMapYBitmap:
 
 Sprite01:
     dc.w $3040,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
-    dc.w $C318,$2404
-    dc.w $6618,$9904
-    dc.w $7E3C,$0102
-    dc.w $7E24,$011A
-    dc.w $667E,$1901
-    dc.w $6642,$193D
-    dc.w $E7E7,$1810
-    dc.w $0000,$FFFF
-    dc.w 0,0
-    dc.w 0,0
-    dc.w $C318,$2404
-    dc.w $6618,$9904
-    dc.w $7E3C,$0102
-    dc.w $7E24,$011A
-    dc.w $667E,$1901
-    dc.w $6642,$193D
-    dc.w $E7E7,$1810
-    dc.w $0000,$FFFF
-    dc.w 0,0
+    ds.w 20
+Sprite01Line02:
+    ds.w 18
 
 Sprite02:
     dc.w $3048,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
-    dc.w $FCE7,$0210
-    dc.w $6666,$1999
-    dc.w $663C,$1142
-    dc.w $6618,$1124
-    dc.w $7C3C,$0302
-    dc.w $6066,$1E19
-    dc.w $F0E7,$0810
-    dc.w $0000,$F8F7
-    dc.w 0,0
-    dc.w 0,0
-    dc.w $FCE7,$0210
-    dc.w $6666,$1991
-    dc.w $663C,$1142
-    dc.w $6618,$1124
-    dc.w $7C18,$0304
-    dc.w $6018,$1E04
-    dc.w $F03C,$0802
-    dc.w $0000,$F83E
-    dc.w 0,0
+    ds.w 20
+Sprite02Line02:
+    ds.w 18
+
+Sprite03:
+    dc.w $3054,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
+    ds.w 20
+Sprite03Line02:
+    ds.w 18
+
+Sprite04:
+    dc.w $305c,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
+    ds.w 20
+Sprite04Line02:
+    ds.w 18
 
 NullSpr:
     dc.w $2a20,$2b00

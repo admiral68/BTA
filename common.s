@@ -49,11 +49,13 @@ c_sprite01_cols                     = 140
 c_sprite02_cols                     = 152
 c_sprite01                          = 164
 c_sprite02                          = 172
-c_null_sprites                      = 180
-c_display_enable_01                 = 228
-c_split_stop                        = 232
-c_split                             = 236
-c_bitplane_pointers_02              = 242
+c_sprite03                          = 180
+c_sprite04                          = 188
+c_null_sprites                      = 196
+c_display_enable_01                 = 244
+c_split_stop                        = 248
+c_split                             = 252
+c_bitplane_pointers_02              = 258
 
     *-----------------*
     * constants:video *
@@ -153,6 +155,17 @@ mcgeezer_special2:macro
 ; arguments: vpos,hpos,<ea>
 COPWAIT:macro
     move.l  #((\1)&$ff)<<24|(((\2)&$fe)|1)<<16|$fffe,\3
+    endm
+
+;arguments: copper_address_reg,copper_offset,source_ptr
+WRITEBPP:macro
+    lea     \2(\1),a1
+    lea     \3,a2
+    move.l  a2,d1
+    swap    d1
+    move.w  d1,2(a1)
+    swap    d1
+    move.w  d1,6(a1)
     endm
 
 tile_pal_00:macro
