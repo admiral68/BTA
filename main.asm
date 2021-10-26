@@ -130,6 +130,7 @@ Main:
 TESTVBCode:
     lea FastData,a0
     bsr TESTScroll
+    bsr TESTUpdateMapXMapYDebugStrings
     rts
 
 ;-----------------------------------------------
@@ -156,19 +157,19 @@ TESTCode:
     bsr     TESTPreRenderDebugString6Chars
 
     lea     DebugStringMa,a1
-    lea     Sprite01+4,a2
+    lea     Sprite00+4,a2
     bsr     TESTPreRenderDebugStringToSprite
 
     lea     DebugStringMa,a1
-    lea     Sprite01Line02,a2
+    lea     Sprite00Line02,a2
     bsr     TESTPreRenderDebugStringToSprite
 
     lea     DebugStringPx,a1
-    lea     Sprite02+4,a2
+    lea     Sprite01+4,a2
     bsr     TESTPreRenderDebugStringToSprite
 
     lea     DebugStringPy,a1
-    lea     Sprite02Line02,a2
+    lea     Sprite01Line02,a2
     bsr     TESTPreRenderDebugStringToSprite
 
     lea     Copper,a3
@@ -181,14 +182,16 @@ TESTCode:
     addq.w  #2,a1
     dbf     d0,.coll
 
+    WRITEBPP a3,c_sprite00,Sprite00
     WRITEBPP a3,c_sprite01,Sprite01
     WRITEBPP a3,c_sprite02,Sprite02
-    WRITEBPP a3,c_sprite03,Sprite03
-;    WRITEBPP a3,c_sprite04,Sprite04
+;    WRITEBPP a3,c_sprite03,Sprite03
+    WRITEBPP a3,c_sprite04,Sprite04
+    WRITEBPP a3,c_sprite05,Sprite05
 
     lea     NullSpr,a2
     move.l  a2,d1
-    moveq   #5-1,d0
+    moveq   #2-1,d0
 
 .sprpl:
     addq.w  #8,a1
@@ -684,8 +687,10 @@ FastData:
     dc.b $10,$11,$12,$14,$15,$16,$17,$18,$19,$1A,$1B,$09,$09,$09,$09,$09
 
 ;v_debug_hexchar_lut
-    dc.b $1C,$1E,$1F,$20,$21,$22,$23,$24,$25,$26,$00,$01,$02,$03,$04,$05
+    dc.b "0123456789ABCDEF"
 
+;v_text_buffer
+    ds.b 4
     EVEN
 
 DebugStringMapX:
@@ -756,27 +761,41 @@ Copper:
     dc.w $1aa,$0111
     dc.w $1ac,$0ddd
 
-;c_sprite01
+;c_sprites45_cols
+    dc.w $1ae,$0000
+    dc.w $1b0,$0d00
+    dc.w $1b2,$0ddd
+
+;c_sprites67_cols
+    dc.w $1b4,$0d00
+    dc.w $1b6,$00f0
+    dc.w $1b8,$0ddd
+
+;c_sprite00
     dc.w $120,0                                             ;SPR0PTH
     dc.w $122,0                                             ;SPR0PTL
 
-;c_sprite02
+;c_sprite01
     dc.w $124,0                                             ;SPR1PTH
     dc.w $126,0                                             ;SPR1PTL
 
-;c_sprite03
+;c_sprite02
     dc.w $128,0
     dc.w $12a,0
 
-;c_sprite04
+;c_sprite03
     dc.w $12c,0
     dc.w $12e,0
 
-;c_null_sprites
+;c_sprite04
     dc.w $130,0
     dc.w $132,0
+
+;c_sprite05
     dc.w $134,0
     dc.w $136,0
+
+;c_null_sprites
     dc.w $138,0
     dc.w $13a,0
     dc.w $13c,0
@@ -819,30 +838,43 @@ DebugStringMapXBitmap:
 DebugStringMapYBitmap:
     ds.b debug_string_mapy_size
 
-Sprite01:
+Sprite00:
     dc.w $304C,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
+    ds.w 20
+Sprite00Line02:
+    ds.w 18
+
+Sprite01:
+    dc.w $3054,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
     ds.w 20
 Sprite01Line02:
     ds.w 18
 
 Sprite02:
-    dc.w $3054,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
-    ds.w 20
-Sprite02Line02:
-    ds.w 18
-
-Sprite03:
     dc.w $2C40,$0000    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
     REPT 256
     dc.w $FFFF,$0000
     ENDR
     dc.w 0,0
 
-Sprite04:
+Sprite03:
     dc.w $3066,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
+    ds.w 20
+Sprite03Line02:
+    ds.w 18
+
+Sprite04:
+    dc.w $3060,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
     ds.w 20
 Sprite04Line02:
     ds.w 18
+
+Sprite05:
+    dc.w $3068,$4200    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
+    ds.w 20
+Sprite05Line02:
+    ds.w 18
+
 
 NullSpr:
     dc.w $2a20,$2b00

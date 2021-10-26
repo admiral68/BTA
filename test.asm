@@ -392,9 +392,9 @@ TESTPreRenderDebugString6Chars:
     rts
 ;-----------------------------------------------
 TESTPreRenderDebugStringToSprite:
-;THIS IS HARDCODED TO debug_string_mapx_bytes_per_row (6 chars)
+;THIS IS HARDCODED TO 2 bytes per row (2 chars)
 ; a1=text
-; a2=Rendered Text Buffer
+; a2=Sprite Data
 
     moveq   #1,d3
 .loop:
@@ -490,4 +490,58 @@ TESTRenderDebugStringToScreen:
 .exit
     rts
 ;-----------------------------------------------
+TESTConvertByteToString
+;Converts two digit hex byte to hex string representation
+;INPUT: d0.b src;a1:dest
 
+    move.b  d0,d1
+
+    lsr.b   #4,d0
+    and.l   #$F,d0
+
+    lea     v_debug_hexchar_lut(a0),a2
+    adda    d0,a2
+    move.b  (a2),(a1)
+
+    move.b  d1,d0
+    and.l   #$F,d0
+
+    lea     v_debug_hexchar_lut(a0),a2
+    adda    d0,a2
+    move.b  (a2),1(a1)
+
+    rts
+;-----------------------------------------------
+TESTUpdateMapXMapYDebugStrings
+    move.w  v_map_x_position(a0),d0
+    and.w   #$FF00,d0
+    lsr.w   #8,d0
+    lea     v_text_buffer(a0),a1
+    bsr     TESTConvertByteToString
+    lea     Sprite04+4,a2
+    bsr     TESTPreRenderDebugStringToSprite
+
+    move.w  v_map_x_position(a0),d0
+    and.w   #$00FF,d0
+    lea     v_text_buffer(a0),a1
+    bsr     TESTConvertByteToString
+    lea     Sprite05+4,a2
+    bsr     TESTPreRenderDebugStringToSprite
+
+    move.w  v_map_y_position(a0),d0
+    and.w   #$FF00,d0
+    lsr.w   #8,d0
+    lea     v_text_buffer(a0),a1
+    bsr     TESTConvertByteToString
+    lea     Sprite04Line02,a2
+    bsr     TESTPreRenderDebugStringToSprite
+
+    move.w  v_map_y_position(a0),d0
+    and.w   #$00FF,d0
+    lea     v_text_buffer(a0),a1
+    bsr     TESTConvertByteToString
+    lea     Sprite05Line02,a2
+    bsr     TESTPreRenderDebugStringToSprite
+
+    rts
+;-----------------------------------------------

@@ -40,6 +40,7 @@ v_previous_x_step_value             = 171
 v_previous_y_step_value             = 172
 v_debug_char_lut                    = 173
 v_debug_hexchar_lut                 = 237
+v_text_buffer                       = 253
 
 c_horizontal_scroll_pos_01          = 38
 c_sprites_enable_01                 = 42
@@ -47,15 +48,19 @@ c_palette_01                        = 46
 c_bitplane_pointers_01              = 110
 c_sprites01_cols                    = 140
 c_sprites23_cols                    = 152
-c_sprite01                          = 164
-c_sprite02                          = 172
-c_sprite03                          = 180
-c_sprite04                          = 188
-c_null_sprites                      = 196
-c_display_enable_01                 = 228
-c_split_stop                        = 232
-c_split                             = 236
-c_bitplane_pointers_02              = 242
+c_sprites45_cols                    = 164
+c_sprites67_cols                    = 176
+c_sprite00                          = 188
+c_sprite01                          = 196
+c_sprite02                          = 204
+c_sprite03                          = 212
+c_sprite04                          = 220
+c_sprite05                          = 228
+c_null_sprites                      = 236
+c_display_enable_01                 = 252
+c_split_stop                        = 256
+c_split                             = 260
+c_bitplane_pointers_02              = 266
 
     *-----------------*
     * constants:video *
