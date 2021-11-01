@@ -4,7 +4,7 @@
 *******************************************************************************
 TESTLoadLevel1Tiles:
 ;lea TilesToDecode,a2
-;lea ScrollDataLev1,a1
+;lea TESTMap,a1
     ;THIS DECODES THE TILES IN MAP LAYOUT (16x16 TILES). 128 tiles horizontally
     ;then wrap to the next row of tiles
 

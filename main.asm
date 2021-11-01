@@ -141,11 +141,11 @@ TESTCode:
     move.b  #test_rows_to_decode,v_tile_rows_to_decode(a0)
     move.l  #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
 
-    lea     EncodedTilesSource,a1
+    lea     TESTEncodedTilesSource,a1
     move.l  a1,v_tile_source(a0)
 
     lea     TilesToDecode,a2
-    lea     ScrollDataLev1,a1
+    lea     TESTMap,a1
     bsr     TESTLoadLevel1Tiles
 
     lea     DebugStringMapX,a1
@@ -568,13 +568,29 @@ VBint:                                                      ;Blank template VERT
 * DATA (FASTMEM)
 *******************************************************************************
 
-EncodedTilesSource: INCBIN "gfx/gfx2.bin"
+TilesLevel1Source:              INCBIN "gfx/Level01/tiles/all_tiles_256x336x5"
+TilesLevel1SourceE:
     EVEN
 
-ScrollDataLev1: INCBIN "data/lev_1_scroll_data.bin"
+MapLevel1:                      INCBIN "gfx/Level01/map/main_128x48"
+MapLevel1E:
     EVEN
 
-DebugFontBitmapSource: INCBIN "gfx/debug_alpha80x32x2.raw"
+MapDungeonLevel1:               INCBIN "gfx/Level01/map/dungeon_64x24"
+MapDungeonLevel1E:
+    EVEN
+
+MapWiseManLevel1:               INCBIN "gfx/Level01/map/wiseman_16x7"
+MapWiseManLevel1E:
+    EVEN
+
+TESTEncodedTilesSource:         INCBIN "gfx/gfx2.bin"
+    EVEN
+
+TESTMap:                        INCBIN "data/lev_1_scroll_data.bin"
+    EVEN
+
+DebugFontBitmapSource:          INCBIN "gfx/debug_alpha80x32x2.raw"
 DebugFontBitmapSourceE:
     EVEN
 
