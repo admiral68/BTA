@@ -281,7 +281,7 @@ ScrollGetHTileOffsets:
 ;INPUT: mapx/y in d3
 ;       x = in pixels
 ;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
-;       DecodedGraphic=a3;DecodedGraphicE=a5
+;       MapSourceBitmap=a3;MapSourceBitmapE=a5
 ;SOURCE => d5 (d3=offset)
 
 ****************************************

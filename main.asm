@@ -33,7 +33,7 @@ Init:
 
     move.b  #level_01_main_map_cols,v_current_map_columns(a0)
     move.b  #level_01_main_map_rows,v_current_map_rows(a0)
-    move.l  #eight_by_four_map_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
+    move.l  #eight_by_four_map_bytes_per_tile_row,v_dest_graphic_vtile_offset(a0)
 
 ;level_01_dungeon_map_cols           = 64
 ;level_01_dungeon_map_rows           = 24
@@ -43,11 +43,13 @@ Init:
 
     lea     Map,a2
     lea     MapSourceLevel01,a1
+    move.l  #level_01_main_map_rows-1,d0
+    move.l  #level_01_main_map_cols-1,d1	
     bsr     LoadLevelMap
 
     bsr     AssembleSourceTilesIntoMapSourceBitmap
 
-    lea     DecodedGraphic,a3
+    lea     MapSourceBitmap,a3
     lea     Screen,a4
     bsr     CopyScreenFromMapSourceBitmap
 
@@ -67,7 +69,7 @@ Init:
 
     bsr     DecodeAndAssembleSourceTilesIntoMapSourceBitmap
 
-    lea     DecodedGraphic,a3
+    lea     MapSourceBitmap,a3
     lea     Screen,a4
     bsr     TESTCopyScreenFromMapSourceBitmap
 
@@ -303,8 +305,8 @@ TESTScroll:
 
     bsr ScrollUpdateSaveWordRight
 
-    lea DecodedGraphic,a3
-    lea DecodedGraphicE,a5
+    lea MapSourceBitmap,a3
+    lea MapSourceBitmapE,a5
     bsr ScrollGetHTileOffsets
 
     lea TileDrawVerticalJumpTable,a4
@@ -346,8 +348,8 @@ TESTScroll:
     bsr ScrollGetMapXYForHorizontal
     bsr ScrollUpdateSaveWordLeft
 
-    lea DecodedGraphic,a3
-    lea DecodedGraphicE,a5
+    lea MapSourceBitmap,a3
+    lea MapSourceBitmapE,a5
     bsr ScrollGetHTileOffsets
 
     lea TileDrawVerticalJumpTable,a4
@@ -385,8 +387,8 @@ TESTScroll:
     add.w #1,d3                                             ;mapy+1--row under visible screen
     swap d3
 
-    lea DecodedGraphic,a3
-    lea DecodedGraphicE,a5
+    lea MapSourceBitmap,a3
+    lea MapSourceBitmapE,a5
     bsr ScrollGetVTileOffsets
 
     lea TileDrawHorizontalJumpTable,a4
@@ -410,8 +412,8 @@ TESTScroll:
 .get_xy_position_down
     bsr ScrollGetMapXYForVertical
 
-    lea DecodedGraphic,a3
-    lea DecodedGraphicE,a5
+    lea MapSourceBitmap,a3
+    lea MapSourceBitmapE,a5
     bsr ScrollGetVTileOffsets
 
     lea TileDrawHorizontalJumpTable,a4
@@ -440,11 +442,11 @@ DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
     ;done to show how to extract Black Tiger-encoded image data
     ;32*32*4
 
-    lea DecodedGraphic,a0
+    lea MapSourceBitmap,a0
     lea FastData,a1
 
-    move.l a0,v_tile_decode_row_dest(a1)
-    move.l (DecodedGraphicE-DecodedGraphic)/4,d0
+    move.l a0,v_tile_map_row_dest(a1)
+    move.l (MapSourceBitmapE-MapSourceBitmap)/4,d0
 
 .l0:
     clr.l (a0)+
@@ -454,16 +456,16 @@ DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
 
     lea Map,a0                                    ;Starting tile
     lea FastData,a2
-    lea v_tile_decode_row_dest(a2),a1
+    lea v_tile_map_row_dest(a2),a1
 
-    move.l (a1),v_tile_decode_dest(a2)
+    move.l (a1),v_tile_map_dest(a2)
     move.l #0,d5
 
 .loop_rows
     move.l #0,d4
 
 .loop_columns
-    move.l v_tile_decode_dest(a2),a3
+    move.l v_tile_map_dest(a2),a3
 
     move.b #0,d1
     move.l v_tile_source(a2),a1
@@ -482,7 +484,7 @@ DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
 
     lea FastData,a2
     lea v_current_map_columns(a2),a4
-    add.l #2,v_tile_decode_dest(a2)
+    add.l #2,v_tile_map_dest(a2)
     addi.b #1,d4
 
 .check_loop
@@ -490,12 +492,12 @@ DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
     bne .loop_columns
 
     lea FastData,a2
-    move.l v_tile_decode_row_dest(a2),a1
+    move.l v_tile_map_row_dest(a2),a1
     lea v_dest_graphic_vtile_offset(a2),a3                  ;One tile height in destination bitmap
 
     adda.l (a3),a1
-    move.l a1,v_tile_decode_dest(a2)
-    move.l a1,v_tile_decode_row_dest(a2)
+    move.l a1,v_tile_map_dest(a2)
+    move.l a1,v_tile_map_row_dest(a2)
 
     lea v_current_map_rows(a2),a4
     addi.b #1,d5
@@ -571,10 +573,10 @@ FastData:
 ;v_tile_x_position
     dc.l 0
 
-;v_tile_decode_dest
+;v_tile_map_dest
     dc.l 0
 
-;v_tile_decode_row_dest
+;v_tile_map_row_dest
     dc.l 0
 
 ;v_screen
@@ -635,7 +637,7 @@ FastData:
     dc.b $70,$60,$50,$40,$30,$20,$10,$00
 
 ;v_decoded_bitplane_bytes
-    dc.b 0,0,0,0,0,0,0,0
+    dc.b 0,0,0,0,0,0,0,0,0,0
 
 ;v_current_map_columns
     dc.b 0
@@ -882,7 +884,7 @@ Screen2E:
 
     EVEN
 
-DecodedGraphic:
+MapSourceBitmap:
     ds.b map_bytes                                          ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
                                                             ;REMEMBER, the test bitmap is only 16 tiles high (256)
-DecodedGraphicE:
+MapSourceBitmapE:

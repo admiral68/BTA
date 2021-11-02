@@ -157,3 +157,101 @@ TileDrawFourteenVertical:
 TileDrawFifteenVertical:
     BLIT_ROWS_AND_COLS 15,1
 ;-----------------------------------------------
+TileExtractFromSourceIntoMapBitmap:
+;INPUT:  a1 - source bytes ptr
+;        a3 - destination ptr
+;        a5 - DecodedBitplaneBytes
+;        d1 - flipped = 1.b, not flipped = 0.b
+;OUTPUT: a3 - destination
+
+    rts                                                     ;TODO: REMOVE
+    move    #$0F,d0                                         ;16 rasterlines at a time; rightmost byte done too
+
+.extract_tile:
+
+    move.w  (a1),(a5)
+    move.w  map_source_tile_bpl_bytes_per_row*1(a1),2(a5)
+    move.w  map_source_tile_bpl_bytes_per_row*2(a1),4(a5)
+    move.w  map_source_tile_bpl_bytes_per_row*3(a1),6(a5)
+    move.w  map_source_tile_bpl_bytes_per_row*4(a1),8(a5)
+
+    ;To flip the tile horizontally, we need to reverse the 4 bit color indexes,
+    ;which means reversing the NYBBLES--not the bits. Reversing the bits gives
+    ;us swapping of the odd bitplanes, which messes up the colors
+
+    cmp.b   #1,d1
+    bne     .no_flip
+
+    swap    d1
+
+    move.b  3(a5),d6
+    move.b  7(a5),d1
+    REPT 8
+    roxr.b  #1,d1
+    addx.b  d6,d6
+    ENDR
+    roxr.b  #1,d1
+    move.b  d6,3(a5)
+    move.b  d1,7(a5)
+
+    move.b  2(a5),d6
+    move.b  6(a5),d1
+    REPT 8
+    roxr.b  #1,d1
+    addx.b  d6,d6
+    ENDR
+    roxr.b  #1,d1
+    move.b  d6,2(a5)
+    move.b  d1,6(a5)
+
+    move.b  1(a5),d6
+    move.b  5(a5),d1
+    REPT 8
+    roxr.b  #1,d1
+    addx.b  d6,d6
+    ENDR
+    roxr.b  #1,d1
+    move.b  d6,1(a5)
+    move.b  d1,5(a5)
+
+    move.b  (a5),d6
+    move.b  4(a5),d1
+    REPT 8
+    roxr.b  #1,d1
+    addx.b  d6,d6
+    ENDR
+    roxr.b  #1,d1
+    move.b  d6,(a5)
+    move.b  d1,4(a5)
+
+    swap    d1
+
+.no_flip
+
+    move.w  (a5),(a3)
+    move.w  2(a5),eight_by_four_map_bpl_bytes_per_row*1(a3)
+    move.w  4(a5),eight_by_four_map_bpl_bytes_per_row*2(a3)
+    move.w  6(a5),eight_by_four_map_bpl_bytes_per_row*3(a3)
+    move.w  8(a5),eight_by_four_map_bpl_bytes_per_row*4(a3)
+
+;    ;this interleaves the bytes
+;
+;    move.b  4(a2),eight_by_four_map_bpl_bytes_per_row*0(a3)        ;bitplane 0
+;    move.b  3(a2),eight_by_four_map_bpl_bytes_per_row*1(a3)        ;bitplane 1
+;    move.b  2(a2),eight_by_four_map_bpl_bytes_per_row*2(a3)        ;bitplane 2
+;    move.b  1(a2),eight_by_four_map_bpl_bytes_per_row*3(a3)        ;bitplane 3
+;    move.b  (a2),eight_by_four_map_bpl_bytes_per_row*4(a3)         ;bitplane 4
+;
+;    move.b  9(a2),eight_by_four_map_bpl_bytes_per_row*0+1(a3)      ;bitplane 0
+;    move.b  8(a2),eight_by_four_map_bpl_bytes_per_row*1+1(a3)      ;bitplane 1
+;    move.b  7(a2),eight_by_four_map_bpl_bytes_per_row*2+1(a3)      ;bitplane 2
+;    move.b  6(a2),eight_by_four_map_bpl_bytes_per_row*3+1(a3)      ;bitplane 3
+;    move.b  5(a2),eight_by_four_map_bpl_bytes_per_row*4+1(a3)      ;bitplane 4
+
+    lea     eight_by_four_map_bytes_per_row(a3),a3                  ;move down one rasterline ($400 = $100 * 4 bitplanes; $100 = bytes in one rasterline for one bitplane)
+    lea     $02(a1),a1                                              ;source bytes per rasterline are 2 bytes apart
+
+    dbf     d0,.extract_tile
+
+    rts
+;-----------------------------------------------

@@ -7,8 +7,8 @@
 
 v_tile_y_position                   = 0
 v_tile_x_position                   = 2
-v_tile_decode_dest                  = 4
-v_tile_decode_row_dest              = 8
+v_tile_map_dest                     = 4
+v_tile_map_row_dest                 = 8
 v_screen                            = 12
 v_tile_source                       = 16
 v_map_y_position                    = 20
@@ -29,18 +29,18 @@ v_video_x_bitplane_offset           = 122
 v_scroll_positions                  = 124
 v_tile_y_blit_positions             = 140
 v_decoded_bitplane_bytes            = 156
-v_current_map_columns               = 164
-v_current_map_rows                  = 165
-v_joystick_value                    = 166
-v_scroll_previous_x_direction       = 167
-v_y_scroll_velocity                 = 168
-v_x_scroll_velocity                 = 169
-v_previous_joystick_value           = 170
-v_previous_x_step_value             = 171
-v_previous_y_step_value             = 172
-v_debug_char_lut                    = 173
-v_debug_hexchar_lut                 = 237
-v_text_buffer                       = 253
+v_current_map_columns               = 166
+v_current_map_rows                  = 167
+v_joystick_value                    = 168
+v_scroll_previous_x_direction       = 169
+v_y_scroll_velocity                 = 170
+v_x_scroll_velocity                 = 171
+v_previous_joystick_value           = 172
+v_previous_x_step_value             = 173
+v_previous_y_step_value             = 174
+v_debug_char_lut                    = 175
+v_debug_hexchar_lut                 = 239
+v_text_buffer                       = 255
 
 c_horizontal_scroll_pos_01          = 38
 c_sprites_enable_01                 = 42
@@ -90,6 +90,11 @@ map_bytes_per_row                   = map_bpl_bytes_per_row*map_bitplanes
 map_bytes_per_tile_row              = map_bytes_per_row*tile_height
 map_bytes                           = map_bytes_per_tile_row*map_tile_height
 
+map_source_tile_width               = 256
+map_source_tile_bpl_bytes_per_row   = map_source_tile_width/8
+map_source_tile_bytes_per_row       = map_source_tile_bpl_bytes_per_row*screen_bitplanes
+map_source_tile_bytes_per_tile_row  = map_source_tile_bytes_per_row*tile_height
+
 debug_font_bitmap_width             = 80
 debug_font_bitmap_height            = 32
 debug_font_char_width               = 8
@@ -117,7 +122,9 @@ all_levels_wiseman_shop_cols        = 16
 all_levels_wiseman_shop_rows        = 7
 
 eight_by_four_map_bmp_width_pixels  = 2048
-eight_by_four_map_bmp_vtile_offset  = (eight_by_four_map_bmp_width_pixels/tile_width)*2*tile_bitplanes*tile_height
+eight_by_four_map_bpl_bytes_per_row = eight_by_four_map_bmp_width_pixels/8
+eight_by_four_map_bytes_per_row     = eight_by_four_map_bpl_bytes_per_row*tile_bitplanes
+eight_by_four_map_bytes_per_tile_row= eight_by_four_map_bytes_per_row*tile_height
 eight_by_four_map_cols              = 128
 eight_by_four_map_rows              = 64
 
