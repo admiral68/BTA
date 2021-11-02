@@ -34,10 +34,9 @@ Init:
     move.b  #level_01_main_map_rows,v_map_tile_height(a0)
     move.b  #level_01_main_map_cols,v_map_tile_width(a0)
     move.w  #level_01_main_map_cols*16,v_map_width(a0)
-    move.w  #level_01_main_map_cols*32,v_map_bytes_per_tile_row(a0)
+    move.w  #eight_by_four_map_bytes_per_tile_row,v_map_bytes_per_tile_row(a0)
     move.b  #level_01_main_map_cols,v_current_map_columns(a0)
     move.b  #level_01_main_map_rows,v_current_map_rows(a0)
-    move.l  #eight_by_four_map_bytes_per_tile_row,v_dest_graphic_vtile_offset(a0)
     move.l  #level_01_main_map_cols*2*map_bitplanes*tile_height*level_01_main_map_rows,v_map_bytes(a0)                        =
 
 ;level_01_dungeon_map_cols           = 64
@@ -51,6 +50,8 @@ Init:
     move.l  #level_01_main_map_rows-1,d0
     move.l  #level_01_main_map_cols-1,d1
     bsr     LoadLevelMap
+
+    mcgeezer_special
 
     bsr     AssembleSourceTilesIntoMapSourceBitmap
 
@@ -498,7 +499,7 @@ DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
 
     lea FastData,a2
     move.l v_tile_map_row_dest(a2),a1
-    lea v_dest_graphic_vtile_offset(a2),a3                  ;One tile height in destination bitmap
+    lea v_map_bytes_per_tile_row(a2),a3                     ;One tile height in destination bitmap
 
     adda.l (a3),a1
     move.l a1,v_tile_map_dest(a2)
@@ -598,7 +599,7 @@ FastData:
 ;v_video_x_position
     dc.l 0
 
-;v_dest_graphic_vtile_offset
+;v_UNUSED
     dc.l 0
 
 ;v_scroll_screen
