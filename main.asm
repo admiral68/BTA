@@ -7,8 +7,10 @@
     INCLUDE "tile.s"
     INCLUDE "test.asm"
     INCLUDE "tile.asm"
+    INCLUDE "map.asm"
     INCLUDE "scroll.asm"
     INCLUDE "input.asm"
+    INCLUDE "debug.asm"
 
 *******************************************************************************
 * GAME
@@ -16,56 +18,93 @@
 Init:
     movem.l d0-a6,-(sp)
 
-    lea Screen,a1
-    lea screen_bytes_per_row*tile_height(a1),a1
-    bsr.w ClearScreen
+    lea     Screen,a1
+    lea     screen_bytes_per_row*tile_height(a1),a1
+    bsr.w   ClearScreen
 
-    lea Screen,a0
-    move.l #screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2),d0
+    lea     Screen,a0
+    move.l  #screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2),d0
 
 .clr
-    move.b #0,(a0)+
-    dbf d0,.clr
+    move.b  #0,(a0)+
+    dbf     d0,.clr
+
+    lea     FastData,a0
+
+    move.b  #level_01_main_map_cols,v_current_map_columns(a0)
+    move.b  #level_01_main_map_rows,v_current_map_rows(a0)
+    move.l  #eight_by_four_map_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
+
+;level_01_dungeon_map_cols           = 64
+;level_01_dungeon_map_rows           = 24
+
+    lea     TilesSourceLevel01,a1
+    move.l  a1,v_tile_source(a0)
+
+    lea     Map,a2
+    lea     MapSourceLevel01,a1
+    bsr     LoadLevelMap
+
+    bsr     AssembleSourceTilesIntoMapSourceBitmap
+
+    lea     DecodedGraphic,a3
+    lea     Screen,a4
+    bsr     CopyScreenFromMapSourceBitmap
+
 
 ; some test code
 
-    bsr TESTCode
+    move.b  #test_cols_to_decode,v_current_map_columns(a0)
+    move.b  #test_rows_to_decode,v_current_map_rows(a0)
+    move.l  #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
 
-    bsr DecodeTileGraphicToLongBitmap
+    lea     TESTEncodedTilesSource,a1
+    move.l  a1,v_tile_source(a0)
 
-    lea DecodedGraphic,a3
-    lea Screen,a4
-    bsr TESTCopyScreenFromDecodedLongBitmap
+    lea     Map,a2
+    lea     TESTMapSource,a1
+    bsr     TESTLoadLevel1Map
 
-    lea FastData,a1
-    lea Screen,a0                                           ;ptr to first bitplane of image
+    bsr     DecodeAndAssembleSourceTilesIntoMapSourceBitmap
 
-    move.l a0,v_screen(a1)
-    move.l a0,v_scroll_screen(a1)
-
-    lea screen_bytes_per_row*tile_height(a0),a0             ;skip first tile row
-
-    move.l a0,v_scroll_screen_split(a1)
-
-    lea Copper,a1                                           ;where to poke the bitplane pointer words.
-    move #4-1,d0
-
-.bpl7:
-    move.l a0,d1
-    swap d1
-    move.w d1,c_bitplane_pointers_01(a1)                    ;hi word
-    move.w d1,c_bitplane_pointers_02(a1)                    ;hi word
-    swap d1
-    move.w d1,4+c_bitplane_pointers_01(a1)                  ;lo word
-    move.w d1,4+c_bitplane_pointers_02(a1)                  ;lo word
-
-    addq #8,a1                                              ;point to next bpl to poke in copper
-    lea screen_bp_bytes_per_raster_line(a0),a0              ;every 44 bytes we'll have new bitplane data
-    dbf d0,.bpl7
-
-    bsr InputInitControllers
+    lea     DecodedGraphic,a3
+    lea     Screen,a4
+    bsr     TESTCopyScreenFromMapSourceBitmap
 
 ;test code ends
+
+;SetScreenBufferPointersInFastMem
+
+    lea     FastData,a1
+    lea     Screen,a0                                       ;ptr to first bitplane of image
+
+    move.l  a0,v_screen(a1)
+    move.l  a0,v_scroll_screen(a1)
+
+    lea     screen_bytes_per_row*tile_height(a0),a0         ;skip first tile row
+
+    move.l  a0,v_scroll_screen_split(a1)
+
+;SetCopperScreenBitplanePointers
+
+    lea     Copper,a1                                       ;where to poke the bitplane pointer words.
+    move    #4-1,d0
+
+.bpl7:
+    move.l  a0,d1
+    swap    d1
+    move.w  d1,c_bitplane_pointers_01(a1)                   ;hi word
+    move.w  d1,c_bitplane_pointers_02(a1)                   ;hi word
+    swap    d1
+    move.w  d1,4+c_bitplane_pointers_01(a1)                 ;lo word
+    move.w  d1,4+c_bitplane_pointers_02(a1)                 ;lo word
+
+    addq    #8,a1                                           ;point to next bpl to poke in copper
+    lea     screen_bp_bytes_per_raster_line(a0),a0          ;every 44 bytes we'll have new bitplane data
+    dbf     d0,.bpl7
+
+    bsr     SetupDebugStrings
+    bsr     InputInitControllers
 
     movem.l (sp)+,d0-a6
     rts
@@ -75,29 +114,29 @@ Init:
 *******************************************************************************
 
 StartGame:
-    bsr.w Init
+    bsr.w   Init
 
-    lea $DFF000,a6
-    move.w #$7FFF,DMACON(a6)                                ;disable all bits in DMACON
-    move.w #$87E0,DMACON(a6)                                ;SET+BLTPRI+DMAEN+BPLEN+COPEN+BLTEN+SPREN
+    lea     $DFF000,a6
+    move.w  #$7FFF,DMACON(a6)                               ;disable all bits in DMACON
+    move.w  #$87E0,DMACON(a6)                               ;SET+BLTPRI+DMAEN+BPLEN+COPEN+BLTEN+SPREN
 
-    move.w #0,$01fc(a6)                                     ;slow fetch mode, AGA compatibility
-    move.w #$24,BPLCON2(a6)
-    move.w #$200,BPLCON0(a6)
-    move.w #vert_display_start<<8+h_display_start,DIWSTRT(a6)
-    move.w #vert_display_stop<<8+h_display_stop,DIWSTOP(a6)
-    move.w #DMA_fetch_start,DDFSTRT(a6)                     ;$28 for 22 columns; $38 for 20 columns (etc)
-    move.w #DMA_fetch_stop,DDFSTOP(a6)                      ;$d0 for 22 columns; $c0 for 20 columns
+    move.w  #0,$01fc(a6)                                    ;slow fetch mode, AGA compatibility
+    move.w  #$24,BPLCON2(a6)
+    move.w  #$200,BPLCON0(a6)
+    move.w  #vert_display_start<<8+h_display_start,DIWSTRT(a6)
+    move.w  #vert_display_stop<<8+h_display_stop,DIWSTOP(a6)
+    move.w  #DMA_fetch_start,DDFSTRT(a6)                    ;$28 for 22 columns; $38 for 20 columns (etc)
+    move.w  #DMA_fetch_stop,DDFSTOP(a6)                     ;$d0 for 22 columns; $c0 for 20 columns
 
-    move.w #screen_modulo,BPL1MOD(a6)
-    move.w #screen_modulo,BPL2MOD(a6)
+    move.w  #screen_modulo,BPL1MOD(a6)
+    move.w  #screen_modulo,BPL2MOD(a6)
 
-    move.l #Copper,COP1LCH(a6)
-    move.l #VBint,$6c(a4)                                   ;set vertb interrupt vector compatibly.
-    move.w #$c020,INTENA(a6)                                ;enable interrupts generally
+    move.l  #Copper,COP1LCH(a6)
+    move.l  #VBint,$6c(a4)                                  ;set vertb interrupt vector compatibly.
+    move.w  #$c020,INTENA(a6)                               ;enable interrupts generally
                                                             ;and vertb specifically.
 
-    bsr.s Main
+    bsr.s   Main
 
     rts
 
@@ -131,76 +170,6 @@ TESTVBCode:
     lea FastData,a0
     bsr TESTScroll
     bsr TESTUpdateMapXMapYDebugStrings
-    rts
-
-;-----------------------------------------------
-TESTCode:
-    lea     FastData,a0
-
-    move.b  #test_cols_to_decode,v_tile_columns_to_decode(a0)
-    move.b  #test_rows_to_decode,v_tile_rows_to_decode(a0)
-    move.l  #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
-
-    lea     TESTEncodedTilesSource,a1
-    move.l  a1,v_tile_source(a0)
-
-    lea     TilesToDecode,a2
-    lea     TESTMap,a1
-    bsr     TESTLoadLevel1Tiles
-
-    lea     DebugStringMapX,a1
-    lea     DebugStringMapXBitmap,a2
-    bsr     TESTPreRenderDebugString6Chars
-
-    lea     DebugStringMapY,a1
-    lea     DebugStringMapYBitmap,a2
-    bsr     TESTPreRenderDebugString6Chars
-
-    lea     DebugStringMa,a1
-    lea     Sprite00+4,a2
-    bsr     TESTPreRenderDebugStringToSprite
-
-    lea     DebugStringMa,a1
-    lea     Sprite00Line02,a2
-    bsr     TESTPreRenderDebugStringToSprite
-
-    lea     DebugStringPx,a1
-    lea     Sprite01+4,a2
-    bsr     TESTPreRenderDebugStringToSprite
-
-    lea     DebugStringPy,a1
-    lea     Sprite01Line02,a2
-    bsr     TESTPreRenderDebugStringToSprite
-
-    lea     Copper,a3
-
-    lea     DebugFontBitmapSourceE-4*2+2,a2
-    lea     c_sprites01_cols+2(a3),a1
-    moveq   #3-1,d0
-.coll:
-    move.w  (a2)+,(a1)+
-    addq.w  #2,a1
-    dbf     d0,.coll
-
-    WRITEBPP a3,c_sprite00,Sprite00
-    WRITEBPP a3,c_sprite01,Sprite01
-    WRITEBPP a3,c_sprite02,Sprite02
-;    WRITEBPP a3,c_sprite03,Sprite03
-    WRITEBPP a3,c_sprite04,Sprite04
-    WRITEBPP a3,c_sprite05,Sprite05
-
-    lea     NullSpr,a2
-    move.l  a2,d1
-    moveq   #2-1,d0
-
-.sprpl:
-    addq.w  #8,a1
-    swap    d1
-    move.w  d1,2(a1)
-    swap    d1
-    move.w  d1,6(a1)
-    dbf     d0,.sprpl
-
     rts
 
 ;-----------------------------------------------
@@ -463,7 +432,7 @@ VBCode:
     rts
 
 ;-----------------------------------------------
-DecodeTileGraphicToLongBitmap:
+DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
     ;SCREEN LO-RES
     ;W: 2048; H=256
     ;8 pixels/byte
@@ -483,7 +452,7 @@ DecodeTileGraphicToLongBitmap:
 
     clr.l d0
 
-    lea TilesToDecode,a0                                    ;Starting tile
+    lea Map,a0                                    ;Starting tile
     lea FastData,a2
     lea v_tile_decode_row_dest(a2),a1
 
@@ -512,7 +481,7 @@ DecodeTileGraphicToLongBitmap:
     bsr TESTExtractTile
 
     lea FastData,a2
-    lea v_tile_columns_to_decode(a2),a4
+    lea v_current_map_columns(a2),a4
     add.l #2,v_tile_decode_dest(a2)
     addi.b #1,d4
 
@@ -528,7 +497,7 @@ DecodeTileGraphicToLongBitmap:
     move.l a1,v_tile_decode_dest(a2)
     move.l a1,v_tile_decode_row_dest(a2)
 
-    lea v_tile_rows_to_decode(a2),a4
+    lea v_current_map_rows(a2),a4
     addi.b #1,d5
     cmp.b (a4),d5
     bne .loop_rows
@@ -568,33 +537,33 @@ VBint:                                                      ;Blank template VERT
 * DATA (FASTMEM)
 *******************************************************************************
 
-TilesLevel1Source:              INCBIN "gfx/Level01/tiles/all_tiles_256x336x5"
+TilesSourceLevel01:             INCBIN "gfx/Level01/tiles/all_tiles_256x336x5"
 TilesLevel1SourceE:
     EVEN
 
-MapLevel1:                      INCBIN "gfx/Level01/map/main_128x48"
-MapLevel1E:
+MapSourceLevel01:               INCBIN "gfx/Level01/map/main_128x48"
+MapSourceLevel1E:
     EVEN
 
-MapDungeonLevel1:               INCBIN "gfx/Level01/map/dungeon_64x24"
-MapDungeonLevel1E:
+MapSourceDungeonLevel1:         INCBIN "gfx/Level01/map/dungeon_64x24"
+MapSourceDungeonLevel1E:
     EVEN
 
-MapWiseManLevel1:               INCBIN "gfx/Level01/map/wiseman_16x7"
-MapWiseManLevel1E:
+MapSourceWiseManLevel1:         INCBIN "gfx/Level01/map/wiseman_16x7"
+MapSourceWiseManLevel1E:
     EVEN
 
 TESTEncodedTilesSource:         INCBIN "gfx/gfx2.bin"
     EVEN
 
-TESTMap:                        INCBIN "data/lev_1_scroll_data.bin"
+TESTMapSource:                  INCBIN "data/lev_1_scroll_data.bin"
     EVEN
 
 DebugFontBitmapSource:          INCBIN "gfx/debug_alpha80x32x2.raw"
 DebugFontBitmapSourceE:
     EVEN
 
-TilesToDecode:
+Map:
     ds.w (test_cols_to_decode+1)*(test_rows_to_decode+1)*tile_height
 
 FastData:
@@ -668,10 +637,10 @@ FastData:
 ;v_decoded_bitplane_bytes
     dc.b 0,0,0,0,0,0,0,0
 
-;v_tile_columns_to_decode
+;v_current_map_columns
     dc.b 0
 
-;v_tile_rows_to_decode
+;v_current_map_rows
     dc.b 0
 
 ;v_joystick_value

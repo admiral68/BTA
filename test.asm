@@ -2,9 +2,9 @@
 *******************************************************************************
 * TEST ROUTINES
 *******************************************************************************
-TESTLoadLevel1Tiles:
-;lea TilesToDecode,a2
-;lea TESTMap,a1
+TESTLoadLevel1Map:
+;lea Map,a2
+;lea TESTMapSource,a1
     ;THIS DECODES THE TILES IN MAP LAYOUT (16x16 TILES). 128 tiles horizontally
     ;then wrap to the next row of tiles
 
@@ -310,7 +310,7 @@ TESTExtractTile:
     rts
 
 ;-----------------------------------------------
-TESTCopyScreenFromDecodedLongBitmap:
+TESTCopyScreenFromMapSourceBitmap:
     move.l  a3,d3
     move.l  a4,d4
     add.l   #2+screen_bytes_per_row*tile_height,d4

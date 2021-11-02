@@ -29,8 +29,8 @@ v_video_x_bitplane_offset           = 122
 v_scroll_positions                  = 124
 v_tile_y_blit_positions             = 140
 v_decoded_bitplane_bytes            = 156
-v_tile_columns_to_decode            = 164
-v_tile_rows_to_decode               = 165
+v_current_map_columns               = 164
+v_current_map_rows                  = 165
 v_joystick_value                    = 166
 v_scroll_previous_x_direction       = 167
 v_y_scroll_velocity                 = 168
@@ -108,6 +108,28 @@ debug_string_mapx_bytes_per_row     = debug_string_bpl_bytes_per_row*debug_font_
 debug_string_mapy_bytes_per_row     = debug_string_bpl_bytes_per_row*debug_font_bitplanes
 debug_string_mapx_size              = debug_string_mapx_bytes_per_row*debug_font_char_height
 debug_string_mapy_size              = debug_string_mapy_bytes_per_row*debug_font_char_height
+
+    *-----------------*
+    * level data      *
+    *-----------------*
+
+all_levels_wiseman_shop_cols        = 16
+all_levels_wiseman_shop_rows        = 7
+
+eight_by_four_map_bmp_width_pixels  = 2048
+eight_by_four_map_bmp_vtile_offset  = (eight_by_four_map_bmp_width_pixels/tile_width)*2*tile_bitplanes*tile_height
+eight_by_four_map_cols              = 128
+eight_by_four_map_rows              = 64
+
+level_01_main_map_cols              = eight_by_four_map_cols
+level_01_main_map_rows              = eight_by_four_map_rows-16
+level_01_dungeon_map_cols           = 64
+level_01_dungeon_map_rows           = 24
+
+    *-----------------*
+    * DMA             *
+    *-----------------*
+
 
 DMA_fetch_start                     = $38                                   ;was $28: CONVERT $28 for 22 columns;$38 for 20 columns;$48 for 18 columns
 DMA_fetch_stop                      = $c0                                   ;was $d0: CONVERT $d0 for 22 columns;$c0 for 20 columns;$b0 for 18 columns
