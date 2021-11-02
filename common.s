@@ -19,8 +19,9 @@ v_dest_graphic_vtile_offset         = 28
 v_scroll_screen                     = 32
 v_scroll_screen_split               = 36
 v_scroll_ptr_saveword               = 40
-v_unused_01                         = 44
-v_unused_02                         = 48
+v_map_width                         = 44
+v_map_bytes_per_tile_row            = 46
+v_map_bytes                         = 48
 v_unused_03                         = 52
 v_scrollx_dest_offset_table         = 56
 v_scrolly_dest_offset_table         = 88
@@ -38,29 +39,31 @@ v_x_scroll_velocity                 = 171
 v_previous_joystick_value           = 172
 v_previous_x_step_value             = 173
 v_previous_y_step_value             = 174
-v_debug_char_lut                    = 175
-v_debug_hexchar_lut                 = 239
-v_text_buffer                       = 255
+v_map_tile_width                    = 175
+v_map_tile_height                   = 176
+v_debug_char_lut                    = 177
+v_debug_hexchar_lut                 = 241
+v_text_buffer                       = 257
 
 c_horizontal_scroll_pos_01          = 38
 c_sprites_enable_01                 = 42
 c_palette_01                        = 46
 c_bitplane_pointers_01              = 110
-c_sprites01_cols                    = 140
-c_sprites23_cols                    = 152
-c_sprites45_cols                    = 164
-c_sprites67_cols                    = 176
-c_sprite00                          = 188
-c_sprite01                          = 196
-c_sprite02                          = 204
-c_sprite03                          = 212
-c_sprite04                          = 220
-c_sprite05                          = 228
-c_null_sprites                      = 236
-c_display_enable_01                 = 252
-c_split_stop                        = 256
-c_split                             = 260
-c_bitplane_pointers_02              = 266
+c_sprites01_cols                    = 148
+c_sprites23_cols                    = 160
+c_sprites45_cols                    = 172
+c_sprites67_cols                    = 184
+c_sprite00                          = 196
+c_sprite01                          = 204
+c_sprite02                          = 212
+c_sprite03                          = 220
+c_sprite04                          = 228
+c_sprite05                          = 236
+c_null_sprites                      = 244
+c_display_enable_01                 = 260
+c_split_stop                        = 264
+c_split                             = 268
+c_bitplane_pointers_02              = 274
 
     *-----------------*
     * constants:video *
@@ -72,7 +75,7 @@ screen_buffer_height                = 256                                       
 screen_columns                      = screen_width/tile_width
 screen_rows                         = screen_height/tile_height
 screen_buffer_rows                  = screen_buffer_height/tile_height
-screen_bitplanes                    = 4
+screen_bitplanes                    = 5
 screen_bpl_bytes_per_row            = screen_width/8
 screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
 screen_modulo                       = (screen_width/8)*(screen_bitplanes-1)             ;offset by 3 bitplanes
@@ -80,18 +83,13 @@ screen_horz_disp_words              = screen_width/16
 screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
 screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
 
-map_width                           = map_tile_width*tile_width
-map_height                          = map_tile_height*tile_height
-map_tile_width                      = test_cols_to_decode
-map_tile_height                     = test_rows_to_decode
-map_bpl_bytes_per_row               = map_width/8
-map_bitplanes                       = 4
-map_bytes_per_row                   = map_bpl_bytes_per_row*map_bitplanes
-map_bytes_per_tile_row              = map_bytes_per_row*tile_height
-map_bytes                           = map_bytes_per_tile_row*map_tile_height
+map_bitplanes                       = screen_bitplanes
+map_bytes                           = eight_by_four_map_cols*2*map_bitplanes*tile_height*(eight_by_four_map_rows-16)
+map_dungeon_bytes                   = 64*2*map_bitplanes*tile_height*24
+map_wiseman_bytes                   = 16*2*map_bitplanes*tile_height*7
 
-map_source_tile_width               = 256
-map_source_tile_bpl_bytes_per_row   = map_source_tile_width/8
+map_source_width                    = 256
+map_source_tile_bpl_bytes_per_row   = map_source_width/8
 map_source_tile_bytes_per_row       = map_source_tile_bpl_bytes_per_row*screen_bitplanes
 map_source_tile_bytes_per_tile_row  = map_source_tile_bytes_per_row*tile_height
 
@@ -146,8 +144,6 @@ h_display_start                     = $81                                   ;was
 h_display_stop                      = $91                                   ;was $c1: CONVERT $c1 for non-scrolling display
 
 bpls                                = 3                                     ;handy values:
-
-vlines_per_graphic                  = 48                                    ;32
 
     *-----------------*
     * palettes        *

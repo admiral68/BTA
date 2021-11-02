@@ -31,9 +31,14 @@ Init:
 
     lea     FastData,a0
 
+    move.b  #level_01_main_map_rows,v_map_tile_height(a0)
+    move.b  #level_01_main_map_cols,v_map_tile_width(a0)
+    move.w  #level_01_main_map_cols*16,v_map_width(a0)
+    move.w  #level_01_main_map_cols*32,v_map_bytes_per_tile_row(a0)
     move.b  #level_01_main_map_cols,v_current_map_columns(a0)
     move.b  #level_01_main_map_rows,v_current_map_rows(a0)
     move.l  #eight_by_four_map_bytes_per_tile_row,v_dest_graphic_vtile_offset(a0)
+    move.l  #level_01_main_map_cols*2*map_bitplanes*tile_height*level_01_main_map_rows,v_map_bytes(a0)                        =
 
 ;level_01_dungeon_map_cols           = 64
 ;level_01_dungeon_map_rows           = 24
@@ -44,7 +49,7 @@ Init:
     lea     Map,a2
     lea     MapSourceLevel01,a1
     move.l  #level_01_main_map_rows-1,d0
-    move.l  #level_01_main_map_cols-1,d1	
+    move.l  #level_01_main_map_cols-1,d1
     bsr     LoadLevelMap
 
     bsr     AssembleSourceTilesIntoMapSourceBitmap
@@ -56,22 +61,22 @@ Init:
 
 ; some test code
 
-    move.b  #test_cols_to_decode,v_current_map_columns(a0)
-    move.b  #test_rows_to_decode,v_current_map_rows(a0)
-    move.l  #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
-
-    lea     TESTEncodedTilesSource,a1
-    move.l  a1,v_tile_source(a0)
-
-    lea     Map,a2
-    lea     TESTMapSource,a1
-    bsr     TESTLoadLevel1Map
-
-    bsr     DecodeAndAssembleSourceTilesIntoMapSourceBitmap
-
-    lea     MapSourceBitmap,a3
-    lea     Screen,a4
-    bsr     TESTCopyScreenFromMapSourceBitmap
+;    move.b  #test_cols_to_decode,v_current_map_columns(a0)
+;    move.b  #test_rows_to_decode,v_current_map_rows(a0)
+;    move.l  #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
+;
+;    lea     TESTEncodedTilesSource,a1
+;    move.l  a1,v_tile_source(a0)
+;
+;    lea     Map,a2
+;    lea     TESTMapSource,a1
+;    bsr     TESTLoadLevel1Map
+;
+;    bsr     DecodeAndAssembleSourceTilesIntoMapSourceBitmap
+;
+;    lea     MapSourceBitmap,a3
+;    lea     Screen,a4
+;    bsr     TESTCopyScreenFromMapSourceBitmap
 
 ;test code ends
 
@@ -90,7 +95,7 @@ Init:
 ;SetCopperScreenBitplanePointers
 
     lea     Copper,a1                                       ;where to poke the bitplane pointer words.
-    move    #4-1,d0
+    move    #screen_bitplanes-1,d0
 
 .bpl7:
     move.l  a0,d1
@@ -284,7 +289,7 @@ TESTScroll:
 ***********************************************
 
 .right
-    cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
+    cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2; TODO: BETTER CHECK. SOMETIMES THE MAP IS HALF-WIDE
     bge .end_scroll
 
 .scroll_right
@@ -555,18 +560,18 @@ MapSourceWiseManLevel1:         INCBIN "gfx/Level01/map/wiseman_16x7"
 MapSourceWiseManLevel1E:
     EVEN
 
-TESTEncodedTilesSource:         INCBIN "gfx/gfx2.bin"
-    EVEN
-
-TESTMapSource:                  INCBIN "data/lev_1_scroll_data.bin"
-    EVEN
+;TESTEncodedTilesSource:         INCBIN "gfx/gfx2.bin"
+;    EVEN
+;
+;TESTMapSource:                  INCBIN "data/lev_1_scroll_data.bin"
+;    EVEN
 
 DebugFontBitmapSource:          INCBIN "gfx/debug_alpha80x32x2.raw"
 DebugFontBitmapSourceE:
     EVEN
 
-Map:
-    ds.w (test_cols_to_decode+1)*(test_rows_to_decode+1)*tile_height
+Map:    ;TODO: Dynamic alloc?
+    ds.w (level_01_main_map_cols+1)*(level_01_main_map_rows+1)*tile_height
 
 FastData:
 ;v_tile_y_position
@@ -605,8 +610,10 @@ FastData:
 ;v_scroll_ptr_saveword
     dc.l 0
 
-;v_tile_unblitted_src_y
-    dc.l 0
+;v_map_width
+    dc.w 0
+
+    dc.w 0
 
 ;v_tile_unblitted_dest_x
     dc.l 0
@@ -664,6 +671,12 @@ FastData:
     dc.b 0
 
 ;v_previous_y_step_value
+    dc.b 0
+
+;v_map_tile_width
+    dc.b 0
+
+;v_map_tile_height
     dc.b 0
 
 ;v_debug_char_lut
@@ -733,8 +746,8 @@ Copper:
     dc.w $00ea,0
     dc.w $00ec,0                                            ;4
     dc.w $00ee,0
-;   dc.w $00f0,0                                            ;5
-;   dc.w $00f2,0
+    dc.w $00f0,0                                            ;5
+    dc.w $00f2,0
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
@@ -789,7 +802,7 @@ Copper:
     dc.w $13e,0
 
 ;c_display_enable_01
-    dc.w BPLCON0,$4200
+    dc.w BPLCON0,$5200
 
 ;c_split_stop
     dc.w $ffdf,$fffe
@@ -806,8 +819,8 @@ Copper:
     dc.w $00ea,0
     dc.w $00ec,0                                            ;4
     dc.w $00ee,0
-;   dc.w $00f0,0                                            ;5
-;   dc.w $00f2,0
+    dc.w $00f0,0                                            ;5
+    dc.w $00f2,0
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
@@ -885,6 +898,13 @@ Screen2E:
     EVEN
 
 MapSourceBitmap:
-    ds.b map_bytes                                          ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
-                                                            ;REMEMBER, the test bitmap is only 16 tiles high (256)
+    ds.b map_bytes
 MapSourceBitmapE:
+
+;MapSourceDungeonBitmap:
+;    ds.b map_dungeon_bytes
+;MapSourceDungeonBitmapE:
+;
+;MapSourceWisemanShopBitmap:
+;    ds.b map_wiseman_bytes
+;MapSourceWisemanShopBitmapE:

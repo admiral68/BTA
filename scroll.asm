@@ -24,7 +24,7 @@ ScrollGetMapXYForVertical:
     move.w d3,d4                                            ;mapposy (if scrolling down, we're one behind)
     and.w #15,d4                                            ;scroll step y
     swap d3
-	
+
     move.w v_map_x_position(a0),d3                          ;mapposx
     asr.w #4,d3                                             ;mapx (block)
 
@@ -32,10 +32,10 @@ ScrollGetMapXYForVertical:
 
     asr.w #4,d3                                             ;mapy (block)
 
-    cmp.w #map_tile_height,d3                               ;This is because the
+    cmp.b v_map_tile_height(a0),d3                          ;This is because the
     ble .save_mapy                                          ;source bitmap is only map_tile_height blocks high
 
-    sub.w #map_tile_height,d3                               ;special case: grab source blocks from top of test bitmap
+    sub.b v_map_tile_height(a0),d3                          ;special case: grab source blocks from top of test bitmap
 
 .save_mapy
 
@@ -222,7 +222,7 @@ ScrollUpdateBitplanePointers:
     add.l d3,d1                                             ;v_scroll_screen+$B00
     move.l d3,v_scroll_screen(a0)
     move.l d6,v_scroll_screen_split(a0)
-    move #4-1,d0
+    move #screen_bitplanes-1,d0
 
 .loop
     move.w d6,4+c_bitplane_pointers_01(a1)                  ;lo word
@@ -302,7 +302,7 @@ ScrollGetHTileOffsets:
     sub.w #1,d2
 
 .addo                                                       ;mapy * mapwidth
-    add.l #map_bytes_per_tile_row,d1
+    add.l v_map_bytes_per_tile_row(a0),d1
     dbf d2,.addo
 
 .skip_add
@@ -335,19 +335,19 @@ ScrollGetHTileOffsets:
     move.l a3,d5                                            ;A source (blocksbuffer)
     add.l d1,d5                                             ;blocksbuffer + mapy + mapx
 
-    sub.l #map_bytes_per_tile_row,d5                        ;We're starting one source row higher
+    sub.l v_map_bytes_per_tile_row(a0),d5                   ;We're starting one source row higher
 
     ;IF the source pointer is out of range, skip the blit
     cmp.l a3,d5
     bge .check_past_end_of_source
 
-    add.l #map_bytes,d5
+    add.l v_map_bytes(a0),d5
 
 .check_past_end_of_source
     cmp.l a5,d5
     blt .destination
 
-    sub.l #map_bytes,d5
+    sub.l v_map_bytes(a0),d5
 
 ****************************************
 ***         DESTINATION              ***
@@ -432,7 +432,7 @@ ScrollGetVTileOffsets:
     sub.w #1,d2
 
 .addo                                                       ;mapy * mapwidth
-    add.l #map_bytes_per_tile_row,d1
+    add.l v_map_bytes_per_tile_row(a0),d1
     dbf d2,.addo
 
 .skip_add
@@ -529,7 +529,7 @@ ScrollGetVTileOffsets:
     cmp.l a5,d5
     blt .figure_out_num_blocks_to_blit
 
-    sub.l #map_bytes,d5                                     ;TODO: Maybe this isn't correct
+    sub.l v_map_bytes(a0),d5                                ;TODO: Maybe this isn't correct
 
 .figure_out_num_blocks_to_blit
     moveq #0,d7
