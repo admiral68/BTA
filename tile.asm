@@ -186,45 +186,55 @@ TileExtractFromSourceIntoMapBitmap:
 
     swap    d1
 
-    move.b  3(a5),d6
-    move.b  7(a5),d1
-    REPT 8
-    roxr.b  #1,d1
-    addx.b  d6,d6
-    ENDR
-    roxr.b  #1,d1
-    move.b  d6,3(a5)
-    move.b  d1,7(a5)
-
-    move.b  2(a5),d6
-    move.b  6(a5),d1
-    REPT 8
-    roxr.b  #1,d1
-    addx.b  d6,d6
-    ENDR
-    roxr.b  #1,d1
-    move.b  d6,2(a5)
-    move.b  d1,6(a5)
-
-    move.b  1(a5),d6
-    move.b  5(a5),d1
-    REPT 8
-    roxr.b  #1,d1
-    addx.b  d6,d6
-    ENDR
-    roxr.b  #1,d1
-    move.b  d6,1(a5)
-    move.b  d1,5(a5)
-
     move.b  (a5),d6
-    move.b  4(a5),d1
+    move.b  1(a5),d1
     REPT 8
     roxr.b  #1,d1
     addx.b  d6,d6
     ENDR
     roxr.b  #1,d1
     move.b  d6,(a5)
-    move.b  d1,4(a5)
+    move.b  d1,1(a5)
+
+    move.b  2(a5),d6
+    move.b  3(a5),d1
+    REPT 8
+    roxr.b  #1,d1
+    addx.b  d6,d6
+    ENDR
+    roxr.b  #1,d1
+    move.b  d6,2(a5)
+    move.b  d1,3(a5)
+
+    move.b  4(a5),d6
+    move.b  5(a5),d1
+    REPT 8
+    roxr.b  #1,d1
+    addx.b  d6,d6
+    ENDR
+    roxr.b  #1,d1
+    move.b  d6,4(a5)
+    move.b  d1,5(a5)
+
+    move.b  6(a5),d6
+    move.b  7(a5),d1
+    REPT 8
+    roxr.b  #1,d1
+    addx.b  d6,d6
+    ENDR
+    roxr.b  #1,d1
+    move.b  d6,6(a5)
+    move.b  d1,7(a5)
+
+    move.b  8(a5),d6
+    move.b  9(a5),d1
+    REPT 8
+    roxr.b  #1,d1
+    addx.b  d6,d6
+    ENDR
+    roxr.b  #1,d1
+    move.b  d6,8(a5)
+    move.b  d1,9(a5)
 
     swap    d1
 
@@ -236,22 +246,8 @@ TileExtractFromSourceIntoMapBitmap:
     move.w  6(a5),eight_by_four_map_bpl_bytes_per_row*3(a3)
     move.w  8(a5),eight_by_four_map_bpl_bytes_per_row*4(a3)
 
-;    ;this interleaves the bytes
-;
-;    move.b  4(a2),eight_by_four_map_bpl_bytes_per_row*0(a3)        ;bitplane 0
-;    move.b  3(a2),eight_by_four_map_bpl_bytes_per_row*1(a3)        ;bitplane 1
-;    move.b  2(a2),eight_by_four_map_bpl_bytes_per_row*2(a3)        ;bitplane 2
-;    move.b  1(a2),eight_by_four_map_bpl_bytes_per_row*3(a3)        ;bitplane 3
-;    move.b  (a2),eight_by_four_map_bpl_bytes_per_row*4(a3)         ;bitplane 4
-;
-;    move.b  9(a2),eight_by_four_map_bpl_bytes_per_row*0+1(a3)      ;bitplane 0
-;    move.b  8(a2),eight_by_four_map_bpl_bytes_per_row*1+1(a3)      ;bitplane 1
-;    move.b  7(a2),eight_by_four_map_bpl_bytes_per_row*2+1(a3)      ;bitplane 2
-;    move.b  6(a2),eight_by_four_map_bpl_bytes_per_row*3+1(a3)      ;bitplane 3
-;    move.b  5(a2),eight_by_four_map_bpl_bytes_per_row*4+1(a3)      ;bitplane 4
-
-    lea     eight_by_four_map_bytes_per_row(a3),a3                  ;move down one rasterline ($400 = $100 * 4 bitplanes; $100 = bytes in one rasterline for one bitplane)
-    lea     $02(a1),a1                                              ;source bytes per rasterline are 2 bytes apart
+    lea     eight_by_four_map_bytes_per_row(a3),a3                  ;move down one rasterline in dest   ($500 = $100 * 5 bitplanes; $100 = bytes in one rasterline for one bitplane)
+    lea     map_source_tile_bytes_per_row(a1),a1                    ;move down one rasterline in source ($A0  = $20  * 5 bpl)
 
     dbf     d0,.extract_tile
 

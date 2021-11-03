@@ -47,18 +47,14 @@ Init:
     move.l  a1,v_tile_source(a0)
 
     lea     Map,a2
-    lea     MapTestSource,a1
-    ;lea     MapSourceLevel01,a1
-    ;move.l  #level_01_main_map_rows-1,d0
-    ;move.l  #level_01_main_map_cols-1,d1
-    move.l  #0,d0
-    move.l  #11,d1
-    bsr     LoadLevelMap
+    lea     MapSourceLevel01,a1
+    move.l  #level_01_main_map_rows-1,d0
+    move.l  #level_01_main_map_cols-1,d1
 
+    bsr     LoadLevelMap
     bsr     AssembleSourceTilesIntoMapSourceBitmap
 
     lea     FastData,a0
-
     lea     MapSourceBitmap,a3
     lea     Screen,a4
     bsr     CopyScreenFromMapSourceBitmap

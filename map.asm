@@ -47,8 +47,6 @@ AssembleSourceTilesIntoMapSourceBitmap:
 .continue
     clr.l   d0
 
-    mcgeezer_special
-
     lea     Map,a0                                          ;Starting tile
     lea     FastData,a2
 
@@ -74,7 +72,7 @@ AssembleSourceTilesIntoMapSourceBitmap:
     andi.w  #tile_index_mask,d0
     move    d0,d2
     and.w   #15,d0
-    asl.w   #5,d0
+    add.w   d0,d0
     andi.w  #$7F0,d2
     mulu    #map_source_tile_bytes_per_row,d2
     add.w   d2,d0
