@@ -977,4 +977,66 @@ TESTCopyScreenFromDecodedLongBitmapForRightScroll:
     move.w  #(screen_width-tile_width)/16,BLTSIZE(a6)       ;no "h" term needed since it's 1024. Thanks ross @eab!
     rts
 ;-----------------------------------------------
+TESTUpdatePaletteDuringScroll:
+    movem.l d0-a6,-(sp)
+
+    btst.b #3,v_joystick_value(a0)                          ;left?
+    bne .check_left
+
+    btst.b #0,v_joystick_value(a0)                          ;right?
+    beq .continue
+
+    cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
+    blo .continue
+
+    lea Copper,a2
+
+    move.w #$0b87,c_palette_01(a2)
+    move.w #$0754,c_palette_01+4(a2)
+    move.w #$0975,c_palette_01+8(a2)
+    move.w #$0ca8,c_palette_01+12(a2)
+    move.w #$0ed8,c_palette_01+16(a2)
+    move.w #$0fff,c_palette_01+20(a2)
+    move.w #$0060,c_palette_01+24(a2)
+    move.w #$0090,c_palette_01+28(a2)
+    move.w #$00e0,c_palette_01+32(a2)
+    move.w #$0777,c_palette_01+36(a2)
+    move.w #$0aaa,c_palette_01+40(a2)
+    move.w #$0747,c_palette_01+44(a2)
+    move.w #$0868,c_palette_01+48(a2)
+    move.w #$0a8a,c_palette_01+52(a2)
+    move.w #$0cac,c_palette_01+56(a2)
+    move.w #$0111,c_palette_01+60(a2)
+
+    bra .continue
+
+.check_left
+
+    cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
+    bhi .continue
+
+    lea Copper,a2
+
+    move.w #$0111,c_palette_01(a2)
+    move.w #$0FF9,c_palette_01+4(a2)
+    move.w #$0EC7,c_palette_01+8(a2)
+    move.w #$0DA6,c_palette_01+12(a2)
+    move.w #$0C85,c_palette_01+16(a2)
+    move.w #$0A74,c_palette_01+20(a2)
+    move.w #$0864,c_palette_01+24(a2)
+    move.w #$0753,c_palette_01+28(a2)
+    move.w #$0641,c_palette_01+32(a2)
+    move.w #$0533,c_palette_01+36(a2)
+    move.w #$0431,c_palette_01+40(a2)
+    move.w #$0111,c_palette_01+44(a2)
+    move.w #$0111,c_palette_01+48(a2)
+    move.w #$0111,c_palette_01+52(a2)
+    move.w #$0111,c_palette_01+56(a2)
+    move.w #$0110,c_palette_01+60(a2)
+
+.continue
+    movem.l (sp)+,d0-a6
+    rts
+
+;-----------------------------------------------
 

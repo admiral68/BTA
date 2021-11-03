@@ -11,9 +11,7 @@ LoadLevelMap:
     move.l  d4,d1
 
 .inner_loop
-    move.w  (a1)+,d2                                        ;load "map word" into d2 from a1
-    and.w   #tile_index_mask,d2
-    move.w  d2,(a2)+                                        ;poke this into the map
+    move.w  (a1)+,(a2)+                                     ;poke this into the map
 
     dbf     d1,.inner_loop
     dbf     d0,.outer_loop
@@ -33,12 +31,20 @@ AssembleSourceTilesIntoMapSourceBitmap:
 
     move.l  a0,v_tile_map_dest(a1)
     move.l  a0,v_tile_map_row_dest(a1)
-    move.l  (MapSourceBitmapE-MapSourceBitmap)/4,d0
+    move.l  #(MapSourceBitmapE-MapSourceBitmap)/4,d0
 
 .l0:
     clr.l   (a0)+
     dbf     d0,.l0
 
+    swap    d0
+    tst.w   d0
+    beq     .continue
+    sub.w   #1,d0
+    swap    d0
+    bra     .l0
+
+.continue
     clr.l   d0
 
     lea     Map,a0                                          ;Starting tile
@@ -57,7 +63,7 @@ AssembleSourceTilesIntoMapSourceBitmap:
     move.b #0,d1                                            ;"FLIP" flag (off) in d1
     move.l v_tile_source(a2),a1                             ;SOURCE in a1
     move.w (a0)+,d0                                         ;TILE index/attr in d0
-    btst   #15,d0
+    btst   #11,d0
     beq    .no_flip
     move.b #1,d1                                            ;"FLIP" flag (on) in d1
 
@@ -67,6 +73,7 @@ AssembleSourceTilesIntoMapSourceBitmap:
     move    d0,d2
     and.w   #15,d0
     asl.w   #5,d0
+    andi.w  #$7F0,d2
     mulu    #map_source_tile_bytes_per_row,d2
     add.w   d2,d0
 
@@ -85,9 +92,8 @@ AssembleSourceTilesIntoMapSourceBitmap:
 
     lea     FastData,a2
     move.l  v_tile_map_row_dest(a2),a1
-    lea     v_map_bytes_per_tile_row(a2),a3                 ;One tile height in destination bitmap
 
-    adda.l  (a3),a1
+    adda.w  v_map_bytes_per_tile_row(a2),a1                 ;One tile height in destination bitmap
     move.l  a1,v_tile_map_dest(a2)
     move.l  a1,v_tile_map_row_dest(a2)
 
