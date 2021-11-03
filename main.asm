@@ -34,6 +34,7 @@ Init:
     move.b  #level_01_main_map_rows,v_map_tile_height(a0)
     move.b  #level_01_main_map_cols,v_map_tile_width(a0)
     move.w  #level_01_main_map_cols*16,v_map_width(a0)
+    move.w  #level_01_main_map_rows*16,v_map_height(a0)
     move.w  #eight_by_four_map_bytes_per_tile_row,v_map_bytes_per_tile_row(a0)
     move.b  #level_01_main_map_cols,v_current_map_columns(a0)
     move.b  #level_01_main_map_rows,v_current_map_rows(a0)
@@ -58,28 +59,6 @@ Init:
     lea     MapSourceBitmap,a3
     lea     Screen,a4
     bsr     CopyScreenFromMapSourceBitmap
-
-
-; some test code
-
-;    move.b  #test_cols_to_decode,v_current_map_columns(a0)
-;    move.b  #test_rows_to_decode,v_current_map_rows(a0)
-;    move.l  #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
-;
-;    lea     TESTEncodedTilesSource,a1
-;    move.l  a1,v_tile_source(a0)
-;
-;    lea     Map,a2
-;    lea     TESTMapSource,a1
-;    bsr     TESTLoadLevel1Map
-;
-;    bsr     DecodeAndAssembleSourceTilesIntoMapSourceBitmap
-;
-;    lea     MapSourceBitmap,a3
-;    lea     Screen,a4
-;    bsr     TESTCopyScreenFromMapSourceBitmap
-
-;test code ends
 
 ;SetScreenBufferPointersInFastMem
 
@@ -344,7 +323,8 @@ TESTScroll:
 ****************************************
 
 .down
-    cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
+    move.w v_map_y_position(a0),d4
+    cmp.w v_map_height(a0),d4                               ;scroll through all pixels before changing direction
     bge .end_scroll
 
     move.l #$10000,d4
@@ -372,79 +352,6 @@ TESTScroll:
 * ROUTINES
 *******************************************************************************
 VBCode:
-
-    rts
-
-;-----------------------------------------------
-DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
-    ;SCREEN LO-RES
-    ;W: 2048; H=256
-    ;8 pixels/byte
-    ;32 bytes per line/16 words per line
-    ;done to show how to extract Black Tiger-encoded image data
-    ;32*32*4
-
-    lea MapSourceBitmap,a0
-    lea FastData,a1
-
-    move.l a0,v_tile_map_row_dest(a1)
-    move.l (MapSourceBitmapE-MapSourceBitmap)/4,d0
-
-.l0:
-    clr.l (a0)+
-    dbf d0,.l0
-
-    clr.l d0
-
-    lea Map,a0                                    ;Starting tile
-    lea FastData,a2
-    lea v_tile_map_row_dest(a2),a1
-
-    move.l (a1),v_tile_map_dest(a2)
-    move.l #0,d5
-
-.loop_rows
-    move.l #0,d4
-
-.loop_columns
-    move.l v_tile_map_dest(a2),a3
-
-    move.b #0,d1
-    move.l v_tile_source(a2),a1
-    move.w (a0)+,d0
-    btst #15,d0
-    beq .no_flip
-    move.b #1,d1
-.no_flip
-    andi.w #tile_index_mask,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
-
-    lea FastData,a2
-    lea v_decoded_bitplane_bytes(a2),a5                     ;stores intermediate decoded bitplane bytes
-    bsr TESTExtractTile
-
-    lea FastData,a2
-    lea v_current_map_columns(a2),a4
-    add.l #2,v_tile_map_dest(a2)
-    addi.b #1,d4
-
-.check_loop
-    cmp.b (a4),d4
-    bne .loop_columns
-
-    lea FastData,a2
-    move.l v_tile_map_row_dest(a2),a1
-    lea v_map_bytes_per_tile_row(a2),a3                     ;One tile height in destination bitmap
-
-    adda.l (a3),a1
-    move.l a1,v_tile_map_dest(a2)
-    move.l a1,v_tile_map_row_dest(a2)
-
-    lea v_current_map_rows(a2),a4
-    addi.b #1,d5
-    cmp.b (a4),d5
-    bne .loop_rows
 
     rts
 
@@ -497,12 +404,6 @@ MapSourceWiseManLevel1:         INCBIN "gfx/Level01/map/wiseman_16x7"
 MapSourceWiseManLevel1E:
     EVEN
 
-;TESTEncodedTilesSource:         INCBIN "gfx/gfx2.bin"
-;    EVEN
-;
-;TESTMapSource:                  INCBIN "data/lev_1_scroll_data.bin"
-;    EVEN
-
 DebugFontBitmapSource:          INCBIN "gfx/debug_alpha80x32x2.raw"
 DebugFontBitmapSourceE:
     EVEN
@@ -549,18 +450,20 @@ FastData:
 
 ;v_map_width
     dc.w 0
-
+;v_map_bytes_per_tile_row
     dc.w 0
 
-;v_tile_unblitted_dest_x
+;v_map_bytes
     dc.l 0
 
-;v_tile_unblitted_dest_y
-    dc.l 0
+;v_map_height
+    dc.w 0
+;v_unused_03
+    dc.w 0
 
 ;v_scrollx_dest_offset_table
-    dc.w $0000,$0900,$1200,$1B00,$2400,$2D00,$3600,$3F00
-    dc.w $4800,$5100,$5A00,$6300,$6C00,$7500,$7E00,$8700
+    dc.w $0000,$0B40,$1680,$21C0,$2D00,$3840,$4380,$4EC0
+    dc.w $5A00,$6540,$7080,$7BC0,$8700,$9240,$9D80,$A8C0
 
 ;v_scrolly_dest_offset_table
     dc.w $0000,$0002,$0004,$0006,$0008,$000C,$000E,$0010
@@ -576,7 +479,7 @@ FastData:
     dc.b $00,$FF,$EE,$DD,$CC,$BB,$AA,$99
     dc.b $88,$77,$66,$55,$44,$33,$22,$11
 
-;v_tile_y_blit_positions
+;v_unused_04
     dc.b $F0,$E0,$D0,$C0,$B0,$A0,$90,$80
     dc.b $70,$60,$50,$40,$30,$20,$10,$00
 

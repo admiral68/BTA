@@ -1039,4 +1039,77 @@ TESTUpdatePaletteDuringScroll:
     rts
 
 ;-----------------------------------------------
+DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
+    ;SCREEN LO-RES
+    ;W: 2048; H=256
+    ;8 pixels/byte
+    ;32 bytes per line/16 words per line
+    ;done to show how to extract Black Tiger-encoded image data
+    ;32*32*4
+
+    lea MapSourceBitmap,a0
+    lea FastData,a1
+
+    move.l a0,v_tile_map_row_dest(a1)
+    move.l (MapSourceBitmapE-MapSourceBitmap)/4,d0
+
+.l0:
+    clr.l (a0)+
+    dbf d0,.l0
+
+    clr.l d0
+
+    lea Map,a0                                    ;Starting tile
+    lea FastData,a2
+    lea v_tile_map_row_dest(a2),a1
+
+    move.l (a1),v_tile_map_dest(a2)
+    move.l #0,d5
+
+.loop_rows
+    move.l #0,d4
+
+.loop_columns
+    move.l v_tile_map_dest(a2),a3
+
+    move.b #0,d1
+    move.l v_tile_source(a2),a1
+    move.w (a0)+,d0
+    btst #15,d0
+    beq .no_flip
+    move.b #1,d1
+.no_flip
+    andi.w #tile_index_mask,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    lea FastData,a2
+    lea v_decoded_bitplane_bytes(a2),a5                     ;stores intermediate decoded bitplane bytes
+    bsr TESTExtractTile
+
+    lea FastData,a2
+    lea v_current_map_columns(a2),a4
+    add.l #2,v_tile_map_dest(a2)
+    addi.b #1,d4
+
+.check_loop
+    cmp.b (a4),d4
+    bne .loop_columns
+
+    lea FastData,a2
+    move.l v_tile_map_row_dest(a2),a1
+    lea v_map_bytes_per_tile_row(a2),a3                     ;One tile height in destination bitmap
+
+    adda.l (a3),a1
+    move.l a1,v_tile_map_dest(a2)
+    move.l a1,v_tile_map_row_dest(a2)
+
+    lea v_current_map_rows(a2),a4
+    addi.b #1,d5
+    cmp.b (a4),d5
+    bne .loop_rows
+
+    rts
+
+;-----------------------------------------------
 

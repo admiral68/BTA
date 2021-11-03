@@ -120,7 +120,6 @@ CopyScreenFromMapSourceBitmap:
     move.w  #$0000,BLTCON1(a6)
     move.w  #$FFFF,BLTAFWM(a6)
     move.w  #$FFFF,BLTALWM(a6)
-    ;move.w  #2*(map_tile_width-(screen_columns-1)),BLTAMOD(a6)  ;skip 107 columns (copy 21)
     move.w  d5,BLTAMOD(a6)                                      ;skip 107 columns (copy 21)
     move.w  #2,BLTDMOD(a6)                                      ;skip 1 column (copy 21)
     move.l  d3,BLTAPTH(a6)
@@ -132,7 +131,6 @@ CopyScreenFromMapSourceBitmap:
 
     add.l   #screen_bytes_per_row*tile_height,d4                ;two rows were unblitted
 
-    ;move.w  #2*(map_tile_width-(screen_columns-1)),BLTAMOD(a6)  ;skip 107 columns (copy 21)
     move.w  d5,BLTAMOD(a6)                                      ;skip 107 columns (copy 21)
     move.w  #2,BLTDMOD(a6)                                      ;skip 1 column (copy 21)
     move.l  d3,BLTAPTH(a6)
