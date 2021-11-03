@@ -109,6 +109,16 @@ CopyScreenFromMapSourceBitmap:
     move.l  a3,d3
     move.l  a4,d4
 
+    ;5bp
+    ;204x5 = 1020 lines (first blit)
+    ;68x5  =  340 lines (second blit)
+    ;      = 1360 lines / 5 = 272 total raster lines
+
+    ;4bp
+    ;256x4 = 1024 lines (first blit)
+    ;16x4  =   64 lines (second blit)
+    ;      = 1088 lines / 4 = 272 total raster lines
+
     add.l   #2+screen_bytes_per_row*tile_height,d4              ;down one row,over one column into the buffer
 
     clr.l   d5
@@ -125,18 +135,25 @@ CopyScreenFromMapSourceBitmap:
     move.l  d3,BLTAPTH(a6)
     move.l  d4,BLTDPTH(a6)
 
-    move.w  #(screen_width-tile_width)/16,BLTSIZE(a6)           ;no "h" term needed since it's 1024. Thanks ross @eab!
+    move.w  #1020*64+(screen_width-tile_width)/16,BLTSIZE(a6)   ;TODO: LUT
 
     WAITBLIT
 
-    add.l   #screen_bytes_per_row*tile_height,d4                ;two rows were unblitted
+    mcgeezer_special
+
+    clr.l   d6
+    move.w  v_map_source_bytes_per_row(a0),d6
+    mulu    #1020,d6                                            ;TODO: LUT
+
+    add.l   #screen_bytes_per_row*204,d4                        ;TODO: LUT; 68 lines (of 272) were unblitted
+    add.l   d6,d3                                               ;TODO: LUT; 68 lines (of 272) were unblitted
 
     move.w  d5,BLTAMOD(a6)                                      ;skip 107 columns (copy 21)
     move.w  #2,BLTDMOD(a6)                                      ;skip 1 column (copy 21)
     move.l  d3,BLTAPTH(a6)
     move.l  d4,BLTDPTH(a6)
 
-    move.w  #2*tile_plane_lines*64+(screen_width-tile_width)/16,BLTSIZE(a6)
+    move.w  #340*64+(screen_width-tile_width)/16,BLTSIZE(a6)    ;TODO: LUT
 
     rts
 ;-----------------------------------------------
