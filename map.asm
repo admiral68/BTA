@@ -60,12 +60,15 @@ AssembleSourceTilesIntoMapSourceBitmap:
 
     move.l  v_tile_map_dest(a2),a3                          ;DEST in a3
 
-    move.b #0,d1                                            ;"FLIP" flag (off) in d1
-    move.l v_tile_source(a2),a1                             ;SOURCE in a1
-    move.w (a0)+,d0                                         ;TILE index/attr in d0
-    btst   #11,d0
-    beq    .no_flip
-    move.b #1,d1                                            ;"FLIP" flag (on) in d1
+    move.l  #0,d1                                           ;"FLIP" flag (off) in d1
+    move.l  v_tile_source(a2),a1                            ;SOURCE in a1
+    move.w  (a0)+,d0                                        ;TILE index/attr in d0
+    move.w  d0,d1
+    swap    d1
+    btst    #11,d0
+    beq     .no_flip
+	mcgeezer_special
+    move.b  #1,d1                                           ;"FLIP" flag (on) in d1
 
 .no_flip
 
@@ -138,8 +141,6 @@ CopyScreenFromMapSourceBitmap:
     move.w  #1020*64+(screen_width-tile_width)/16,BLTSIZE(a6)   ;TODO: LUT
 
     WAITBLIT
-
-    mcgeezer_special
 
     clr.l   d6
     move.w  v_map_source_bpl_bytes_per_row(a0),d6
