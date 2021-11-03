@@ -219,7 +219,7 @@ ScrollUpdateBitplanePointers:
     bsr ScrollCalculateVerticalSplit
 
     move.l #screen_bytes_per_row*tile_height,d1
-    add.l d3,d1                                             ;v_scroll_screen+$B00
+    add.l d3,d1                                             ;v_scroll_screen+$B40
     move.l d3,v_scroll_screen(a0)
     move.l d6,v_scroll_screen_split(a0)
     move #screen_bitplanes-1,d0
