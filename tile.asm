@@ -4,7 +4,7 @@
 ;INPUT: source ptr in d5; dest ptr in d1; + (rows,cols)
 ;EX: BLIT_ROWS_AND_COLS 1,1
 BLIT_ROWS_AND_COLS:macro
-    move.w  v_map_source_bytes_per_row(a0),d6
+    move.w  v_map_source_bpl_bytes_per_row(a0),d6
     sub.w   #2*(\2),d6
     move.w  #$09F0,BLTCON0(a6)                              ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
     move.w  #$0000,BLTCON1(a6)                              ;custom->bltcon1 = 0;

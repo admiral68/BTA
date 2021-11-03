@@ -142,7 +142,7 @@ CopyScreenFromMapSourceBitmap:
     mcgeezer_special
 
     clr.l   d6
-    move.w  v_map_source_bytes_per_row(a0),d6
+    move.w  v_map_source_bpl_bytes_per_row(a0),d6
     mulu    #1020,d6                                            ;TODO: LUT
 
     add.l   #screen_bytes_per_row*204,d4                        ;TODO: LUT; 68 lines (of 272) were unblitted
