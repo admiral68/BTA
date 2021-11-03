@@ -36,6 +36,7 @@ Init:
     move.w  #level_01_main_map_cols*16,v_map_width(a0)
     move.w  #level_01_main_map_rows*16,v_map_height(a0)
     move.w  #eight_by_four_map_bytes_per_tile_row,v_map_bytes_per_tile_row(a0)
+    move.w  #eight_by_four_map_bpl_bytes_per_row,v_map_source_bytes_per_row(a0)
     move.b  #level_01_main_map_cols,v_current_map_columns(a0)
     move.b  #level_01_main_map_rows,v_current_map_rows(a0)
     move.l  #level_01_main_map_cols*2*map_bitplanes*tile_height*level_01_main_map_rows,v_map_bytes(a0)                        =
@@ -462,7 +463,8 @@ FastData:
 
 ;v_map_height
     dc.w 0
-;v_unused_03
+
+;v_map_source_bytes_per_row
     dc.w 0
 
 ;v_scrollx_dest_offset_table
