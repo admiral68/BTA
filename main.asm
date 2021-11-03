@@ -47,9 +47,12 @@ Init:
     move.l  a1,v_tile_source(a0)
 
     lea     Map,a2
-    lea     MapSourceLevel01,a1
-    move.l  #level_01_main_map_rows-1,d0
-    move.l  #level_01_main_map_cols-1,d1
+    lea     MapTestSource,a1
+    ;lea     MapSourceLevel01,a1
+    ;move.l  #level_01_main_map_rows-1,d0
+    ;move.l  #level_01_main_map_cols-1,d1
+    move.l  #0,d0
+    move.l  #11,d1
     bsr     LoadLevelMap
 
     bsr     AssembleSourceTilesIntoMapSourceBitmap
@@ -396,6 +399,11 @@ MapSourceLevel01:               INCBIN "gfx/Level01/map/main_128x48"
 MapSourceLevel1E:
     EVEN
 
+MapTestSource:
+    dc.w $029,$02a,$02b,$02c,$02d,$000,$029,$02a,$02b,$02c,$02d,$000
+MapTestSourceE:
+    EVEN
+
 MapSourceDungeonLevel1:         INCBIN "gfx/Level01/map/dungeon_64x24"
 MapSourceDungeonLevel1E:
     EVEN
@@ -557,7 +565,7 @@ DebugStringPy:
 Copper:
 
     dc.w $0180,$0111
-    dc.w $1801,$fffe                                        ;dc.w $2b01,$fffe
+    dc.w $1401,$fffe                                        ;dc.w $2b01,$fffe
 
     dc.w BPLCON0,$0200
     dc.b 0,DIWSTRT,vert_display_start,h_display_start
@@ -575,7 +583,7 @@ Copper:
     dc.w $01fe,$0000                                        ;NOP
 
 ;c_palette_01
-    tile_pal_0f
+    level_1_main_pal
 
 ;c_bitplane_pointers_01
     dc.w $00e0,0                                            ;1
@@ -591,25 +599,48 @@ Copper:
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
+;;c_sprites01_cols
+;    dc.w $1a2,0
+;    dc.w $1a4,0
+;    dc.w $1a6,0
+;
+;;c_sprites23_cols
+;    dc.w $1a8,$0000
+;    dc.w $1aa,$0111
+;    dc.w $1ac,$0ddd
+;
+;;c_sprites45_cols
+;    dc.w $1ae,$0000
+;    dc.w $1b0,$0d00
+;    dc.w $1b2,$0ddd
+;
+;;c_sprites67_cols
+;    dc.w $1b4,$0d00
+;    dc.w $1b6,$00f0
+;    dc.w $1b8,$0ddd
+
+
 ;c_sprites01_cols
-    dc.w $1a2,0
-    dc.w $1a4,0
-    dc.w $1a6,0
+    dc.w $01fe,0
+    dc.w $01fe,0
+    dc.w $01fe,0
 
 ;c_sprites23_cols
-    dc.w $1a8,$0000
-    dc.w $1aa,$0111
-    dc.w $1ac,$0ddd
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
 
 ;c_sprites45_cols
-    dc.w $1ae,$0000
-    dc.w $1b0,$0d00
-    dc.w $1b2,$0ddd
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
 
 ;c_sprites67_cols
-    dc.w $1b4,$0d00
-    dc.w $1b6,$00f0
-    dc.w $1b8,$0ddd
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+
+
 
 ;c_sprite00
     dc.w $120,0                                             ;SPR0PTH

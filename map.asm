@@ -47,6 +47,8 @@ AssembleSourceTilesIntoMapSourceBitmap:
 .continue
     clr.l   d0
 
+    mcgeezer_special
+
     lea     Map,a0                                          ;Starting tile
     lea     FastData,a2
 

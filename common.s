@@ -49,22 +49,22 @@ v_text_buffer                       = 257
 c_horizontal_scroll_pos_01          = 38
 c_sprites_enable_01                 = 42
 c_palette_01                        = 46
-c_bitplane_pointers_01              = 110
-c_sprites01_cols                    = 148
-c_sprites23_cols                    = 160
-c_sprites45_cols                    = 172
-c_sprites67_cols                    = 184
-c_sprite00                          = 196
-c_sprite01                          = 204
-c_sprite02                          = 212
-c_sprite03                          = 220
-c_sprite04                          = 228
-c_sprite05                          = 236
-c_null_sprites                      = 244
-c_display_enable_01                 = 260
-c_split_stop                        = 264
-c_split                             = 268
-c_bitplane_pointers_02              = 274
+c_bitplane_pointers_01              = 174
+c_sprites01_cols                    = 212
+c_sprites23_cols                    = 224
+c_sprites45_cols                    = 236
+c_sprites67_cols                    = 248
+c_sprite00                          = 260
+c_sprite01                          = 268
+c_sprite02                          = 276
+c_sprite03                          = 284
+c_sprite04                          = 292
+c_sprite05                          = 300
+c_null_sprites                      = 308
+c_display_enable_01                 = 324
+c_split_stop                        = 328
+c_split                             = 332
+c_bitplane_pointers_02              = 338
 
     *-----------------*
     * constants:video *
@@ -197,6 +197,17 @@ WRITEBPP:macro
     move.w  d1,2(a1)
     swap    d1
     move.w  d1,6(a1)
+    endm
+
+level_1_main_pal:macro
+    dc.w $0180,$0000,$0182,$0FFA,$0184,$0AFD,$0186,$07EC
+    dc.w $0188,$00C9,$018A,$00A7,$018C,$0086,$018E,$0064
+    dc.w $0190,$0040,$0192,$0540,$0194,$0531,$0196,$0421
+    dc.w $0198,$0600,$019A,$0900,$019C,$0743,$019E,$0954
+    dc.w $01A0,$0A64,$01A2,$0B75,$01A4,$0C86,$01A6,$0D97
+    dc.w $01A8,$0FB8,$01AA,$0A97,$01AC,$0986,$01AE,$0776
+    dc.w $01B0,$0678,$01B2,$0789,$01B4,$089C,$01B6,$0567
+    dc.w $01B8,$0456,$01BA,$0345,$01BC,$0046,$01BE,$0753
     endm
 
 tile_pal_00:macro
