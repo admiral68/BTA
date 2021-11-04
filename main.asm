@@ -439,7 +439,7 @@ FastData:
 
 ;v_map_y_position
 ;v_map_x_position
-    dc.l $00000000
+    dc.l $02000000
 
 ;v_video_y_position
 ;v_video_x_position

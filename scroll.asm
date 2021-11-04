@@ -2,11 +2,12 @@ ScrollGetMapXYForHorizontal:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
 
-    move.w v_map_x_position(a0),d3                          ;save for mapy
-    and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
+    move.w  v_map_y_position(a0),d3                         ;need the Y base blocknumber
+    asr.w   #4,d3
 
-    ;move.w  v_map_y_position(a0),d3
-    ;asr.w   #4,d3
+    move.w  v_map_x_position(a0),d2                         ;save for mapy
+    and.w   #15,d2                                          ;mapy = mapposx & (NUMSTEPS - 1);
+    add.w   d2,d3                                           ;add the block step
 
     swap    d3
 
@@ -299,8 +300,6 @@ ScrollGetHTileOffsets:
 
     move.w  v_map_x_position(a0),d4
 
-    mcgeezer_special
-
     swap    d3                                              ;mapy
 
     move.w  d3,d2
@@ -318,7 +317,6 @@ ScrollGetHTileOffsets:
 .skip_add
 
     clr.l   d5
-    move.w  d3,d2
 
 .add_no_rows
 
