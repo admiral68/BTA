@@ -4,10 +4,14 @@ ScrollGetMapXYForHorizontal:
 
     move.w v_map_x_position(a0),d3                          ;save for mapy
     and.w #15,d3                                            ;mapy = mapposx & (NUMSTEPS - 1);
-    swap d3
 
-    move.w v_map_x_position(a0),d3                          ;mapposx
-    asr.w #4,d3                                             ;mapx = mapposx / BLOCKWIDTH
+    ;move.w  v_map_y_position(a0),d3
+    ;asr.w   #4,d3
+
+    swap    d3
+
+    move.w  v_map_x_position(a0),d3                         ;mapposx
+    asr.w   #4,d3                                           ;mapx = mapposx / BLOCKWIDTH
 
     rts
 
@@ -295,14 +299,14 @@ ScrollGetHTileOffsets:
 
     move.w  v_map_x_position(a0),d4
 
+    mcgeezer_special
+
     swap    d3                                              ;mapy
 
     move.w  d3,d2
     cmp.w   #0,d2
     beq     .skip_add
     sub.w   #1,d2
-
-    mcgeezer_special
 
     move.w  v_map_bytes_per_tile_row(a0),d5
     move.w  d5,d6

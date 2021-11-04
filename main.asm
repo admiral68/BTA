@@ -37,6 +37,7 @@ Init:
     move.w  #level_01_main_map_rows*16,v_map_height(a0)
     move.w  #eight_by_four_map_bytes_per_tile_row,v_map_bytes_per_tile_row(a0)
     move.w  #eight_by_four_map_bpl_bytes_per_row,v_map_source_bpl_bytes_per_row(a0)
+    move.w  #eight_by_four_map_bytes_per_row,v_map_source_bytes_per_row(a0)
     move.b  #level_01_main_map_cols,v_current_map_columns(a0)
     move.b  #level_01_main_map_rows,v_current_map_rows(a0)
     move.l  #level_01_main_map_cols*2*map_bitplanes*tile_height*level_01_main_map_rows,v_map_bytes(a0)                        =
@@ -323,9 +324,12 @@ TESTScroll:
 ****************************************
 
 .down
-    move.w v_map_y_position(a0),d4
-    cmp.w v_map_height(a0),d4                               ;scroll through all pixels before changing direction
-    bge .end_scroll
+    move.w  v_map_y_position(a0),d4
+    clr.l   d5
+    move.w  v_map_height(a0),d5
+    sub.w   #screen_buffer_height,d5
+    cmp.w   d5,d4                                           ;scroll through all pixels before changing direction
+    bge     .end_scroll
 
     move.l #$10000,d4
     lea Copper,a1
@@ -435,14 +439,15 @@ FastData:
 
 ;v_map_y_position
 ;v_map_x_position
-    dc.l 0
+    dc.l $00000000
 
 ;v_video_y_position
 ;v_video_x_position
-    dc.l 0
+    dc.l $00000000
 
-;v_UNUSED
-    dc.l 0
+;v_map_source_bytes_per_row
+    dc.w 0
+    dc.w 0
 
 ;v_scroll_screen
     dc.l 0

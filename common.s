@@ -5,7 +5,7 @@
     * pointer offsets *
     *-----------------*
 
-v_tile_y_position                   = 0
+v_tile_y_position                   = 0                 ;unused
 v_tile_x_position                   = 2
 v_tile_map_dest                     = 4
 v_tile_map_row_dest                 = 8
@@ -15,11 +15,12 @@ v_map_y_position                    = 20
 v_map_x_position                    = 22
 v_video_y_position                  = 24
 v_video_x_position                  = 26
-v_unused_00                         = 28
+v_map_source_bytes_per_row          = 28
+v_unused_00                         = 30
 v_scroll_screen                     = 32
 v_scroll_screen_split               = 36
 v_scroll_ptr_saveword               = 40
-v_map_width                         = 44
+v_map_width                         = 44                ;unused
 v_map_bytes_per_tile_row            = 46
 v_map_bytes                         = 48
 v_map_height                        = 52
