@@ -67,7 +67,7 @@ AssembleSourceTilesIntoMapSourceBitmap:
     swap    d1
     btst    #11,d0
     beq     .no_flip
-	mcgeezer_special
+
     move.b  #1,d1                                           ;"FLIP" flag (on) in d1
 
 .no_flip

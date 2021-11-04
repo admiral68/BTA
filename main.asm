@@ -455,6 +455,7 @@ FastData:
 
 ;v_map_width
     dc.w 0
+
 ;v_map_bytes_per_tile_row
     dc.w 0
 
