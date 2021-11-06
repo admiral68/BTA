@@ -553,6 +553,12 @@ ScrollGetVTileOffsets:
     add.l   #screen_tile_bytes_per_row,d1
     dbf     d2,.loop_add_tile_row
 
+    ;NEW
+    cmp.l   v_screen_end(a0),d1
+    blt     .add_column_offsets
+    sub.l   #screen_buffer_bytes,d1
+    ;END NEW
+
 ************** ADD COLUMN OFFSETS ***********************
 .add_column_offsets
     clr.l   d2

@@ -76,8 +76,9 @@ Init:
 
     move.l  a0,v_scroll_screen_split(a1)
 
-    lea     ScreenE,a2
-    move.l  a2,v_screen_end(a1)
+    move.l  d2,d3
+    add.l   #screen_buffer_bytes,d3
+    move.l  d3,v_screen_end(a1)
 
 ;SetCopperScreenBitplanePointers
 
