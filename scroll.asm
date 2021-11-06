@@ -518,7 +518,7 @@ ScrollGetVTileOffsets:
     sub.w   #1,d2
 
 .convert_mapy_to_videoy
-    
+
     cmp.w   #screen_buffer_rows,d2
     ble     .add_rows
 
@@ -529,8 +529,8 @@ ScrollGetVTileOffsets:
 
 .add_rows
     ;NEW
-	sub.w	#1,d2
-	and.w	#$000F,d2
+    sub.w   #1,d2
+    and.w   #$000F,d2
     ;END NEW
 
     move.w  d2,d6                                           ;debug
@@ -656,7 +656,9 @@ ScrollUpdateSaveWordRight:
     clr.l d1
 
     move.w v_video_x_position(a0),d1
-    add.w #1,d1
+    ;NEW
+    ;add.w #1,d1
+    ;END NEW
     and.w #$000F,d1                                         ;mapy = mapposx & (NUMSTEPS - 1);
     add.w d1,d1
 
@@ -697,6 +699,9 @@ ScrollUpdateSaveWordLeft:
     move.l v_screen(a0),d2                                  ;frontbuffer
 
     move.w v_video_x_position(a0),d1
+    ;NEW
+    sub.w   #1,d1
+    ;END NEW
     and.w #$000F,d1                                         ;mapy = mapposx & (NUMSTEPS - 1);
     add.w d1,d1
 
