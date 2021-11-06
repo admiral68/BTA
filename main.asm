@@ -322,7 +322,7 @@ TESTScroll:
     lea MapSourceBitmapE,a5
     bsr ScrollGetVTileOffsets
 
-    ;mcgeezer_special
+    mcgeezer_special
 
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
