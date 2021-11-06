@@ -245,7 +245,6 @@ ScrollUpdateBitplanePointers:
     add.l   #screen_buffer_bytes,d7
     cmp.l   d7,d6
     blt     .update_pointer
-    mcgeezer_special2
     sub.l   #screen_buffer_bytes,d6
     bra     .update_pointer
 
@@ -259,28 +258,24 @@ ScrollUpdateBitplanePointers:
 
     bsr     ScrollCalculateVerticalSplit
 
-    ;move.l #screen_bytes_per_row*tile_height,d1
-    move.l #0,d1
-    add.l d3,d1                                             ;v_scroll_screen+$B40
-
-
-    move.l d3,v_scroll_screen(a0)
-    move.l d6,v_scroll_screen_split(a0)
-    move #screen_bitplanes-1,d0
+    move.l  d3,d1                                           ;v_scroll_screen+$B40
+    move.l  d3,v_scroll_screen(a0)
+    move.l  d6,v_scroll_screen_split(a0)
+    move    #screen_bitplanes-1,d0
 
 .loop
-    move.w d6,4+c_bitplane_pointers_01(a1)                  ;lo word
-    move.w d1,4+c_bitplane_pointers_02(a1)                  ;lo word
-    swap d1
-    swap d6
-    move.w d6,c_bitplane_pointers_01(a1)                    ;hi word
-    move.w d1,c_bitplane_pointers_02(a1)                    ;hi word
-    swap d1
-    swap d6
-    add.l #screen_bpl_bytes_per_row,d1                      ;every 44 bytes we'll have new bitplane data
-    add.l #screen_bpl_bytes_per_row,d6                      ;every 44 bytes we'll have new bitplane data
-    addq #8,a1                                              ;point to next bpl to poke in copper
-    dbf.w d0,.loop
+    move.w  d6,4+c_bitplane_pointers_01(a1)                 ;lo word
+    move.w  d1,4+c_bitplane_pointers_02(a1)                 ;lo word
+    swap    d1
+    swap    d6
+    move.w  d6,c_bitplane_pointers_01(a1)                   ;hi word
+    move.w  d1,c_bitplane_pointers_02(a1)                   ;hi word
+    swap    d1
+    swap    d6
+    add.l   #screen_bpl_bytes_per_row,d1                    ;every 44 bytes we'll have new bitplane data
+    add.l   #screen_bpl_bytes_per_row,d6                    ;every 44 bytes we'll have new bitplane data
+    addq    #8,a1                                           ;point to next bpl to poke in copper
+    dbf.w   d0,.loop
 
     movem.l (sp)+,d0/d3-d4                                  ;restore
     rts
@@ -535,18 +530,15 @@ ScrollGetVTileOffsets:
     bne     .convert_mapy_to_videoy
 
     ;NEW
-    ;add.w   #1,d2
     sub.w   #1,d2
-    bpl     .convert_mapy_to_videoy
-    move.w  #screen_buffer_rows,d2;was 0
     ;END NEW
 
 .convert_mapy_to_videoy
-
-    cmp.w   #screen_buffer_rows,d2
+    
+    cmp.w   #screen_rows,d2
     ble     .add_rows
 
-    sub.w   #screen_buffer_rows,d2
+    sub.w   #screen_rows+1,d2
     bra     .convert_mapy_to_videoy
 
 ************* CONVERT MAPY TO VIDEOY ********************
