@@ -69,8 +69,6 @@ ScrollGetMapXYForVertical:
 .swap
 ;END NEW
 
-
-
     swap    d4                                              ;scroll step y
 
 ;destination block in d3
@@ -141,7 +139,7 @@ ScrollIncrementYPosition:
     addi.w #1,v_map_y_position(a0)                          ;mapposy++;
     addi.w #1,v_video_y_position(a0)                        ;videoposy = mapposy;
 
-    cmp.w #screen_buffer_height-16,v_video_y_position(a0)
+    cmp.w #screen_buffer_height,v_video_y_position(a0)
     bne .update
 
     move.w #0,v_video_y_position(a0)                        ;reset video y to 0
@@ -161,7 +159,7 @@ ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3
     cmp.w #-1,v_video_y_position(a0)                        ;-1
     bne .end
 
-    move.w #screen_buffer_height-17,v_video_y_position(a0)   ;reset video y to 287
+    move.w #screen_buffer_height-1,v_video_y_position(a0)   ;reset video y to 287
 
 .end
     rts
@@ -239,20 +237,12 @@ ScrollUpdateBitplanePointers:
     bra .update_pointer
 
 .check_split_too_high
-    tst.b   v_map_y_position(a0)
-    bne     .lower_down
 
     add.l   #screen_buffer_bytes,d7
     cmp.l   d7,d6
     blt     .update_pointer
     sub.l   #screen_buffer_bytes,d6
     bra     .update_pointer
-
-.lower_down
-    add.l   #screen_buffer_bytes-screen_tile_bytes_per_row,d7
-    cmp.l   d7,d6
-    blt     .update_pointer
-    sub.l   #screen_buffer_bytes-screen_tile_bytes_per_row,d6
 
 .update_pointer
 
@@ -286,16 +276,13 @@ ScrollCalculateVerticalSplit:
 ;USES: d0,d2,d7
 ;OUTPUTS: d2,d6
 
-    ;move.w  #vert_display_start+screen_height,d0            ;Puts split right at bottom of visible screen area
-    ;move.w  #vert_display_start+screen_buffer_height,d0     ;Puts split at bottom of screen memory
-    move.w  #vert_display_start+screen_buffer_height-16,d0  ;Puts split at last tile row of screen memory
+    move.w  #vert_display_start+screen_buffer_height,d0     ;Puts split at bottom of screen memory
 
     clr.l   d2
 
     move.w  v_video_y_position(a0),d2                       ;buffer coordinates
 
-;    divu    #screen_buffer_height,d2                       ;bitplane pointers in screen buffer
-    divu    #screen_buffer_height-16,d2                     ;bitplane pointers in screen buffer
+    divu    #screen_buffer_height,d2                        ;bitplane pointers in screen buffer
     swap    d2                                              ;(ypos % screen_buffer_height)
 
     btst.b  #1,v_joystick_value(a0)                         ;if downward scroll, continue
@@ -528,22 +515,24 @@ ScrollGetVTileOffsets:
 
     btst.b  #1,v_joystick_value(a0)                         ;scrolling down?
     bne     .convert_mapy_to_videoy
-
-    ;NEW
     sub.w   #1,d2
-    ;END NEW
 
 .convert_mapy_to_videoy
     
-    cmp.w   #screen_rows,d2
+    cmp.w   #screen_buffer_rows,d2
     ble     .add_rows
 
-    sub.w   #screen_rows+1,d2
+    sub.w   #screen_buffer_rows,d2
     bra     .convert_mapy_to_videoy
 
 ************* CONVERT MAPY TO VIDEOY ********************
 
 .add_rows
+    ;NEW
+	sub.w	#1,d2
+	and.w	#$000F,d2
+    ;END NEW
+
     move.w  d2,d6                                           ;debug
 
     ;NEW

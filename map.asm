@@ -114,8 +114,8 @@ CopyScreenFromMapSourceBitmap:
 
     ;5bp
     ;204x5 = 1020 lines (first blit)
-    ;52x5  =  260 lines (second blit)
-    ;      = 1280 lines / 5 = 256 total raster lines
+    ;68x5  =  340 lines (second blit)
+    ;      = 1360 lines / 5 = 272 total raster lines
 
     ;4bp
     ;256x4 = 1024 lines (first blit)
@@ -133,7 +133,7 @@ CopyScreenFromMapSourceBitmap:
     add.l   d6,d3
 
 .continue
-    add.l   #2+screen_bytes_per_row*tile_height,d4              ;down one row,over one column into the buffer
+    add.l   #2,d4                                               ;over one column into the buffer
 
     clr.l   d5
     move.b  v_map_tile_width(a0),d5

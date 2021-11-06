@@ -73,8 +73,6 @@ Init:
 
     move.l  a0,d2
 
-    lea     screen_bytes_per_row*tile_height(a0),a0         ;skip first tile row
-
     move.l  a0,v_scroll_screen_split(a1)
 
     move.l  d2,d3
