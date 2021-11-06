@@ -114,8 +114,8 @@ CopyScreenFromMapSourceBitmap:
 
     ;5bp
     ;204x5 = 1020 lines (first blit)
-    ;68x5  =  340 lines (second blit)
-    ;      = 1360 lines / 5 = 272 total raster lines
+    ;52x5  =  260 lines (second blit)
+    ;      = 1280 lines / 5 = 256 total raster lines
 
     ;4bp
     ;256x4 = 1024 lines (first blit)

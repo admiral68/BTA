@@ -56,6 +56,7 @@ Init:
     bsr     LoadLevelMap
     bsr     AssembleSourceTilesIntoMapSourceBitmap
 
+
     lea     FastData,a0
     lea     MapSourceBitmap,a3
     lea     Screen,a4
@@ -780,11 +781,11 @@ NullSpr:
     SECTION AllBuffers,BSS_C
 
 Screen:
-    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2)
+    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16)
 ScreenE:
 
 Screen2:
-    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2)
+    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16)
 Screen2E:
 
     EVEN

@@ -64,7 +64,7 @@ ScrollGetMapXYForVertical:
 
 .adjust_source
 
-    add.w   #17,d4                                          ;source picks from 2+12 tile rows down
+    add.w   #16,d4                                          ;source picks from 2+12 tile rows down
 
 .swap
 ;END NEW
@@ -141,7 +141,7 @@ ScrollIncrementYPosition:
     addi.w #1,v_map_y_position(a0)                          ;mapposy++;
     addi.w #1,v_video_y_position(a0)                        ;videoposy = mapposy;
 
-    cmp.w #screen_buffer_height,v_video_y_position(a0)
+    cmp.w #screen_buffer_height-16,v_video_y_position(a0)
     bne .update
 
     move.w #0,v_video_y_position(a0)                        ;reset video y to 0
@@ -161,7 +161,7 @@ ScrollDecrementYPosition:                                   ;INPUT: mapx/y in d3
     cmp.w #-1,v_video_y_position(a0)                        ;-1
     bne .end
 
-    move.w #screen_buffer_height-1,v_video_y_position(a0)   ;reset video y to 287
+    move.w #screen_buffer_height-17,v_video_y_position(a0)   ;reset video y to 287
 
 .end
     rts
@@ -239,14 +239,25 @@ ScrollUpdateBitplanePointers:
     bra .update_pointer
 
 .check_split_too_high
-    add.l #screen_bytes_per_row*screen_buffer_height,d7
-    cmp.l d7,d6
-    blt .update_pointer
-    sub.l #screen_bytes_per_row*screen_buffer_height,d6
+    tst.b   v_map_y_position(a0)
+    bne     .lower_down
+
+    add.l   #screen_buffer_bytes,d7
+    cmp.l   d7,d6
+    blt     .update_pointer
+    mcgeezer_special2
+    sub.l   #screen_buffer_bytes,d6
+    bra     .update_pointer
+
+.lower_down
+    add.l   #screen_buffer_bytes-screen_tile_bytes_per_row,d7
+    cmp.l   d7,d6
+    blt     .update_pointer
+    sub.l   #screen_buffer_bytes-screen_tile_bytes_per_row,d6
 
 .update_pointer
 
-    bsr ScrollCalculateVerticalSplit
+    bsr     ScrollCalculateVerticalSplit
 
     ;move.l #screen_bytes_per_row*tile_height,d1
     move.l #0,d1
@@ -280,35 +291,37 @@ ScrollCalculateVerticalSplit:
 ;USES: d0,d2,d7
 ;OUTPUTS: d2,d6
 
-    ;move.w #vert_display_start+screen_height,d0            ;Puts split right at bottom of visible screen area
-    move.w #vert_display_start+screen_buffer_height,d0      ;Puts split at bottom of screen memory
+    ;move.w  #vert_display_start+screen_height,d0            ;Puts split right at bottom of visible screen area
+    ;move.w  #vert_display_start+screen_buffer_height,d0     ;Puts split at bottom of screen memory
+    move.w  #vert_display_start+screen_buffer_height-16,d0  ;Puts split at last tile row of screen memory
 
-    clr.l d2
+    clr.l   d2
 
-    move.w v_video_y_position(a0),d2                        ;buffer coordinates
+    move.w  v_video_y_position(a0),d2                       ;buffer coordinates
 
-    divu #screen_buffer_height,d2                           ;bitplane pointers in screen buffer
-    swap d2                                                 ;(ypos % screen_buffer_height)
+;    divu    #screen_buffer_height,d2                       ;bitplane pointers in screen buffer
+    divu    #screen_buffer_height-16,d2                     ;bitplane pointers in screen buffer
+    swap    d2                                              ;(ypos % screen_buffer_height)
 
-    btst.b #1,v_joystick_value(a0)                          ;if downward scroll, continue
-    bne .update_split
+    btst.b  #1,v_joystick_value(a0)                         ;if downward scroll, continue
+    bne     .update_split
 
-    btst.b #2,v_joystick_value(a0)                          ;if not upward scroll, skip the offset
-    beq .end
+    btst.b  #2,v_joystick_value(a0)                         ;if not upward scroll, skip the offset
+    beq     .end
 
 .update_split
-    sub.w d2,d0                                             ;d0 = d0 - (ypos % screen_buffer_height)
-    cmp.w #$00ff,d0
-    bhi .check_down
-    sub.w #1,d0                                             ;compensates for vertical split glitch
+    sub.w   d2,d0                                           ;d0 = d0 - (ypos % screen_buffer_height)
+    cmp.w   #$00ff,d0
+    bhi     .check_down
+    sub.w   #1,d0                                           ;compensates for vertical split glitch
 .check_down
-    btst.b #2,v_joystick_value(a0)                          ;if upward scroll, add one to the wait value
-    beq .move
-    add.w #1,d0
+    btst.b  #2,v_joystick_value(a0)                         ;if upward scroll, add one to the wait value
+    beq     .move
+    add.w   #1,d0
 .move
-    move.b d0,c_split(a1)                                   ;d0 is the second one
-    and.w #$ff00,d0
-    sne c_split_stop(a1)                                    ;set y=255 wait if position < $2C
+    move.b  d0,c_split(a1)                                  ;d0 is the second one
+    and.w   #$ff00,d0
+    sne     c_split_stop(a1)                                ;set y=255 wait if position < $2C
 .end
     rts
 ;-----------------------------------------------
