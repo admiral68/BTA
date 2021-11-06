@@ -24,34 +24,59 @@ ScrollGetMapXYForVertical:
 ;at this point, the scroll bitplane pointer has already moved down
 ;and the vertical split has been calculated
 
-    clr.l d4
-    move.w v_map_y_position(a0),d3                          ;save for mapy
-    move.w d3,d4                                            ;mapposy (if scrolling down, we're one behind)
-    and.w #15,d4                                            ;scroll step y
-    swap d3
+;When scrolling down, Dest is good/Source is bad
+;When scrolling up, Dest is bad, Source is good
 
-    move.w v_map_x_position(a0),d3                          ;mapposx
-    asr.w #4,d3                                             ;mapx (block)
+    clr.l   d4
+    move.w  v_map_y_position(a0),d3                         ;save for mapy
+    move.w  d3,d4                                           ;mapposy (if scrolling down, we're one behind)
+    and.w   #15,d4                                          ;scroll step y
+    swap    d3
 
-    swap d3                                                 ;mapposy
+    move.w  v_map_x_position(a0),d3                         ;mapposx
+    asr.w   #4,d3                                           ;mapx (block)
 
-    asr.w #4,d3                                             ;mapy (block)
+    swap    d3                                              ;mapposy
 
-    cmp.b v_map_tile_height(a0),d3                          ;This is because the
-    ble .save_mapy                                          ;source bitmap is only map_tile_height blocks high
+    asr.w   #4,d3                                           ;mapy (block)
 
-    sub.b v_map_tile_height(a0),d3                          ;special case: grab source blocks from top of test bitmap
+    cmp.b   v_map_tile_height(a0),d3                        ;This is because the
+    ble     .save_mapy                                      ;source bitmap is only map_tile_height blocks high
+
+    sub.b   v_map_tile_height(a0),d3                        ;special case: grab source blocks from top of test bitmap
 
 .save_mapy
 
-    swap d4
-    move.w d3,d4                                            ;mapy (block) in d4
-    swap d4                                                 ;scroll step y
+    swap    d4
+    move.w  d3,d4                                           ;mapy (block) in d4
+
+
+
+;NEW
+    sub.w   #1,d4
+    bpl     .check_down
+    and.w   #$00FF,d4
+    add.b   v_map_tile_height(a0),d4
+
+.check_down
+    btst.b  #1,v_joystick_value(a0)                         ;if downward scroll, continue
+    beq     .swap
+
+.adjust_source
+
+    add.w   #17,d4                                          ;source picks from 2+12 tile rows down
+
+.swap
+;END NEW
+
+
+
+    swap    d4                                              ;scroll step y
 
 ;destination block in d3
 
 .end
-    swap d3                                                 ;mapx (block)
+    swap    d3                                              ;mapx (block)
     rts
 
 ;-----------------------------------------------
@@ -223,8 +248,11 @@ ScrollUpdateBitplanePointers:
 
     bsr ScrollCalculateVerticalSplit
 
-    move.l #screen_bytes_per_row*tile_height,d1
+    ;move.l #screen_bytes_per_row*tile_height,d1
+    move.l #0,d1
     add.l d3,d1                                             ;v_scroll_screen+$B40
+
+
     move.l d3,v_scroll_screen(a0)
     move.l d6,v_scroll_screen_split(a0)
     move #screen_bitplanes-1,d0
@@ -252,11 +280,13 @@ ScrollCalculateVerticalSplit:
 ;USES: d0,d2,d7
 ;OUTPUTS: d2,d6
 
-    move.w #vert_display_start+screen_height,d0
+    ;move.w #vert_display_start+screen_height,d0            ;Puts split right at bottom of visible screen area
+    move.w #vert_display_start+screen_buffer_height,d0      ;Puts split at bottom of screen memory
 
     clr.l d2
 
     move.w v_video_y_position(a0),d2                        ;buffer coordinates
+
     divu #screen_buffer_height,d2                           ;bitplane pointers in screen buffer
     swap d2                                                 ;(ypos % screen_buffer_height)
 
@@ -488,9 +518,15 @@ ScrollGetVTileOffsets:
     swap    d6                                              ;mapy(offset for dest)
     move.w  d6,d2
 
-    btst.b  #1,v_joystick_value(a0)                         ;not scrolling down?
-    beq     .convert_mapy_to_videoy
-    add.w   #1,d2
+    btst.b  #1,v_joystick_value(a0)                         ;scrolling down?
+    bne     .convert_mapy_to_videoy
+
+    ;NEW
+    ;add.w   #1,d2
+    sub.w   #1,d2
+    bpl     .convert_mapy_to_videoy
+    move.w  #screen_buffer_rows,d2;was 0
+    ;END NEW
 
 .convert_mapy_to_videoy
 
@@ -500,18 +536,21 @@ ScrollGetVTileOffsets:
     sub.w   #screen_buffer_rows,d2
     bra     .convert_mapy_to_videoy
 
-    cmp.w   #0,d2
-    beq     .add_column_offsets
-
 ************* CONVERT MAPY TO VIDEOY ********************
 
 .add_rows
     move.w  d2,d6                                           ;debug
+
+    ;NEW
+    tst.w   d2
+    beq     .add_column_offsets
+    ;END NEW
+
     sub.w   #1,d2
 
 .loop_add_tile_row                                          ;videoy * screenwidth
 
-    add.l   #screen_bytes_per_row*tile_height,d1
+    add.l   #screen_tile_bytes_per_row,d1
     dbf     d2,.loop_add_tile_row
 
 ************** ADD COLUMN OFFSETS ***********************

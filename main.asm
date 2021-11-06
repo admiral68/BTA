@@ -63,15 +63,21 @@ Init:
 
 ;SetScreenBufferPointersInFastMem
 
+
     lea     FastData,a1
     lea     Screen,a0                                       ;ptr to first bitplane of image
 
     move.l  a0,v_screen(a1)
     move.l  a0,v_scroll_screen(a1)
 
+    move.l  a0,d2
+
     lea     screen_bytes_per_row*tile_height(a0),a0         ;skip first tile row
 
     move.l  a0,v_scroll_screen_split(a1)
+
+    lea     ScreenE,a2
+    move.l  a2,v_screen_end(a1)
 
 ;SetCopperScreenBitplanePointers
 
@@ -81,14 +87,17 @@ Init:
 .bpl7:
     move.l  a0,d1
     swap    d1
+    swap    d2
     move.w  d1,c_bitplane_pointers_01(a1)                   ;hi word
-    move.w  d1,c_bitplane_pointers_02(a1)                   ;hi word
+    move.w  d2,c_bitplane_pointers_02(a1)                   ;hi word
     swap    d1
+    swap    d2
     move.w  d1,4+c_bitplane_pointers_01(a1)                 ;lo word
-    move.w  d1,4+c_bitplane_pointers_02(a1)                 ;lo word
+    move.w  d2,4+c_bitplane_pointers_02(a1)                 ;lo word
 
     addq    #8,a1                                           ;point to next bpl to poke in copper
     lea     screen_bp_bytes_per_raster_line(a0),a0          ;every 44 bytes we'll have new bitplane data
+    add.l   #screen_bp_bytes_per_raster_line,d2
     dbf     d0,.bpl7
 
     bsr     SetupDebugStrings
@@ -313,6 +322,8 @@ TESTScroll:
     lea MapSourceBitmapE,a5
     bsr ScrollGetVTileOffsets
 
+    ;mcgeezer_special
+
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
     jsr (a4)
@@ -341,6 +352,8 @@ TESTScroll:
     lea MapSourceBitmap,a3
     lea MapSourceBitmapE,a5
     bsr ScrollGetVTileOffsets
+
+    mcgeezer_special
 
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
@@ -439,7 +452,7 @@ FastData:
 
 ;v_map_y_position
 ;v_map_x_position
-    dc.l $02000000
+    dc.l $00000000
 
 ;v_video_y_position
 ;v_video_x_position
@@ -491,8 +504,11 @@ FastData:
     dc.b $00,$FF,$EE,$DD,$CC,$BB,$AA,$99
     dc.b $88,$77,$66,$55,$44,$33,$22,$11
 
+;v_screen_end
+    dc.l 0
+
 ;v_unused_04
-    dc.b $F0,$E0,$D0,$C0,$B0,$A0,$90,$80
+    dc.b $B0,$A0,$90,$80
     dc.b $70,$60,$50,$40,$30,$20,$10,$00
 
 ;v_decoded_bitplane_bytes
@@ -699,7 +715,7 @@ Copper:
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
-;   dc.w $0180,$0FF9
+    dc.w $0180,$0FF9
 
     dc.w $ffff,$fffe
 
