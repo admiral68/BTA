@@ -24,9 +24,6 @@ ScrollGetMapXYForVertical:
 ;at this point, the scroll bitplane pointer has already moved down
 ;and the vertical split has been calculated
 
-;When scrolling down, Dest is good/Source is bad
-;When scrolling up, Dest is bad, Source is good
-
     clr.l   d4
     move.w  v_map_y_position(a0),d3                         ;save for mapy
     move.w  d3,d4                                           ;mapposy (if scrolling down, we're one behind)
@@ -50,8 +47,6 @@ ScrollGetMapXYForVertical:
     swap    d4
     move.w  d3,d4                                           ;mapy (block) in d4
 
-
-
 ;NEW
     sub.w   #1,d4
     bpl     .check_down
@@ -64,7 +59,7 @@ ScrollGetMapXYForVertical:
 
 .adjust_source
 
-    add.w   #16,d4                                          ;source picks from 2+12 tile rows down
+    add.w   #screen_buffer_rows,d4                          ;source picks from 2+12 tile rows down
 
 .swap
 ;END NEW
@@ -328,7 +323,12 @@ ScrollGetHTileOffsets:
     swap    d3                                              ;mapy
 
     move.w  d3,d2
-    cmp.w   #0,d2
+    ;NEW
+    move.w  d4,d2
+    sub.w   #1,d2
+    and.w   #$000F,d2
+    ;END NEW
+    tst.w   d2
     beq     .skip_add
     sub.w   #1,d2
 
@@ -369,7 +369,14 @@ ScrollGetHTileOffsets:
     move.l  a3,d5                                           ;A source (blocksbuffer)
     add.l   d1,d5                                           ;blocksbuffer + mapy + mapx
 
-    sub.l   d6,d5                                           ;We're starting one source row higher
+    cmp.b   #3,v_joystick_value(a0)
+    bne     .contr
+    mcgeezer_special
+.contr
+
+    ;NEW
+    ;sub.l   d6,d5                                           ;We're starting one source row higher
+    ;END NED
 
     ;IF the source pointer is out of range, skip the blit
     cmp.l   a3,d5
@@ -429,14 +436,16 @@ ScrollGetHTileOffsets:
     btst.b #1,v_joystick_value(a0)                          ;also scrolling down?
     beq .check_upward_scroll
 
-    tst.w d6
+    ;tst.w d6
+    cmp.w #$01,d6
     beq .none                                               ;If D, skip [B]
 
 .check_upward_scroll
     btst.b #2,v_joystick_value(a0)                          ;also scrolling up?
     beq .single
 
-    cmp.w #$0F,d6
+    ;cmp.w #$0F,d6
+    tst.w d6
     beq .none                                               ;If U, skip [D]
 
 .single
