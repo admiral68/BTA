@@ -6,6 +6,9 @@ ScrollGetMapXYForHorizontal:
     asr.w   #4,d3
 
     move.w  v_map_x_position(a0),d2                         ;save for mapy
+    ;NEW
+    sub.w   #1,d2
+    ;END NEW
     and.w   #15,d2                                          ;mapy = mapposx & (NUMSTEPS - 1);
     add.w   d2,d3                                           ;add the block step
 
@@ -323,11 +326,7 @@ ScrollGetHTileOffsets:
     swap    d3                                              ;mapy
 
     move.w  d3,d2
-    ;NEW
-    move.w  d4,d2
-    sub.w   #1,d2
-    and.w   #$000F,d2
-    ;END NEW
+
     tst.w   d2
     beq     .skip_add
     sub.w   #1,d2

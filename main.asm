@@ -240,11 +240,6 @@ TESTScroll:
     lea MapSourceBitmapE,a5
     bsr ScrollGetHTileOffsets
 
-    cmp.b   #3,v_joystick_value(a0)
-    bne     .contr
-    mcgeezer_special
-.contr
-
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
     jsr (a4)
