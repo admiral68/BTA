@@ -370,7 +370,7 @@ ScrollGetHTileOffsets:
 
     cmp.b   #3,v_joystick_value(a0)
     bne     .contr
-    mcgeezer_special
+    ;mcgeezer_special
 .contr
 
     ;NEW
@@ -435,16 +435,16 @@ ScrollGetHTileOffsets:
     btst.b #1,v_joystick_value(a0)                          ;also scrolling down?
     beq .check_upward_scroll
 
-    ;tst.w d6
-    cmp.w #$01,d6
+    tst.w d6
+    ;cmp.w #$01,d6
     beq .none                                               ;If D, skip [B]
 
 .check_upward_scroll
     btst.b #2,v_joystick_value(a0)                          ;also scrolling up?
     beq .single
 
-    ;cmp.w #$0F,d6
-    tst.w d6
+    cmp.w #$0F,d6
+    ;tst.w d6
     beq .none                                               ;If U, skip [D]
 
 .single
