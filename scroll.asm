@@ -7,7 +7,8 @@ ScrollGetMapXYForHorizontal:
 
     move.w  v_map_x_position(a0),d2                         ;save for mapy
     ;NEW
-    sub.w   #1,d2
+    ;sub.w   #1,d2
+    add.w   #1,d2
     ;END NEW
     and.w   #15,d2                                          ;mapy = mapposx & (NUMSTEPS - 1);
     add.w   d2,d3                                           ;add the block step
@@ -321,7 +322,12 @@ ScrollGetHTileOffsets:
     clr.l   d5
     clr.l   d6
 
+    move.w  v_map_y_position(a0),d4
+    asr.w   #4,d4
+    and.w   #15,d4
+    swap    d4
     move.w  v_map_x_position(a0),d4
+    and.w   #15,d4
 
     swap    d3                                              ;mapy
 
@@ -396,30 +402,32 @@ ScrollGetHTileOffsets:
 .destination
 
     ;DESTINATION => d1
-    move.l v_scroll_screen(a0),d1                           ;D dest (frontbuffer)
+    move.l  v_scroll_screen(a0),d1                          ;D dest (frontbuffer)
 
-    clr.l d2
+    clr.l   d2
 
-    btst.b #0,v_joystick_value(a0)
-    beq .left2
+    btst.b  #0,v_joystick_value(a0)
+    beq     .left2
 
-    move.w v_video_x_bitplane_offset(a0),d2                 ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
+    move.w  v_video_x_bitplane_offset(a0),d2                ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
                                                             ;or zero
-    bra .get_step
+    bra     .get_step
 
 .left2
-    sub.w #2,d2                                             ;last column
+    sub.w   #2,d2                                           ;last column
 
 .get_step
 
-    and.w #15,d4
-    move.w d4,d6
+    move.l  d4,d6
+    swap    d6
+    add.w   d6,d4
+    and.w   #15,d4
 
-    asl.w #1,d4
-    add.w v_scrollx_dest_offset_table(a0,d4.w),d2
+    asl.w   #1,d4
+    add.w   v_scrollx_dest_offset_table(a0,d4.w),d2
 
-    move.l d2,d4                                            ;(for debugging)
-    add.l d2,d1                                             ;frontbuffer + y + x
+    move.l  d2,d4                                           ;(for debugging)
+    add.l   d2,d1                                           ;frontbuffer + y + x
 
 .figure_out_num_blocks_to_blit
 
