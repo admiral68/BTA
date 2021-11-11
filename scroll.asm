@@ -6,7 +6,10 @@ ScrollMovingInVerticalDirection:
     beq     .check_down
 
     tst.w   d5
-    bne     .vertical
+    beq     .no_vertical
+
+    move.w  #2,d6
+    rts
 
 .no_vertical
     move.l  #0,d6
@@ -20,7 +23,8 @@ ScrollMovingInVerticalDirection:
     cmp.w   d6,d5                                           ;scroll through all pixels before changing direction
     bge     .no_vertical
 
-.vertical
+    ;mcgeezer_special2
+
     move.w  #1,d6
     rts
 ;-----------------------------------------------
@@ -37,19 +41,25 @@ ScrollGetMapXYForHorizontal:
     ;add.w  #1,d2;XXX
 
     and.w   #15,d2                                          ;mapy = mapposx & (NUMSTEPS - 1);
-    bne     .add;XXX                                        ;not 1st blit? skip this
+    beq     .check_down;XXX                                 ;1st blit?check down
 
-    mcgeezer_special2
+    cmp.w   #15,d2
+    bne     .add
 
+.check_up
     bsr     ScrollMovingInVerticalDirection;XXX
-    tst.w   d6;XXX
-    beq     .add;XXX
 
+    cmp.w   #2,d6
+    bne     .add;XXX
+    move.w  #-1,d2
+    bra     .add
 
-
-
-
+.check_down
+    bsr     ScrollMovingInVerticalDirection;XXX
+    cmp.w   #1,d6;XXX
+    bne     .add;XXX
     add.w   #16,d2;XXX                                      ;pick block from one map height down
+
 .add;XXX
     add.w   d2,d3                                           ;add the block step
     ;END NEW
@@ -376,16 +386,24 @@ ScrollGetHTileOffsets:
     and.w   #15,d4                                          ;x step
 
     swap    d3                                              ;mapy
-
     move.w  d3,d2
 
+    move.w  v_map_bytes_per_tile_row(a0),d5
+    move.w  d5,d6
+
+    cmp.w   #-1,d2
+    bne     .try_zero
+
+    ;TODO: TRY AND HANDLE BLOCKS FROM OUTSIDE THE MAP
+
+    sub.l   d5,d1
+    bra     .skip_add
+
+.try_zero
     tst.w   d2
     beq     .skip_add
 
     sub.w   #1,d2
-
-    move.w  v_map_bytes_per_tile_row(a0),d5
-    move.w  d5,d6
 
 .addo                                                       ;mapy * mapwidth
     add.l   d5,d1
@@ -450,9 +468,13 @@ ScrollGetHTileOffsets:
 
     ;mcgeezer_special2
     ;DESTINATION => d1
+
+    mcgeezer_special2
+
     move.l  v_scroll_screen(a0),d1                          ;D dest (frontbuffer)
 
     clr.l   d2
+    clr.l   d7
 
     btst.b  #0,v_joystick_value(a0)
     beq     .left2
@@ -462,7 +484,7 @@ ScrollGetHTileOffsets:
     bra     .get_step
 
 .left2
-    sub.w   #2,d2                                           ;last column
+    sub.l   #2,d2                                           ;last column
 
 .get_step
 
@@ -472,10 +494,14 @@ ScrollGetHTileOffsets:
     and.w   #15,d4
 
     asl.w   #1,d4
-    add.w   v_scrollx_dest_offset_table(a0,d4.w),d2
+    move.w  v_scrollx_dest_offset_table(a0,d4.w),d7
 
-    move.l  d2,d4                                           ;(for debugging)
-    add.l   d2,d1                                           ;frontbuffer + y + x
+    ;TODO: PROBLEM--FFFE gets added to the destination pointer, which is WRONG
+
+.continue_destination
+    add.l   d2,d7
+    move.l  d7,d4                                           ;(for debugging)
+    add.l   d7,d1                                           ;frontbuffer + y + x
 
 .figure_out_num_blocks_to_blit
 
@@ -672,9 +698,9 @@ ScrollGetVTileOffsets:
     btst.b  #2,v_joystick_value(a0)                         ;up?
     beq     .check_position
 
-    cmp.w   #15,d4
+    ;;cmp.w   #15,d4
     ;tst.w   d4
-    beq     .none                                           ;If R, skip [C]
+    ;beq     .none                                           ;If R, skip [C]
 
 .check_position
     cmp.w   #4,d4                                           ;positions 4 & B have doubles
