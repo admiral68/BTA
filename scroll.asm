@@ -1,3 +1,29 @@
+ScrollMovingInVerticalDirection:
+    clr.l   d6
+    move.w  v_map_y_position(a0),d5
+
+    btst.b  #2,v_joystick_value(a0)                          ;up?
+    beq     .check_down
+
+    tst.w   d5
+    bne     .vertical
+
+.no_vertical
+    move.l  #0,d6
+    rts
+
+.check_down
+    btst.b  #1,v_joystick_value(a0)                          ;down?
+    beq     .no_vertical
+    move.w  v_map_height(a0),d6
+    sub.w   #screen_buffer_height,d6
+    cmp.w   d6,d5                                           ;scroll through all pixels before changing direction
+    bge     .no_vertical
+
+.vertical
+    move.w  #1,d6
+    rts
+;-----------------------------------------------
 ScrollGetMapXYForHorizontal:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
@@ -7,7 +33,24 @@ ScrollGetMapXYForHorizontal:
 
     move.w  v_map_x_position(a0),d2                         ;save for mapy
     ;NEW
+
+    ;add.w  #1,d2;XXX
+
     and.w   #15,d2                                          ;mapy = mapposx & (NUMSTEPS - 1);
+    bne     .add;XXX                                        ;not 1st blit? skip this
+
+    mcgeezer_special2
+
+    bsr     ScrollMovingInVerticalDirection;XXX
+    tst.w   d6;XXX
+    beq     .add;XXX
+
+
+
+
+
+    add.w   #16,d2;XXX                                      ;pick block from one map height down
+.add;XXX
     add.w   d2,d3                                           ;add the block step
     ;END NEW
 
@@ -327,6 +370,9 @@ ScrollGetHTileOffsets:
     and.w   #15,d4                                          ;(y/10h)&#$000F
     swap    d4
     move.w  v_map_x_position(a0),d4
+
+    ;add.w  #1,d4;XXX
+
     and.w   #15,d4                                          ;x step
 
     swap    d3                                              ;mapy
@@ -335,6 +381,7 @@ ScrollGetHTileOffsets:
 
     tst.w   d2
     beq     .skip_add
+
     sub.w   #1,d2
 
     move.w  v_map_bytes_per_tile_row(a0),d5
@@ -401,7 +448,7 @@ ScrollGetHTileOffsets:
 
 .destination
 
-    mcgeezer_special2
+    ;mcgeezer_special2
     ;DESTINATION => d1
     move.l  v_scroll_screen(a0),d1                          ;D dest (frontbuffer)
 
@@ -613,7 +660,8 @@ ScrollGetVTileOffsets:
     btst.b  #1,v_joystick_value(a0)                         ;down?
     beq     .check_up
 
-    tst.w   d4
+    cmp.w   #15,d4
+    ;tst.w   d4
     beq     .none                                           ;If R, skip [A]
 
 ****************************************
@@ -624,7 +672,8 @@ ScrollGetVTileOffsets:
     btst.b  #2,v_joystick_value(a0)                         ;up?
     beq     .check_position
 
-    tst.w   d4
+    cmp.w   #15,d4
+    ;tst.w   d4
     beq     .none                                           ;If R, skip [C]
 
 .check_position
