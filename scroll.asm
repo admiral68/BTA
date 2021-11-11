@@ -7,11 +7,9 @@ ScrollGetMapXYForHorizontal:
 
     move.w  v_map_x_position(a0),d2                         ;save for mapy
     ;NEW
-    ;sub.w   #1,d2
-    add.w   #1,d2
-    ;END NEW
     and.w   #15,d2                                          ;mapy = mapposx & (NUMSTEPS - 1);
     add.w   d2,d3                                           ;add the block step
+    ;END NEW
 
     swap    d3
 
@@ -322,12 +320,14 @@ ScrollGetHTileOffsets:
     clr.l   d5
     clr.l   d6
 
+    move.l  #0,d4
+
     move.w  v_map_y_position(a0),d4
     asr.w   #4,d4
-    and.w   #15,d4
+    and.w   #15,d4                                          ;(y/10h)&#$000F
     swap    d4
     move.w  v_map_x_position(a0),d4
-    and.w   #15,d4
+    and.w   #15,d4                                          ;x step
 
     swap    d3                                              ;mapy
 
@@ -401,6 +401,7 @@ ScrollGetHTileOffsets:
 
 .destination
 
+    mcgeezer_special2
     ;DESTINATION => d1
     move.l  v_scroll_screen(a0),d1                          ;D dest (frontbuffer)
 

@@ -239,7 +239,7 @@ TESTScroll:
     lea MapSourceBitmap,a3
     lea MapSourceBitmapE,a5
     bsr ScrollGetHTileOffsets
-	
+
     ;cmp.b   #3,v_joystick_value(a0)
     ;bne     .contr
     mcgeezer_special
@@ -287,6 +287,8 @@ TESTScroll:
     lea MapSourceBitmap,a3
     lea MapSourceBitmapE,a5
     bsr ScrollGetHTileOffsets
+
+    mcgeezer_special
 
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
@@ -493,8 +495,8 @@ FastData:
     dc.w 0
 
 ;v_scrollx_dest_offset_table
-    dc.w $0B40,$1680,$21C0,$2D00,$3840,$4380,$4EC0,$5A00
-    dc.w $6540,$7080,$7BC0,$8700,$9240,$9D80,$A8C0,$0000
+    dc.w $0000,$0B40,$1680,$21C0,$2D00,$3840,$4380,$4EC0
+    dc.w $5A00,$6540,$7080,$7BC0,$8700,$9240,$9D80,$A8C0
 
 ;v_scrolly_dest_offset_table
     dc.w $0000,$0002,$0004,$0006,$0008,$000C,$000E,$0010
@@ -721,7 +723,7 @@ Copper:
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
-    ;dc.w $0180,$0FF9
+    dc.w $0180,$0FF9
 
     dc.w $ffff,$fffe
 
