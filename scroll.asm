@@ -1,31 +1,51 @@
-ScrollMovingInVerticalDirection:
+ScrollGetDirectionalVectors:
     clr.l   d6
+    move.w  #0,v_scroll_vector_x(a0)
     move.w  v_map_y_position(a0),d5
+    swap    d5
+    move.w  v_map_x_position(a0),d5
 
+    btst.b  #0,v_joystick_value(a0)                         ;right?
+    beq     .check_left
+
+    cmp.w   #test_right_scroll_extent,d5                    ;2048-352-tile_width*2; TODO: BETTER CHECK. SOMETIMES THE MAP IS HALF-WIDE
+    bge     .check_up
+
+    move.b  #1,v_scroll_vector_x(a0)
+    bra     .check_up
+
+.check_left
+    btst.b #3,v_joystick_value(a0)                          ;left?
+    beq     .check_up
+
+    tst.w   v_map_x_position(a0)
+    beq     .check_up
+
+    move.b  #15,v_scroll_vector_x(a0)
+
+.check_up
+    swap    d5
     btst.b  #2,v_joystick_value(a0)                          ;up?
     beq     .check_down
 
     tst.w   d5
-    beq     .no_vertical
+    beq     .end
 
-    move.w  #2,d6
-    rts
-
-.no_vertical
-    move.l  #0,d6
+    move.b  #15,v_scroll_vector_y(a0)
     rts
 
 .check_down
     btst.b  #1,v_joystick_value(a0)                          ;down?
-    beq     .no_vertical
+    beq     .end
+
     move.w  v_map_height(a0),d6
     sub.w   #screen_buffer_height,d6
     cmp.w   d6,d5                                           ;scroll through all pixels before changing direction
-    bge     .no_vertical
+    bge     .end
 
-    ;mcgeezer_special2
+    move.b  #1,v_scroll_vector_y(a0)
 
-    move.w  #1,d6
+.end
     rts
 ;-----------------------------------------------
 ScrollGetMapXYForHorizontal:
@@ -47,16 +67,14 @@ ScrollGetMapXYForHorizontal:
     bne     .add
 
 .check_up
-    bsr     ScrollMovingInVerticalDirection;XXX
+    cmp.b   #15,v_scroll_vector_y(a0)
+    bne     .add
 
-    cmp.w   #2,d6
-    bne     .add;XXX
     move.w  #-1,d2
     bra     .add
 
 .check_down
-    bsr     ScrollMovingInVerticalDirection;XXX
-    cmp.w   #1,d6;XXX
+    cmp.b   #1,v_scroll_vector_y(a0)
     bne     .add;XXX
     add.w   #16,d2;XXX                                      ;pick block from one map height down
 
@@ -109,8 +127,8 @@ ScrollGetMapXYForVertical:
     add.b   v_map_tile_height(a0),d4
 
 .check_down
-    btst.b  #1,v_joystick_value(a0)                         ;if downward scroll, continue
-    beq     .swap
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;if downward scroll, continue
+    bne     .swap
 
 .adjust_source
 
@@ -335,11 +353,11 @@ ScrollCalculateVerticalSplit:
     divu    #screen_buffer_height,d2                        ;bitplane pointers in screen buffer
     swap    d2                                              ;(ypos % screen_buffer_height)
 
-    btst.b  #1,v_joystick_value(a0)                         ;if downward scroll, continue
-    bne     .update_split
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;if downward scroll, continue
+    beq     .update_split
 
-    btst.b  #2,v_joystick_value(a0)                         ;if not upward scroll, skip the offset
-    beq     .end
+    cmp.b   #15,v_scroll_vector_y(a0)                       ;if not upward scroll, skip the offset
+    bne     .end
 
 .update_split
     sub.w   d2,d0                                           ;d0 = d0 - (ypos % screen_buffer_height)
@@ -347,8 +365,8 @@ ScrollCalculateVerticalSplit:
     bhi     .check_down
     sub.w   #1,d0                                           ;compensates for vertical split glitch
 .check_down
-    btst.b  #2,v_joystick_value(a0)                         ;if upward scroll, add one to the wait value
-    beq     .move
+    cmp.b   #15,v_scroll_vector_y(a0)                       ;if upward scroll, add one to the wait value
+    bne     .move
     add.w   #1,d0
 .move
     move.b  d0,c_split(a1)                                  ;d0 is the second one
@@ -418,8 +436,8 @@ ScrollGetHTileOffsets:
     swap    d3                                              ;mapx
     move.w  d3,d2
 
-    btst.b #0,v_joystick_value(a0)
-    beq     .left
+    cmp.b   #1,v_scroll_vector_x(a0)
+    bne     .left
 
     subi    #1,d2                                           ;back a column
 
@@ -439,8 +457,8 @@ ScrollGetHTileOffsets:
     move.l  a3,d5                                           ;A source (blocksbuffer)
     add.l   d1,d5                                           ;blocksbuffer + mapy + mapx
 
-    cmp.b   #3,v_joystick_value(a0)
-    bne     .contr
+    cmp.b   #15,v_scroll_vector_x(a0)                       ;moving left?
+    beq     .contr
     ;mcgeezer_special
 .contr
 
@@ -476,8 +494,8 @@ ScrollGetHTileOffsets:
     clr.l   d2
     clr.l   d7
 
-    btst.b  #0,v_joystick_value(a0)
-    beq     .left2
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;moving right?
+    bne     .left2
 
     move.w  v_video_x_bitplane_offset(a0),d2                ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
                                                             ;or zero
@@ -498,40 +516,48 @@ ScrollGetHTileOffsets:
 
     ;TODO: PROBLEM--FFFE gets added to the destination pointer, which is WRONG
 
-.continue_destination
     add.l   d2,d7
+
+    cmp.b   #15,v_scroll_vector_x(a0)                       ;moving left?
+    bne     .continue_destination
+    swap    d6
+    tst.w   d6
+    bne     .continue_destination
+    add.l   #2,d7
+
+.continue_destination
     move.l  d7,d4                                           ;(for debugging)
     add.l   d7,d1                                           ;frontbuffer + y + x
 
 .figure_out_num_blocks_to_blit
 
-    moveq #0,d7
+    moveq   #0,d7
 
 ****************************************
 ***      LEFT SCROLL CHECKS          ***
 ****************************************
 
-    btst.b #3,v_joystick_value(a0)
-    beq .single
+    cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
+    bne     .single
 
-    btst.b #1,v_joystick_value(a0)                          ;also scrolling down?
-    beq .check_upward_scroll
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;also scrolling down?
+    bne     .check_upward_scroll
 
-    tst.w d6
+    tst.w   d6
     ;cmp.w #$01,d6
-    beq .none                                               ;If D, skip [B]
+    beq     .none                                           ;If D, skip [B]
 
 .check_upward_scroll
-    btst.b #2,v_joystick_value(a0)                          ;also scrolling up?
-    beq .single
+    cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
+    bne     .single
 
-    cmp.w #$0F,d6
+    cmp.w   #$0F,d6
     ;tst.w d6
-    beq .none                                               ;If U, skip [D]
+    beq     .none                                           ;If U, skip [D]
 
 .single
-    addq #1,d7
-    asl.w #2,d7
+    addq    #1,d7
+    asl.w   #2,d7
 .none
     rts
 
@@ -603,8 +629,8 @@ ScrollGetVTileOffsets:
     swap    d6                                              ;mapy(offset for dest)
     move.w  d6,d2
 
-    btst.b  #1,v_joystick_value(a0)                         ;scrolling down?
-    bne     .convert_mapy_to_videoy
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;scrolling down?
+    beq     .convert_mapy_to_videoy
     sub.w   #1,d2
 
 .convert_mapy_to_videoy
@@ -679,12 +705,15 @@ ScrollGetVTileOffsets:
     moveq   #0,d7
     asr.w   #1,d4
 
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;moving right?
+    bne     .check_position
+
 ****************************************
 ***      DOWN SCROLL CHECKS          ***
 ****************************************
 
-    btst.b  #1,v_joystick_value(a0)                         ;down?
-    beq     .check_up
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
+    bne     .check_up
 
     cmp.w   #15,d4
     ;tst.w   d4
@@ -695,12 +724,13 @@ ScrollGetVTileOffsets:
 ****************************************
 
 .check_up
-    btst.b  #2,v_joystick_value(a0)                         ;up?
-    beq     .check_position
+    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
+    bne     .check_position
 
-    ;;cmp.w   #15,d4
+    cmp.w   #1,d4
+    ;cmp.w   #15,d4
     ;tst.w   d4
-    ;beq     .none                                           ;If R, skip [C]
+    beq     .none                                           ;If R, skip [C]
 
 .check_position
     cmp.w   #4,d4                                           ;positions 4 & B have doubles

@@ -181,32 +181,33 @@ TESTScroll:
   *****************************************************
 
 .continue
-    bsr ScrollGetStepAndDelay
+    bsr     ScrollGetStepAndDelay
+    bsr     ScrollGetDirectionalVectors
 
-    btst.b #0,v_joystick_value(a0)                          ;right?
-    beq .check_down
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+    bne     .check_down
 
-    bsr .right
+    bsr     .right
 
 .check_down
-    btst.b #1,v_joystick_value(a0)                          ;down?
-    beq .check_up
-    bsr .down
-    bra .check_left
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
+    bne     .check_up
+    bsr     .down
+    bra     .check_left
 
 .check_up
-    btst.b #2,v_joystick_value(a0)                          ;up?
-    beq .check_left
-    bsr .up
+    cmp.b   #15,v_scroll_vector_y(a0)                        ;up?
+    bne     .check_left
+    bsr     .up
 
 .check_left
-    btst.b #3,v_joystick_value(a0)                          ;left?
-    beq .update_joystick
+    cmp.b   #15,v_scroll_vector_x(a0)                        ;left?
+    bne     .update_joystick
 
-    bsr .left
+    bsr     .left
 
 .update_joystick
-    move.b v_joystick_value(a0),v_previous_joystick_value(a0)
+    move.b  v_joystick_value(a0),v_previous_joystick_value(a0)
     rts
 
 ***********************************************
@@ -215,10 +216,6 @@ TESTScroll:
 ***********************************************
 
 .right
-    cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2; TODO: BETTER CHECK. SOMETIMES THE MAP IS HALF-WIDE
-    bge .end_scroll
-
-.scroll_right
     cmp.w #0,d1                                             ;INPUT:d2,a0 (d1)
     bne .get_xy_position_right
 
@@ -240,7 +237,7 @@ TESTScroll:
     lea MapSourceBitmapE,a5
     bsr ScrollGetHTileOffsets
 
-    ;cmp.b   #3,v_joystick_value(a0)
+    ;cmp.w   #$11,v_scroll_vector_x(a0)
     ;bne     .contr
     mcgeezer_special
 .contr
@@ -262,9 +259,6 @@ TESTScroll:
 ************************************************
 
 .left
-    tst.w v_map_x_position(a0)
-    beq .end_scroll
-
     bsr ScrollDecrementXPosition
     bsr ScrollGetStepAndDelay
 
@@ -310,9 +304,6 @@ TESTScroll:
 *******************************************
 
 .up
-    cmp.w #0,v_map_y_position(a0)
-    ble .end_scroll
-
     bsr ScrollDecrementYPosition
 
     move.l #$FFFF0000,d4
@@ -340,13 +331,6 @@ TESTScroll:
 ****************************************
 
 .down
-    move.w  v_map_y_position(a0),d4
-    clr.l   d5
-    move.w  v_map_height(a0),d5
-    sub.w   #screen_buffer_height,d5
-    cmp.w   d5,d4                                           ;scroll through all pixels before changing direction
-    bge     .end_scroll
-
     move.l #$10000,d4
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
@@ -358,7 +342,7 @@ TESTScroll:
     lea MapSourceBitmapE,a5
     bsr ScrollGetVTileOffsets
 
-    cmp.b   #3,v_joystick_value(a0)
+    cmp.w   #$11,v_scroll_vector_x(a0)
     bne     .contd
     mcgeezer_special
 .contd
@@ -468,7 +452,10 @@ FastData:
 
 ;v_map_source_bytes_per_row
     dc.w 0
-    dc.w 0
+;v_scroll_vector_x
+    dc.b 0
+;v_scroll_vector_y
+    dc.b 0
 
 ;v_scroll_screen
     dc.l 0
@@ -723,7 +710,7 @@ Copper:
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
-    dc.w $0180,$0FF9
+    ;dc.w $0180,$0FF9
 
     dc.w $ffff,$fffe
 
