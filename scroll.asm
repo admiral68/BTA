@@ -543,16 +543,14 @@ ScrollGetHTileOffsets:
     cmp.b   #1,v_scroll_vector_y(a0)                        ;also scrolling down?
     bne     .check_upward_scroll
 
-    tst.w   d6
-    ;cmp.w #$01,d6
+    tst.w   d6												;first horizontal blit
     beq     .none                                           ;If D, skip [B]
 
 .check_upward_scroll
     cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
     bne     .single
 
-    cmp.w   #$0F,d6
-    ;tst.w d6
+    cmp.w   #15,d6											;last horizontal blit
     beq     .none                                           ;If U, skip [D]
 
 .single
@@ -715,8 +713,7 @@ ScrollGetVTileOffsets:
     cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
     bne     .check_up
 
-    cmp.w   #15,d4
-    ;tst.w   d4
+    tst.w   d4											    ;first vertical blit
     beq     .none                                           ;If R, skip [A]
 
 ****************************************
@@ -727,9 +724,7 @@ ScrollGetVTileOffsets:
     cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
     bne     .check_position
 
-    cmp.w   #1,d4
-    ;cmp.w   #15,d4
-    ;tst.w   d4
+    cmp.w   #1,d4											;last vertical blit
     beq     .none                                           ;If R, skip [C]
 
 .check_position
