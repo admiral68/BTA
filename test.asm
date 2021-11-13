@@ -319,8 +319,6 @@ TESTCopyScreenFromMapSourceBitmap:
     move.b  v_map_tile_width(a0),d5
     sub.b   #(screen_columns-1),d5
     add.w   d5,d5
-    
-    mcgeezer_special2
 
     move.w  #$09F0,BLTCON0(a6)                                  ;use A and D. Op: D = A
     move.w  #$0000,BLTCON1(a6)

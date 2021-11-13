@@ -99,7 +99,7 @@ Init:
 ;SetCopperScreenBitplanePointers
 
     lea     Copper,a1                                       ;where to poke the bitplane pointer words.
-    move    #4-1,d0
+    move    #screen_bitplanes-1,d0
 
 .bpl7:
     move.l  a0,d1
@@ -837,6 +837,13 @@ Screen2E:
     EVEN
 
 MapSourceBitmap:
-    ds.b map_bytes                                          ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
-                                                            ;REMEMBER, the test bitmap is only 16 tiles high (256)
+    ds.b map_bytes
 MapSourceBitmapE:
+
+;MapSourceDungeonBitmap:
+;    ds.b map_dungeon_bytes
+;MapSourceDungeonBitmapE:
+;
+;MapSourceWisemanShopBitmap:
+;    ds.b map_wiseman_bytes
+;MapSourceWisemanShopBitmapE:
