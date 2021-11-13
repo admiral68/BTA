@@ -93,8 +93,15 @@ Init:
     move.l  a0,v_scroll_screen(a1)
 
     lea     screen_bytes_per_row*tile_height(a0),a0         ;skip first tile row
+    ;move.l  a0,d2    ;TO REPLACE
 
     move.l  a0,v_scroll_screen_split(a1)
+
+    ;TO ADD
+    ;move.l  d2,d3
+    ;add.l   #screen_buffer_bytes,d3
+    ;move.l  d3,v_screen_end(a1)
+    ;END TO ADD
 
 ;SetCopperScreenBitplanePointers
 
@@ -104,14 +111,19 @@ Init:
 .bpl7:
     move.l  a0,d1
     swap    d1
+    ;swap    d2;TO ADD
     move.w  d1,c_bitplane_pointers_01(a1)                   ;hi word
     move.w  d1,c_bitplane_pointers_02(a1)                   ;hi word
+    ;move.w  d2,c_bitplane_pointers_02(a1);TO REPLACE                   ;hi word
     swap    d1
+    ;swap    d2;TO ADD
     move.w  d1,4+c_bitplane_pointers_01(a1)                 ;lo word
     move.w  d1,4+c_bitplane_pointers_02(a1)                 ;lo word
+    ;move.w  d2,4+c_bitplane_pointers_02(a1);TO REPLACE                 ;lo word
 
     addq    #8,a1                                           ;point to next bpl to poke in copper
     lea     screen_bp_bytes_per_raster_line(a0),a0          ;every 44 bytes we'll have new bitplane data
+    ;add.l   #screen_bp_bytes_per_raster_line,d2;TO ADD
     dbf     d0,.bpl7
 
     bsr     SetupDebugStrings
@@ -498,8 +510,9 @@ DebugFontBitmapSource:          INCBIN "gfx/debug_alpha80x32x2.raw"
 DebugFontBitmapSourceE:
     EVEN
 
-Map:
+Map:    ;TODO: Dynamic alloc?
     ds.w (test_cols_to_decode+1)*(test_rows_to_decode+1)*tile_height
+;    ds.w (level_01_main_map_cols+1)*(level_01_main_map_rows+1)*tile_height;TO REPLACE
 
 FastData:
 ;v_tile_y_position
@@ -560,6 +573,10 @@ FastData:
 ;v_scrollx_dest_offset_table
     dc.w $0000,$0900,$1200,$1B00,$2400,$2D00,$3600,$3F00
     dc.w $4800,$5100,$5A00,$6300,$6C00,$7500,$7E00,$8700
+    ;TO REPLACE
+    ;dc.w $0000,$0B40,$1680,$21C0,$2D00,$3840,$4380,$4EC0
+    ;dc.w $5A00,$6540,$7080,$7BC0,$8700,$9240,$9D80,$A8C0
+    ;END TO REPLACE
 
 ;v_scrolly_dest_offset_table
     dc.w $0000,$0002,$0004,$0006,$0008,$000C,$000E,$0010
@@ -675,6 +692,7 @@ Copper:
 
 ;c_palette_01
     tile_pal_0f
+    ;level_1_main_pal; TO REPLACE
 
 ;c_bitplane_pointers_01
     dc.w $00e0,0                                            ;1
@@ -685,8 +703,8 @@ Copper:
     dc.w $00ea,0
     dc.w $00ec,0                                            ;4
     dc.w $00ee,0
-;   dc.w $00f0,0                                            ;5
-;   dc.w $00f2,0
+;   dc.w $00f0,0;TO UNCOMMENT                                            ;5
+;   dc.w $00f2,0;TO UNCOMMENT
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
@@ -694,21 +712,33 @@ Copper:
     dc.w $1a2,0
     dc.w $1a4,0
     dc.w $1a6,0
+    ;dc.w $01fe,0;TO REPLACE
+    ;dc.w $01fe,0;TO REPLACE
+    ;dc.w $01fe,0;TO REPLACE
 
 ;c_sprites23_cols
     dc.w $1a8,$0000
     dc.w $1aa,$0111
     dc.w $1ac,$0ddd
+    ;dc.w $01fe,$0000;TO REPLACE
+    ;dc.w $01fe,$0000;TO REPLACE
+    ;dc.w $01fe,$0000;TO REPLACE
 
 ;c_sprites45_cols
     dc.w $1ae,$0000
     dc.w $1b0,$0d00
     dc.w $1b2,$0ddd
+    ;dc.w $01fe,$0000;TO REPLACE
+    ;dc.w $01fe,$0000;TO REPLACE
+    ;dc.w $01fe,$0000;TO REPLACE
 
 ;c_sprites67_cols
     dc.w $1b4,$0d00
     dc.w $1b6,$00f0
     dc.w $1b8,$0ddd
+    ;dc.w $01fe,$0000;TO REPLACE
+    ;dc.w $01fe,$0000;TO REPLACE
+    ;dc.w $01fe,$0000;TO REPLACE
 
 ;c_sprite00
     dc.w $120,0                                             ;SPR0PTH
@@ -742,6 +772,7 @@ Copper:
 
 ;c_display_enable_01
     dc.w BPLCON0,$4200
+    ;dc.w BPLCON0,$5200;TO REPLACE
 
 ;c_split_stop
     dc.w $ffdf,$fffe
@@ -758,8 +789,8 @@ Copper:
     dc.w $00ea,0
     dc.w $00ec,0                                            ;4
     dc.w $00ee,0
-;   dc.w $00f0,0                                            ;5
-;   dc.w $00f2,0
+;   dc.w $00f0,0;TO UNCOMMENT                                            ;5
+;   dc.w $00f2,0;TO UNCOMMENT
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
@@ -828,10 +859,12 @@ NullSpr:
 
 Screen:
     ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2)
+    ;ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16);TO REPLACE
 ScreenE:
 
 Screen2:
     ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2)
+    ;ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16);TO REPLACE
 Screen2E:
 
     EVEN
