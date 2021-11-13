@@ -92,16 +92,14 @@ Init:
     move.l  a0,v_screen(a1)
     move.l  a0,v_scroll_screen(a1)
 
-    lea     screen_bytes_per_row*tile_height(a0),a0         ;skip first tile row
-    ;move.l  a0,d2    ;TO REPLACE
+    lea     screen_bytes_per_row*tile_height(a0),a0 ;TO REMOVE         ;skip first tile row
+    move.l  a0,d2
 
     move.l  a0,v_scroll_screen_split(a1)
 
-    ;TO ADD
-    ;move.l  d2,d3
-    ;add.l   #screen_buffer_bytes,d3
-    ;move.l  d3,v_screen_end(a1)
-    ;END TO ADD
+    move.l  d2,d3
+    add.l   #screen_buffer_bytes,d3
+    move.l  d3,v_screen_end(a1)
 
 ;SetCopperScreenBitplanePointers
 
@@ -111,19 +109,19 @@ Init:
 .bpl7:
     move.l  a0,d1
     swap    d1
-    ;swap    d2;TO ADD
+    swap    d2
     move.w  d1,c_bitplane_pointers_01(a1)                   ;hi word
     move.w  d1,c_bitplane_pointers_02(a1)                   ;hi word
     ;move.w  d2,c_bitplane_pointers_02(a1);TO REPLACE                   ;hi word
     swap    d1
-    ;swap    d2;TO ADD
+    swap    d2
     move.w  d1,4+c_bitplane_pointers_01(a1)                 ;lo word
     move.w  d1,4+c_bitplane_pointers_02(a1)                 ;lo word
     ;move.w  d2,4+c_bitplane_pointers_02(a1);TO REPLACE                 ;lo word
 
     addq    #8,a1                                           ;point to next bpl to poke in copper
     lea     screen_bp_bytes_per_raster_line(a0),a0          ;every 44 bytes we'll have new bitplane data
-    ;add.l   #screen_bp_bytes_per_raster_line,d2;TO ADD
+    add.l   #screen_bp_bytes_per_raster_line,d2
     dbf     d0,.bpl7
 
     bsr     SetupDebugStrings
