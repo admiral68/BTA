@@ -13,9 +13,7 @@ LoadLevelMap:
     move.l  d4,d1
 
 .inner_loop
-    move.w  (a1)+,d2                                        ;load "map word" into d2 from a1
-    and.w   #tile_index_mask,d2
-    move.w  d2,(a2)+                                        ;poke this into the map
+    move.w  (a1)+,(a2)+                                     ;poke this into the map
 
     dbf     d1,.inner_loop
     dbf     d0,.outer_loop
@@ -37,12 +35,20 @@ AssembleSourceTilesIntoMapSourceBitmap:
 
     move.l  a0,v_tile_map_dest(a1)
     move.l  a0,v_tile_map_row_dest(a1)
-    move.l  (MapSourceBitmapE-MapSourceBitmap)/4,d0
+    move.l  #(MapSourceBitmapE-MapSourceBitmap)/4,d0
 
 .l0:
     clr.l   (a0)+
     dbf     d0,.l0
 
+    swap    d0
+    tst.w   d0
+    beq     .continue
+    sub.w   #1,d0
+    swap    d0
+    bra     .l0
+
+.continue
     clr.l   d0
 
     lea     Map,a0                                          ;Starting tile
@@ -58,19 +64,23 @@ AssembleSourceTilesIntoMapSourceBitmap:
 
     move.l  v_tile_map_dest(a2),a3                          ;DEST in a3
 
-    move.b #0,d1                                            ;"FLIP" flag (off) in d1
-    move.l v_tile_source(a2),a1                             ;SOURCE in a1
-    move.w (a0)+,d0                                         ;TILE index/attr in d0
-    btst   #15,d0
-    beq    .no_flip
-    move.b #1,d1                                            ;"FLIP" flag (on) in d1
+    move.l  #0,d1                                           ;"FLIP" flag (off) in d1
+    move.l  v_tile_source(a2),a1                            ;SOURCE in a1
+    move.w  (a0)+,d0                                        ;TILE index/attr in d0
+    move.w  d0,d1
+    swap    d1
+    btst    #11,d0
+    beq     .no_flip
+
+    move.b  #1,d1                                           ;"FLIP" flag (on) in d1
 
 .no_flip
 
     andi.w  #tile_index_mask,d0
     move    d0,d2
     and.w   #15,d0
-    asl.w   #5,d0
+    add.w   d0,d0
+    andi.w  #$7F0,d2
     mulu    #map_source_tile_bytes_per_row,d2
     add.w   d2,d0
 
@@ -89,9 +99,8 @@ AssembleSourceTilesIntoMapSourceBitmap:
 
     lea     FastData,a2
     move.l  v_tile_map_row_dest(a2),a1
-	
-	adda.l	#test_bmp_vtile_offset,a1
-	
+
+    adda.w  v_map_bytes_per_tile_row(a2),a1                 ;One tile height in destination bitmap
     move.l  a1,v_tile_map_dest(a2)
     move.l  a1,v_tile_map_row_dest(a2)
 
@@ -108,29 +117,61 @@ CopyScreenFromMapSourceBitmap:
 
     move.l  a3,d3
     move.l  a4,d4
-    add.l   #2+screen_bytes_per_row*tile_height,d4              ;down one row,over one column into the buffer
+
+    ;5bp
+    ;204x5 = 1020 lines (first blit)
+    ;68x5  =  340 lines (second blit)
+    ;      = 1360 lines / 5 = 272 total raster lines
+
+    ;4bp
+    ;256x4 = 1024 lines (first blit)
+    ;16x4  =   64 lines (second blit)
+    ;      = 1088 lines / 4 = 272 total raster lines
+
+    tst.w   v_map_y_position(a0)
+    beq     .continue
+
+    clr.l   d6
+    move.l  d6,d7
+    move.w  v_map_y_position(a0),d6
+    move.w  v_map_source_bytes_per_row(a0),d7
+    mulu    d7,d6
+    add.l   d6,d3
+
+.continue
+    add.l   #2,d4                                               ;over one column into the buffer
+
+    clr.l   d5
+    move.b  v_map_tile_width(a0),d5
+    sub.b   #(screen_columns-1),d5
+    add.w   d5,d5
 
     move.w  #$09F0,BLTCON0(a6)                                  ;use A and D. Op: D = A
     move.w  #$0000,BLTCON1(a6)
     move.w  #$FFFF,BLTAFWM(a6)
     move.w  #$FFFF,BLTALWM(a6)
-    move.w  #2*(map_tile_width-(screen_columns-1)),BLTAMOD(a6)  ;skip 107 columns (copy 21)
+    move.w  d5,BLTAMOD(a6)                                      ;skip 107 columns (copy 21)
     move.w  #2,BLTDMOD(a6)                                      ;skip 1 column (copy 21)
     move.l  d3,BLTAPTH(a6)
     move.l  d4,BLTDPTH(a6)
 
-    move.w  #(screen_width-tile_width)/16,BLTSIZE(a6)           ;no "h" term needed since it's 1024. Thanks ross @eab!
+    move.w  #1020*64+(screen_width-tile_width)/16,BLTSIZE(a6)   ;TODO: LUT
 
     WAITBLIT
 
-    add.l   #screen_bytes_per_row*tile_height,d4                ;two rows were unblitted
+    clr.l   d6
+    move.w  v_map_source_bpl_bytes_per_row(a0),d6
+    mulu    #1020,d6                                            ;TODO: LUT
 
-    move.w  #2*(map_tile_width-(screen_columns-1)),BLTAMOD(a6)  ;skip 107 columns (copy 21)
+    add.l   #screen_bytes_per_row*204,d4                        ;TODO: LUT; 68 lines (of 272) were unblitted
+    add.l   d6,d3                                               ;TODO: LUT; 68 lines (of 272) were unblitted
+
+    move.w  d5,BLTAMOD(a6)                                      ;skip 107 columns (copy 21)
     move.w  #2,BLTDMOD(a6)                                      ;skip 1 column (copy 21)
     move.l  d3,BLTAPTH(a6)
     move.l  d4,BLTDPTH(a6)
 
-    move.w  #2*tile_plane_lines*64+(screen_width-tile_width)/16,BLTSIZE(a6)
+    move.w  #340*64+(screen_width-tile_width)/16,BLTSIZE(a6)    ;TODO: LUT
 
     rts
 ;-----------------------------------------------

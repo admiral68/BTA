@@ -82,10 +82,10 @@ ScrollGetMapXYForVertical:
 
     asr.w   #4,d3                                           ;mapy (block)
 
-    cmp.w   #map_tile_height,d3                             ;This is because the
+    cmp.b   v_map_tile_height(a0),d3                        ;This is because the
     ble     .save_mapy                                      ;source bitmap is only map_tile_height blocks high
 
-    sub.w   #map_tile_height,d3                             ;special case: grab source blocks from top of test bitmap
+    sub.b   v_map_tile_height(a0),d3                        ;special case: grab source blocks from top of test bitmap
 
 .save_mapy
 

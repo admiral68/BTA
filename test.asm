@@ -315,11 +315,18 @@ TESTCopyScreenFromMapSourceBitmap:
     move.l  a4,d4
     add.l   #2+screen_bytes_per_row*tile_height,d4
 
+    clr.l   d5
+    move.b  v_map_tile_width(a0),d5
+    sub.b   #(screen_columns-1),d5
+    add.w   d5,d5
+    
+    mcgeezer_special2
+
     move.w  #$09F0,BLTCON0(a6)                                  ;use A and D. Op: D = A
     move.w  #$0000,BLTCON1(a6)
     move.w  #$FFFF,BLTAFWM(a6)
     move.w  #$FFFF,BLTALWM(a6)
-    move.w  #2*(map_tile_width-(screen_columns-1)),BLTAMOD(a6)  ;skip 107 columns (copy 21)
+    move.w  d5,BLTAMOD(a6)                                      ;skip 107 columns (copy 21)
     move.w  #2,BLTDMOD(a6)                                      ;skip 1 column (copy 21)
     move.l  d3,BLTAPTH(a6)
     move.l  d4,BLTDPTH(a6)
@@ -333,7 +340,7 @@ TESTCopyScreenFromMapSourceBitmap:
 
     add.l   #2+screen_bytes_per_row*(screen_height+tile_height),d4
 
-    move.w  #2*(map_tile_width-(screen_columns-1)),BLTAMOD(a6)  ;skip 107 columns (copy 21)
+    move.w  d5,BLTAMOD(a6)                                      ;skip 107 columns (copy 21)
     move.w  #2,BLTDMOD(a6)                                      ;skip 1 column (copy 21)
     move.l  d3,BLTAPTH(a6)
     move.l  d4,BLTDPTH(a6)

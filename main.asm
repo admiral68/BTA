@@ -77,6 +77,7 @@ Init:
 
     bsr     DecodeAndAssembleSourceTilesIntoMapSourceBitmap
 
+    lea     FastData,a0
     lea     MapSourceBitmap,a3
     lea     Screen,a4
     bsr     TESTCopyScreenFromMapSourceBitmap

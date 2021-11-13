@@ -89,8 +89,6 @@ screen_horz_disp_words              = screen_width/16
 screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
 screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
 
-map_tile_width                      = test_cols_to_decode
-map_tile_height                     = test_rows_to_decode
 map_bitplanes                       = screen_bitplanes
 map_bytes                           = eight_by_four_map_cols*2*map_bitplanes*tile_height*16
 map_dungeon_bytes                   = 64*2*map_bitplanes*tile_height*24
