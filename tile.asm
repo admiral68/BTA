@@ -4,15 +4,17 @@
 ;INPUT: source ptr in d5; dest ptr in d1; + (rows,cols)
 ;EX: BLIT_ROWS_AND_COLS 1,1
 BLIT_ROWS_AND_COLS:macro
-    move.w #$09F0,BLTCON0(a6)                               ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
-    move.w #$0000,BLTCON1(a6)                               ;custom->bltcon1 = 0;
-    move.w #$FFFF,BLTAFWM(a6)                               ;custom->bltafwm = 0xFFFF;
-    move.w #$FFFF,BLTALWM(a6)                               ;custom->bltalwm = 0xFFFF;
-    move.w #tile_bytes_per_row-2*(\2),BLTAMOD(a6)           ;custom->bltamod = BLOCKSBYTESPERROW - (BLOCKWIDTH / 8);
-    move.w #screen_bpl_bytes_per_row-2*(\2),BLTDMOD(a6)     ;custom->bltdmod = BITMAPBYTESPERROW - (BLOCKWIDTH / 8);
-    move.l d5,BLTAPTH(a6)                                   ;custom->bltapt  = blocksbuffer + mapy + mapx;
-    move.l d1,BLTDPTH(a6)                                   ;custom->bltdpt  = frontbuffer + y + x;
-    move.w #(tile_plane_lines*(\1)*64+1*(\2)),BLTSIZE(a6)   ;custom->bltsize = BLOCKPLANELINES * 64 + (BLOCKWIDTH / 16);
+    move.w  v_map_source_bpl_bytes_per_row(a0),d6
+    sub.w   #2*(\2),d6
+    move.w  #$09F0,BLTCON0(a6)                              ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
+    move.w  #$0000,BLTCON1(a6)                              ;custom->bltcon1 = 0;
+    move.w  #$FFFF,BLTAFWM(a6)                              ;custom->bltafwm = 0xFFFF;
+    move.w  #$FFFF,BLTALWM(a6)                              ;custom->bltalwm = 0xFFFF;
+    move.w  d6,BLTAMOD(a6)                                  ;custom->bltamod = BLOCKSBYTESPERROW - (BLOCKWIDTH / 8);
+    move.w  #screen_bpl_bytes_per_row-2*(\2),BLTDMOD(a6)    ;custom->bltdmod = BITMAPBYTESPERROW - (BLOCKWIDTH / 8);
+    move.l  d5,BLTAPTH(a6)                                  ;custom->bltapt  = blocksbuffer + mapy + mapx;
+    move.l  d1,BLTDPTH(a6)                                  ;custom->bltdpt  = frontbuffer + y + x;
+    move.w  #(tile_plane_lines*(\1)*64+1*(\2)),BLTSIZE(a6)  ;custom->bltsize = BLOCKPLANELINES * 64 + (BLOCKWIDTH / 16);
 
 ;    cmp.l #$3C056,d3                                        ;can stop after a particular tile is blitted by
 ;    bne .end                                                ;doing something like this

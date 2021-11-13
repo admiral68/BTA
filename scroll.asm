@@ -359,10 +359,11 @@ ScrollGetHTileOffsets:
     move.w  v_map_bytes_per_tile_row(a0),d5
     move.w  d5,d6
 
-    cmp.w   #0,d2
     ;END NEW
 
+    tst.w   d2
     beq     .skip_add
+
     sub.w   #1,d2
 
 .addo                                                       ;mapy * mapwidth
@@ -405,13 +406,13 @@ ScrollGetHTileOffsets:
     cmp.l   a3,d5
     bge     .check_past_end_of_source
 
-    add.l   #map_bytes,d5
+    add.l   v_map_bytes(a0),d5
 
 .check_past_end_of_source
     cmp.l   a5,d5
     blt     .destination
 
-    sub.l   #map_bytes,d5
+    sub.l   v_map_bytes(a0),d5
 
 ****************************************
 ***         DESTINATION              ***
@@ -568,6 +569,7 @@ ScrollGetVTileOffsets:
     sub.w   #1,d2
 
 .loop_add_tile_row                                          ;videoy * screenwidth
+
     add.l   #screen_tile_bytes_per_row,d1
     dbf     d2,.loop_add_tile_row
 
@@ -600,7 +602,7 @@ ScrollGetVTileOffsets:
     cmp.l   a5,d5
     blt     .figure_out_num_blocks_to_blit
 
-    sub.l   #map_bytes,d5                                   ;TODO: Maybe this isn't correct
+    sub.l   v_map_bytes(a0),d5                              ;TODO: Maybe this isn't correct
 
 .figure_out_num_blocks_to_blit
     moveq   #0,d7
