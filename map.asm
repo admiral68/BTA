@@ -89,9 +89,9 @@ AssembleSourceTilesIntoMapSourceBitmap:
 
     lea     FastData,a2
     move.l  v_tile_map_row_dest(a2),a1
-    lea     v_dest_graphic_vtile_offset(a2),a3              ;One tile height in destination bitmap
-
-    adda.l  (a3),a1
+	
+	adda.l	#test_bmp_vtile_offset,a1
+	
     move.l  a1,v_tile_map_dest(a2)
     move.l  a1,v_tile_map_row_dest(a2)
 
