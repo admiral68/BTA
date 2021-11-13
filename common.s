@@ -5,7 +5,7 @@
     * pointer offsets *
     *-----------------*
 
-v_tile_y_position                   = 0
+v_tile_y_position                   = 0                 ;unused
 v_tile_x_position                   = 2
 v_tile_map_dest                     = 4
 v_tile_map_row_dest                 = 8
@@ -16,18 +16,23 @@ v_map_x_position                    = 22
 v_video_y_position                  = 24
 v_video_x_position                  = 26
 v_dest_graphic_vtile_offset         = 28
+v_scroll_vector_x                   = 30
+v_scroll_vector_y                   = 31
 v_scroll_screen                     = 32
 v_scroll_screen_split               = 36
 v_scroll_ptr_saveword               = 40
-v_unused_01                         = 44
-v_unused_02                         = 48
-v_unused_03                         = 52
+v_map_width                         = 44                ;unused
+v_map_bytes_per_tile_row            = 46
+v_map_bytes                         = 48
+v_map_height                        = 52
+v_map_source_bpl_bytes_per_row      = 54
 v_scrollx_dest_offset_table         = 56
 v_scrolly_dest_offset_table         = 88
 v_scroll_saveword                   = 120
 v_video_x_bitplane_offset           = 122
 v_scroll_positions                  = 124
-v_tile_y_blit_positions             = 140
+v_screen_end                        = 140
+v_unused_04                         = 144
 v_decoded_bitplane_bytes            = 156
 v_current_map_columns               = 166
 v_current_map_rows                  = 167
@@ -38,9 +43,11 @@ v_x_scroll_velocity                 = 171
 v_previous_joystick_value           = 172
 v_previous_x_step_value             = 173
 v_previous_y_step_value             = 174
-v_debug_char_lut                    = 175
-v_debug_hexchar_lut                 = 239
-v_text_buffer                       = 255
+v_map_tile_width                    = 175
+v_map_tile_height                   = 176
+v_debug_char_lut                    = 177
+v_debug_hexchar_lut                 = 241
+v_text_buffer                       = 257
 
 c_horizontal_scroll_pos_01          = 38
 c_sprites_enable_01                 = 42

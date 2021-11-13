@@ -587,11 +587,11 @@ FastData:
 
 ;v_map_y_position
 ;v_map_x_position
-    dc.l 0
+    dc.l $00000000
 
 ;v_video_y_position
 ;v_video_x_position
-    dc.l 0
+    dc.l $00000000
 
 ;v_dest_graphic_vtile_offset
     dc.l 0
@@ -605,14 +605,20 @@ FastData:
 ;v_scroll_ptr_saveword
     dc.l 0
 
-;v_tile_unblitted_src_y
+;v_map_width
+    dc.w 0
+
+;v_map_bytes_per_tile_row
+    dc.w 0
+
+;v_map_bytes
     dc.l 0
 
-;v_tile_unblitted_dest_x
-    dc.l 0
+;v_map_height
+    dc.w 0
 
-;v_tile_unblitted_dest_y
-    dc.l 0
+;v_map_source_bpl_bytes_per_row
+    dc.w 0
 
 ;v_scrollx_dest_offset_table
     dc.w $0000,$0900,$1200,$1B00,$2400,$2D00,$3600,$3F00
@@ -632,8 +638,11 @@ FastData:
     dc.b $00,$FF,$EE,$DD,$CC,$BB,$AA,$99
     dc.b $88,$77,$66,$55,$44,$33,$22,$11
 
-;v_tile_y_blit_positions
-    dc.b $F0,$E0,$D0,$C0,$B0,$A0,$90,$80
+;v_screen_end
+    dc.l 0
+
+;v_unused_04
+    dc.b $B0,$A0,$90,$80
     dc.b $70,$60,$50,$40,$30,$20,$10,$00
 
 ;v_decoded_bitplane_bytes
@@ -664,6 +673,12 @@ FastData:
     dc.b 0
 
 ;v_previous_y_step_value
+    dc.b 0
+
+;v_map_tile_width
+    dc.b 0
+
+;v_map_tile_height
     dc.b 0
 
 ;v_debug_char_lut
