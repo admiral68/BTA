@@ -31,9 +31,16 @@ Init:
 
     lea     FastData,a0
 
+    move.b  #level_01_main_map_rows,v_map_tile_height(a0)
+    move.b  #level_01_main_map_cols,v_map_tile_width(a0)
+    move.w  #level_01_main_map_cols*16,v_map_width(a0)
+    move.w  #level_01_main_map_rows*16,v_map_height(a0)
+    move.w  #eight_by_four_map_bytes_per_tile_row,v_map_bytes_per_tile_row(a0)
+    move.w  #eight_by_four_map_bpl_bytes_per_row,v_map_source_bpl_bytes_per_row(a0)
+    move.w  #eight_by_four_map_bytes_per_row,v_map_source_bytes_per_row(a0)
     move.b  #level_01_main_map_cols,v_current_map_columns(a0)
     move.b  #level_01_main_map_rows,v_current_map_rows(a0)
-    move.l  #eight_by_four_map_bytes_per_tile_row,v_dest_graphic_vtile_offset(a0)
+    move.l  #level_01_main_map_cols*2*map_bitplanes*tile_height*level_01_main_map_rows,v_map_bytes(a0)                        =
 
 ;level_01_dungeon_map_cols           = 64
 ;level_01_dungeon_map_rows           = 24
@@ -44,11 +51,13 @@ Init:
     lea     Map,a2
     lea     MapSourceLevel01,a1
     move.l  #level_01_main_map_rows-1,d0
-    move.l  #level_01_main_map_cols-1,d1	
-    bsr     LoadLevelMap
+    move.l  #level_01_main_map_cols-1,d1
 
+    bsr     LoadLevelMap
     bsr     AssembleSourceTilesIntoMapSourceBitmap
 
+
+    lea     FastData,a0
     lea     MapSourceBitmap,a3
     lea     Screen,a4
     bsr     CopyScreenFromMapSourceBitmap
@@ -58,7 +67,7 @@ Init:
 
     move.b  #test_cols_to_decode,v_current_map_columns(a0)
     move.b  #test_rows_to_decode,v_current_map_rows(a0)
-    move.l  #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
+;    move.l  #test_bmp_vtile_offset,v_dest_graphic_vtile_offset(a0)
 
     lea     TESTEncodedTilesSource,a1
     move.l  a1,v_tile_source(a0)
@@ -90,7 +99,7 @@ Init:
 ;SetCopperScreenBitplanePointers
 
     lea     Copper,a1                                       ;where to poke the bitplane pointer words.
-    move    #4-1,d0
+    move    #screen_bitplanes-1,d0
 
 .bpl7:
     move.l  a0,d1
@@ -175,71 +184,7 @@ TESTVBCode:
     rts
 
 ;-----------------------------------------------
-TESTUpdatePaletteDuringScroll:
-    movem.l d0-a6,-(sp)
-
-    btst.b #3,v_joystick_value(a0)                          ;left?
-    bne .check_left
-
-    btst.b #0,v_joystick_value(a0)                          ;right?
-    beq .continue
-
-    cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
-    blo .continue
-
-    lea Copper,a2
-
-    move.w #$0b87,c_palette_01(a2)
-    move.w #$0754,c_palette_01+4(a2)
-    move.w #$0975,c_palette_01+8(a2)
-    move.w #$0ca8,c_palette_01+12(a2)
-    move.w #$0ed8,c_palette_01+16(a2)
-    move.w #$0fff,c_palette_01+20(a2)
-    move.w #$0060,c_palette_01+24(a2)
-    move.w #$0090,c_palette_01+28(a2)
-    move.w #$00e0,c_palette_01+32(a2)
-    move.w #$0777,c_palette_01+36(a2)
-    move.w #$0aaa,c_palette_01+40(a2)
-    move.w #$0747,c_palette_01+44(a2)
-    move.w #$0868,c_palette_01+48(a2)
-    move.w #$0a8a,c_palette_01+52(a2)
-    move.w #$0cac,c_palette_01+56(a2)
-    move.w #$0111,c_palette_01+60(a2)
-
-    bra .continue
-
-.check_left
-
-    cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
-    bhi .continue
-
-    lea Copper,a2
-
-    move.w #$0111,c_palette_01(a2)
-    move.w #$0FF9,c_palette_01+4(a2)
-    move.w #$0EC7,c_palette_01+8(a2)
-    move.w #$0DA6,c_palette_01+12(a2)
-    move.w #$0C85,c_palette_01+16(a2)
-    move.w #$0A74,c_palette_01+20(a2)
-    move.w #$0864,c_palette_01+24(a2)
-    move.w #$0753,c_palette_01+28(a2)
-    move.w #$0641,c_palette_01+32(a2)
-    move.w #$0533,c_palette_01+36(a2)
-    move.w #$0431,c_palette_01+40(a2)
-    move.w #$0111,c_palette_01+44(a2)
-    move.w #$0111,c_palette_01+48(a2)
-    move.w #$0111,c_palette_01+52(a2)
-    move.w #$0111,c_palette_01+56(a2)
-    move.w #$0110,c_palette_01+60(a2)
-
-.continue
-    movem.l (sp)+,d0-a6
-    rts
-
-;-----------------------------------------------
 TESTScroll:
-
-    bsr TESTUpdatePaletteDuringScroll
 
   *-------------*
   *  ALGORITHM  *
@@ -250,32 +195,33 @@ TESTScroll:
   *****************************************************
 
 .continue
-    bsr ScrollGetStepAndDelay
+    bsr     ScrollGetStepAndDelay
+    bsr     ScrollGetDirectionalVectors
 
-    btst.b #0,v_joystick_value(a0)                          ;right?
-    beq .check_down
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+    bne     .check_down
 
-    bsr .right
+    bsr     .right
 
 .check_down
-    btst.b #1,v_joystick_value(a0)                          ;down?
-    beq .check_up
-    bsr .down
-    bra .check_left
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
+    bne     .check_up
+    bsr     .down
+    bra     .check_left
 
 .check_up
-    btst.b #2,v_joystick_value(a0)                          ;up?
-    beq .check_left
-    bsr .up
+    cmp.b   #15,v_scroll_vector_y(a0)                        ;up?
+    bne     .check_left
+    bsr     .up
 
 .check_left
-    btst.b #3,v_joystick_value(a0)                          ;left?
-    beq .update_joystick
+    cmp.b   #15,v_scroll_vector_x(a0)                        ;left?
+    bne     .update_joystick
 
-    bsr .left
+    bsr     .left
 
 .update_joystick
-    move.b v_joystick_value(a0),v_previous_joystick_value(a0)
+    move.b  v_joystick_value(a0),v_previous_joystick_value(a0)
     rts
 
 ***********************************************
@@ -284,10 +230,6 @@ TESTScroll:
 ***********************************************
 
 .right
-    cmp.w #test_right_scroll_extent,d2                      ;2048-352-tile_width*2
-    bge .end_scroll
-
-.scroll_right
     cmp.w #0,d1                                             ;INPUT:d2,a0 (d1)
     bne .get_xy_position_right
 
@@ -326,9 +268,6 @@ TESTScroll:
 ************************************************
 
 .left
-    tst.w v_map_x_position(a0)
-    beq .end_scroll
-
     bsr ScrollDecrementXPosition
     bsr ScrollGetStepAndDelay
 
@@ -372,9 +311,6 @@ TESTScroll:
 *******************************************
 
 .up
-    cmp.w #0,v_map_y_position(a0)
-    ble .end_scroll
-
     bsr ScrollDecrementYPosition
 
     move.l #$FFFF0000,d4
@@ -402,9 +338,6 @@ TESTScroll:
 ****************************************
 
 .down
-    cmp.w #screen_height,v_map_y_position(a0)               ;scroll through all pixels before changing direction
-    bge .end_scroll
-
     move.l #$10000,d4
     lea Copper,a1
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
@@ -493,7 +426,8 @@ DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
 
     lea FastData,a2
     move.l v_tile_map_row_dest(a2),a1
-    lea v_dest_graphic_vtile_offset(a2),a3                  ;One tile height in destination bitmap
+    ;lea v_dest_graphic_vtile_offset(a2),a3                  ;One tile height in destination bitmap
+    lea test_bmp_vtile_offset(a2),a3                  ;One tile height in destination bitmap
 
     adda.l (a3),a1
     move.l a1,v_tile_map_dest(a2)
@@ -587,14 +521,18 @@ FastData:
 
 ;v_map_y_position
 ;v_map_x_position
-    dc.l 0
+    dc.l $00000000
 
 ;v_video_y_position
 ;v_video_x_position
-    dc.l 0
+    dc.l $00000000
 
-;v_dest_graphic_vtile_offset
-    dc.l 0
+;v_map_source_bytes_per_row
+    dc.w 0
+;v_scroll_vector_x
+    dc.b 0
+;v_scroll_vector_y
+    dc.b 0
 
 ;v_scroll_screen
     dc.l 0
@@ -605,14 +543,20 @@ FastData:
 ;v_scroll_ptr_saveword
     dc.l 0
 
-;v_tile_unblitted_src_y
+;v_map_width
+    dc.w 0
+
+;v_map_bytes_per_tile_row
+    dc.w 0
+
+;v_map_bytes
     dc.l 0
 
-;v_tile_unblitted_dest_x
-    dc.l 0
+;v_map_height
+    dc.w 0
 
-;v_tile_unblitted_dest_y
-    dc.l 0
+;v_map_source_bpl_bytes_per_row
+    dc.w 0
 
 ;v_scrollx_dest_offset_table
     dc.w $0000,$0900,$1200,$1B00,$2400,$2D00,$3600,$3F00
@@ -632,8 +576,11 @@ FastData:
     dc.b $00,$FF,$EE,$DD,$CC,$BB,$AA,$99
     dc.b $88,$77,$66,$55,$44,$33,$22,$11
 
-;v_tile_y_blit_positions
-    dc.b $F0,$E0,$D0,$C0,$B0,$A0,$90,$80
+;v_screen_end
+    dc.l 0
+
+;v_unused_04
+    dc.b $B0,$A0,$90,$80
     dc.b $70,$60,$50,$40,$30,$20,$10,$00
 
 ;v_decoded_bitplane_bytes
@@ -664,6 +611,12 @@ FastData:
     dc.b 0
 
 ;v_previous_y_step_value
+    dc.b 0
+
+;v_map_tile_width
+    dc.b 0
+
+;v_map_tile_height
     dc.b 0
 
 ;v_debug_char_lut
@@ -704,7 +657,7 @@ DebugStringPy:
 Copper:
 
     dc.w $0180,$0111
-    dc.w $1801,$fffe                                        ;dc.w $2b01,$fffe
+    dc.w $1401,$fffe                                        ;dc.w $2b01,$fffe
 
     dc.w BPLCON0,$0200
     dc.b 0,DIWSTRT,vert_display_start,h_display_start
@@ -739,24 +692,24 @@ Copper:
 ;   dc.w $00f6,0
 
 ;c_sprites01_cols
-    dc.w $1a2,0
-    dc.w $1a4,0
-    dc.w $1a6,0
+    dc.w $01fe,0
+    dc.w $01fe,0
+    dc.w $01fe,0
 
 ;c_sprites23_cols
-    dc.w $1a8,$0000
-    dc.w $1aa,$0111
-    dc.w $1ac,$0ddd
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
 
 ;c_sprites45_cols
-    dc.w $1ae,$0000
-    dc.w $1b0,$0d00
-    dc.w $1b2,$0ddd
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
 
 ;c_sprites67_cols
-    dc.w $1b4,$0d00
-    dc.w $1b6,$00f0
-    dc.w $1b8,$0ddd
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
 
 ;c_sprite00
     dc.w $120,0                                             ;SPR0PTH
@@ -885,6 +838,13 @@ Screen2E:
     EVEN
 
 MapSourceBitmap:
-    ds.b map_bytes                                          ;bitmapwidth/16*tile_bitplanes*vlines_per_graphic
-                                                            ;REMEMBER, the test bitmap is only 16 tiles high (256)
+    ds.b map_bytes
 MapSourceBitmapE:
+
+;MapSourceDungeonBitmap:
+;    ds.b map_dungeon_bytes
+;MapSourceDungeonBitmapE:
+;
+;MapSourceWisemanShopBitmap:
+;    ds.b map_wiseman_bytes
+;MapSourceWisemanShopBitmapE:

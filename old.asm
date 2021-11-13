@@ -977,4 +977,139 @@ TESTCopyScreenFromDecodedLongBitmapForRightScroll:
     move.w  #(screen_width-tile_width)/16,BLTSIZE(a6)       ;no "h" term needed since it's 1024. Thanks ross @eab!
     rts
 ;-----------------------------------------------
+TESTUpdatePaletteDuringScroll:
+    movem.l d0-a6,-(sp)
+
+    btst.b #3,v_joystick_value(a0)                          ;left?
+    bne .check_left
+
+    btst.b #0,v_joystick_value(a0)                          ;right?
+    beq .continue
+
+    cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
+    blo .continue
+
+    lea Copper,a2
+
+    move.w #$0b87,c_palette_01(a2)
+    move.w #$0754,c_palette_01+4(a2)
+    move.w #$0975,c_palette_01+8(a2)
+    move.w #$0ca8,c_palette_01+12(a2)
+    move.w #$0ed8,c_palette_01+16(a2)
+    move.w #$0fff,c_palette_01+20(a2)
+    move.w #$0060,c_palette_01+24(a2)
+    move.w #$0090,c_palette_01+28(a2)
+    move.w #$00e0,c_palette_01+32(a2)
+    move.w #$0777,c_palette_01+36(a2)
+    move.w #$0aaa,c_palette_01+40(a2)
+    move.w #$0747,c_palette_01+44(a2)
+    move.w #$0868,c_palette_01+48(a2)
+    move.w #$0a8a,c_palette_01+52(a2)
+    move.w #$0cac,c_palette_01+56(a2)
+    move.w #$0111,c_palette_01+60(a2)
+
+    bra .continue
+
+.check_left
+
+    cmp.w #66,v_tile_x_position(a0)                         ;palette switch column
+    bhi .continue
+
+    lea Copper,a2
+
+    move.w #$0111,c_palette_01(a2)
+    move.w #$0FF9,c_palette_01+4(a2)
+    move.w #$0EC7,c_palette_01+8(a2)
+    move.w #$0DA6,c_palette_01+12(a2)
+    move.w #$0C85,c_palette_01+16(a2)
+    move.w #$0A74,c_palette_01+20(a2)
+    move.w #$0864,c_palette_01+24(a2)
+    move.w #$0753,c_palette_01+28(a2)
+    move.w #$0641,c_palette_01+32(a2)
+    move.w #$0533,c_palette_01+36(a2)
+    move.w #$0431,c_palette_01+40(a2)
+    move.w #$0111,c_palette_01+44(a2)
+    move.w #$0111,c_palette_01+48(a2)
+    move.w #$0111,c_palette_01+52(a2)
+    move.w #$0111,c_palette_01+56(a2)
+    move.w #$0110,c_palette_01+60(a2)
+
+.continue
+    movem.l (sp)+,d0-a6
+    rts
+
+;-----------------------------------------------
+DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
+    ;SCREEN LO-RES
+    ;W: 2048; H=256
+    ;8 pixels/byte
+    ;32 bytes per line/16 words per line
+    ;done to show how to extract Black Tiger-encoded image data
+    ;32*32*4
+
+    lea MapSourceBitmap,a0
+    lea FastData,a1
+
+    move.l a0,v_tile_map_row_dest(a1)
+    move.l (MapSourceBitmapE-MapSourceBitmap)/4,d0
+
+.l0:
+    clr.l (a0)+
+    dbf d0,.l0
+
+    clr.l d0
+
+    lea Map,a0                                    ;Starting tile
+    lea FastData,a2
+    lea v_tile_map_row_dest(a2),a1
+
+    move.l (a1),v_tile_map_dest(a2)
+    move.l #0,d5
+
+.loop_rows
+    move.l #0,d4
+
+.loop_columns
+    move.l v_tile_map_dest(a2),a3
+
+    move.b #0,d1
+    move.l v_tile_source(a2),a1
+    move.w (a0)+,d0
+    btst #15,d0
+    beq .no_flip
+    move.b #1,d1
+.no_flip
+    andi.w #tile_index_mask,d0
+    asl.l #$06,d0
+    lea (a1,d0.l),a1
+
+    lea FastData,a2
+    lea v_decoded_bitplane_bytes(a2),a5                     ;stores intermediate decoded bitplane bytes
+    bsr TESTExtractTile
+
+    lea FastData,a2
+    lea v_current_map_columns(a2),a4
+    add.l #2,v_tile_map_dest(a2)
+    addi.b #1,d4
+
+.check_loop
+    cmp.b (a4),d4
+    bne .loop_columns
+
+    lea FastData,a2
+    move.l v_tile_map_row_dest(a2),a1
+    lea v_map_bytes_per_tile_row(a2),a3                     ;One tile height in destination bitmap
+
+    adda.l (a3),a1
+    move.l a1,v_tile_map_dest(a2)
+    move.l a1,v_tile_map_row_dest(a2)
+
+    lea v_current_map_rows(a2),a4
+    addi.b #1,d5
+    cmp.b (a4),d5
+    bne .loop_rows
+
+    rts
+
+;-----------------------------------------------
 

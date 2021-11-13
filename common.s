@@ -5,7 +5,7 @@
     * pointer offsets *
     *-----------------*
 
-v_tile_y_position                   = 0
+v_tile_y_position                   = 0                 ;unused
 v_tile_x_position                   = 2
 v_tile_map_dest                     = 4
 v_tile_map_row_dest                 = 8
@@ -15,19 +15,24 @@ v_map_y_position                    = 20
 v_map_x_position                    = 22
 v_video_y_position                  = 24
 v_video_x_position                  = 26
-v_dest_graphic_vtile_offset         = 28
+v_map_source_bytes_per_row          = 28
+v_scroll_vector_x                   = 30
+v_scroll_vector_y                   = 31
 v_scroll_screen                     = 32
 v_scroll_screen_split               = 36
 v_scroll_ptr_saveword               = 40
-v_unused_01                         = 44
-v_unused_02                         = 48
-v_unused_03                         = 52
+v_map_width                         = 44                ;unused
+v_map_bytes_per_tile_row            = 46
+v_map_bytes                         = 48
+v_map_height                        = 52
+v_map_source_bpl_bytes_per_row      = 54
 v_scrollx_dest_offset_table         = 56
 v_scrolly_dest_offset_table         = 88
 v_scroll_saveword                   = 120
 v_video_x_bitplane_offset           = 122
 v_scroll_positions                  = 124
-v_tile_y_blit_positions             = 140
+v_screen_end                        = 140
+v_unused_04                         = 144
 v_decoded_bitplane_bytes            = 156
 v_current_map_columns               = 166
 v_current_map_rows                  = 167
@@ -38,9 +43,11 @@ v_x_scroll_velocity                 = 171
 v_previous_joystick_value           = 172
 v_previous_x_step_value             = 173
 v_previous_y_step_value             = 174
-v_debug_char_lut                    = 175
-v_debug_hexchar_lut                 = 239
-v_text_buffer                       = 255
+v_map_tile_width                    = 175
+v_map_tile_height                   = 176
+v_debug_char_lut                    = 177
+v_debug_hexchar_lut                 = 241
+v_text_buffer                       = 257
 
 c_horizontal_scroll_pos_01          = 38
 c_sprites_enable_01                 = 42
@@ -75,6 +82,8 @@ screen_buffer_rows                  = screen_buffer_height/tile_height
 screen_bitplanes                    = 4
 screen_bpl_bytes_per_row            = screen_width/8
 screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
+screen_tile_bytes_per_row           = screen_bytes_per_row*tile_height
+screen_buffer_bytes                 = screen_tile_bytes_per_row*screen_buffer_rows
 screen_modulo                       = (screen_width/8)*(screen_bitplanes-1)             ;offset by 3 bitplanes
 screen_horz_disp_words              = screen_width/16
 screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
@@ -85,7 +94,7 @@ map_height                          = map_tile_height*tile_height
 map_tile_width                      = test_cols_to_decode
 map_tile_height                     = test_rows_to_decode
 map_bpl_bytes_per_row               = map_width/8
-map_bitplanes                       = 4
+map_bitplanes                       = screen_bitplanes
 map_bytes_per_row                   = map_bpl_bytes_per_row*map_bitplanes
 map_bytes_per_tile_row              = map_bytes_per_row*tile_height
 map_bytes                           = map_bytes_per_tile_row*map_tile_height
@@ -147,8 +156,6 @@ h_display_stop                      = $91                                   ;was
 
 bpls                                = 3                                     ;handy values:
 
-vlines_per_graphic                  = 48                                    ;32
-
     *-----------------*
     * palettes        *
     *-----------------*
@@ -200,6 +207,17 @@ WRITEBPP:macro
     move.w  d1,2(a1)
     swap    d1
     move.w  d1,6(a1)
+    endm
+
+level_1_main_pal:macro
+    dc.w $0180,$0000,$0182,$0FFA,$0184,$0AFD,$0186,$07EC
+    dc.w $0188,$00C9,$018A,$00A7,$018C,$0086,$018E,$0064
+    dc.w $0190,$0040,$0192,$0540,$0194,$0531,$0196,$0421
+    dc.w $0198,$0600,$019A,$0900,$019C,$0743,$019E,$0954
+    dc.w $01A0,$0A64,$01A2,$0B75,$01A4,$0C86,$01A6,$0D97
+    dc.w $01A8,$0FB8,$01AA,$0A97,$01AC,$0986,$01AE,$0776
+    dc.w $01B0,$0678,$01B2,$0789,$01B4,$089C,$01B6,$0567
+    dc.w $01B8,$0456,$01BA,$0345,$01BC,$0046,$01BE,$0753
     endm
 
 tile_pal_00:macro
