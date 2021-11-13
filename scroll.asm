@@ -343,6 +343,11 @@ ScrollGetHTileOffsets:
     clr.l   d1
     clr.l   d2
     clr.l   d5
+    
+    ;NEW
+    clr.l   d6
+
+    ;END NEW
 
     move.w  v_map_x_position(a0),d4
 
@@ -361,7 +366,7 @@ ScrollGetHTileOffsets:
     sub.w   #1,d2
 
 .addo                                                       ;mapy * mapwidth
-    add.l   #map_bytes_per_tile_row,d1
+    add.l   d5,d1
     dbf     d2,.addo
 
 .skip_add
@@ -394,7 +399,7 @@ ScrollGetHTileOffsets:
     move.l  a3,d5                                           ;A source (blocksbuffer)
     add.l   d1,d5                                           ;blocksbuffer + mapy + mapx
 
-    sub.l   #map_bytes_per_tile_row,d5                        ;We're starting one source row higher
+    sub.l   d6,d5                                           ;We're starting one source row higher
 
     ;IF the source pointer is out of range, skip the blit
     cmp.l   a3,d5
@@ -496,7 +501,7 @@ ScrollGetVTileOffsets:
     sub.w   #1,d2
 
 .addo                                                       ;mapy * mapwidth
-    add.l   #map_bytes_per_tile_row,d1
+    add.l   d5,d1
     dbf     d2,.addo
 
 .skip_add
