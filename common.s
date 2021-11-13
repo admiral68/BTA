@@ -79,7 +79,7 @@ screen_buffer_height                = 256                                       
 screen_columns                      = screen_width/tile_width
 screen_rows                         = screen_height/tile_height
 screen_buffer_rows                  = screen_buffer_height/tile_height
-screen_bitplanes                    = 5
+screen_bitplanes                    = 5; was 4
 screen_bpl_bytes_per_row            = screen_width/8
 screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
 screen_tile_bytes_per_row           = screen_bytes_per_row*tile_height
@@ -89,7 +89,7 @@ screen_horz_disp_words              = screen_width/16
 screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
 screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
 
-map_bitplanes                       = screen_bitplanes
+map_bitplanes                       = screen_bitplanes; was 4
 map_bytes                           = eight_by_four_map_cols*2*map_bitplanes*tile_height*(eight_by_four_map_rows-16)
 map_dungeon_bytes                   = 64*2*map_bitplanes*tile_height*24
 map_wiseman_bytes                   = 16*2*map_bitplanes*tile_height*7

@@ -52,15 +52,17 @@ ScrollGetMapXYForHorizontal:
 ;INPUT: fast data (a0)
 ;returns mapx/y in d3
 
+    ;NEW
     move.w  v_map_y_position(a0),d3                         ;need the Y base blocknumber
     asr.w   #4,d3
+    ;END NEW
 
+    ;move.w v_map_x_position(a0),d3       ;OLD                   ;save for mapy
+    ;and.w #15,d3                         ;OLD                   ;mapy = mapposx & (NUMSTEPS - 1);
     move.w  v_map_x_position(a0),d2                         ;save for mapy
-    ;NEW
-
-    ;add.w  #1,d2;XXX
-
     and.w   #15,d2                                          ;mapy = mapposx & (NUMSTEPS - 1);
+
+    ;NEW
     beq     .check_down;XXX                                 ;1st blit?check down
 
     cmp.w   #15,d2
@@ -310,12 +312,13 @@ ScrollUpdateBitplanePointers:
     cmp.l   d7,d6
     blt     .update_pointer
     sub.l   #screen_buffer_bytes,d6
-    bra     .update_pointer
 
 .update_pointer
 
     bsr     ScrollCalculateVerticalSplit
 
+    ;move.l #screen_bytes_per_row*tile_height,d1 ;OLD
+    ;add.l d3,d1            ;OLD                                 ;v_scroll_screen+$B00
     move.l  d3,d1                                           ;v_scroll_screen+$B40
     move.l  d3,v_scroll_screen(a0)
     move.l  d6,v_scroll_screen_split(a0)
@@ -344,8 +347,9 @@ ScrollCalculateVerticalSplit:
 ;USES: d0,d2,d7
 ;OUTPUTS: d2,d6
 
+    ;move.w #vert_display_start+screen_height,d0 ;OLD
     move.w  #vert_display_start+screen_buffer_height,d0     ;Puts split at bottom of screen memory
-
+                                                            ;Previously the split was at the start of the first hidden row
     clr.l   d2
 
     move.w  v_video_y_position(a0),d2                       ;buffer coordinates
@@ -389,6 +393,8 @@ ScrollGetHTileOffsets:
     clr.l   d1
     clr.l   d2
     clr.l   d5
+    
+    ;NEW
     clr.l   d6
 
     move.l  #0,d4
@@ -397,15 +403,19 @@ ScrollGetHTileOffsets:
     asr.w   #4,d4
     and.w   #15,d4                                          ;(y/10h)&#$000F
     swap    d4
+    ;END NEW
+
     move.w  v_map_x_position(a0),d4
 
-    ;add.w  #1,d4;XXX
-
+    ;NEW
     and.w   #15,d4                                          ;x step
+    ;END NEW
 
     swap    d3                                              ;mapy
+
     move.w  d3,d2
 
+    ;NEW
     move.w  v_map_bytes_per_tile_row(a0),d5
     move.w  d5,d6
 
@@ -418,6 +428,9 @@ ScrollGetHTileOffsets:
     bra     .skip_add
 
 .try_zero
+
+    ;END NEW
+
     tst.w   d2
     beq     .skip_add
 
@@ -457,14 +470,9 @@ ScrollGetHTileOffsets:
     move.l  a3,d5                                           ;A source (blocksbuffer)
     add.l   d1,d5                                           ;blocksbuffer + mapy + mapx
 
-    cmp.b   #15,v_scroll_vector_x(a0)                       ;moving left?
-    beq     .contr
-    ;mcgeezer_special
-.contr
-
     ;NEW
-    ;sub.l   d6,d5                                           ;We're starting one source row higher
-    ;END NED
+    ;sub.l   d6,d5     ;OLD                                      ;We're starting one source row higher
+    ;END NEW
 
     ;IF the source pointer is out of range, skip the blit
     cmp.l   a3,d5
@@ -484,15 +492,13 @@ ScrollGetHTileOffsets:
 
 .destination
 
-    ;mcgeezer_special2
     ;DESTINATION => d1
-
-    mcgeezer_special2
-
     move.l  v_scroll_screen(a0),d1                          ;D dest (frontbuffer)
 
     clr.l   d2
+    ;NEW
     clr.l   d7
+    ;END NEW
 
     cmp.b   #1,v_scroll_vector_x(a0)                        ;moving right?
     bne     .left2
@@ -502,7 +508,8 @@ ScrollGetHTileOffsets:
     bra     .get_step
 
 .left2
-    sub.l   #2,d2                                           ;last column
+    ;sub.w #2,d2 ;OLD                                            ;last column
+    sub.l   #2,d2       ;NEW                                    ;last column
 
 .get_step
 
@@ -510,11 +517,13 @@ ScrollGetHTileOffsets:
     swap    d6
     add.w   d6,d4
     and.w   #15,d4
+    ;move.w d4,d6 ;OLD
 
     asl.w   #1,d4
-    move.w  v_scrollx_dest_offset_table(a0,d4.w),d7
+    ;add.w v_scrollx_dest_offset_table(a0,d4.w),d2    ;OLD
+    move.w  v_scrollx_dest_offset_table(a0,d4.w),d7;NEW
 
-    ;TODO: PROBLEM--FFFE gets added to the destination pointer, which is WRONG
+    ;NEW
 
     add.l   d2,d7
 
@@ -526,6 +535,9 @@ ScrollGetHTileOffsets:
     add.l   #2,d7
 
 .continue_destination
+    ;END NEW
+    ;move.l d2,d4  ;OLD                                          ;(for debugging)
+    ;add.l d2,d1   ;OLD                                          ;frontbuffer + y + x
     move.l  d7,d4                                           ;(for debugging)
     add.l   d7,d1                                           ;frontbuffer + y + x
 
@@ -540,17 +552,24 @@ ScrollGetHTileOffsets:
     cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
     bne     .single
 
+    swap	d6												;use Y block
     cmp.b   #1,v_scroll_vector_y(a0)                        ;also scrolling down?
     bne     .check_upward_scroll
 
-    tst.w   d6												;first horizontal blit
+    tst.w   d6                                              ;first vertical blit
+	bne		.single
+	mcgeezer_special2
+	bra		.none	
     beq     .none                                           ;If D, skip [B]
 
 .check_upward_scroll
     cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
     bne     .single
 
-    cmp.w   #15,d6											;last horizontal blit
+    cmp.w   #15,d6                                          ;last vertical blit
+	bne		.single
+	mcgeezer_special2
+	bra		.none		
     beq     .none                                           ;If U, skip [D]
 
 .single
@@ -570,7 +589,10 @@ ScrollGetVTileOffsets:
     clr.l   d2
     clr.l   d5
 
+    ;NEW
     move.w  v_map_bytes_per_tile_row(a0),d5
+    ;END NEW
+
     move.l  d3,d6                                           ;for destination
 
     swap    d4                                              ;actual mapy(source)
@@ -582,12 +604,14 @@ ScrollGetVTileOffsets:
     sub.w   #1,d2
 
 .addo                                                       ;mapy * mapwidth
-    add.l   d5,d1
+    ;add.l #map_bytes_per_tile_row,d1 ;OLD
+    add.l   d5,d1;NEW
     dbf     d2,.addo
 
 .skip_add
-
+    ;NEW
     clr.l   d5
+    ;END NEW
     move.w  d3,d2                                           ;mapx
     asl.w   #1,d2                                           ;mapx=col;*2=bp byte offset
 
@@ -627,9 +651,13 @@ ScrollGetVTileOffsets:
     swap    d6                                              ;mapy(offset for dest)
     move.w  d6,d2
 
+    ;btst.b #1,v_joystick_value(a0) ;OLD                          ;not scrolling down?
     cmp.b   #1,v_scroll_vector_y(a0)                        ;scrolling down?
     beq     .convert_mapy_to_videoy
+    ;add.w #1,d2 ;OLD
+    ;NEW
     sub.w   #1,d2
+    ;END NEW
 
 .convert_mapy_to_videoy
 
@@ -639,6 +667,8 @@ ScrollGetVTileOffsets:
     sub.w   #screen_buffer_rows,d2
     bra     .convert_mapy_to_videoy
 
+    ;cmp.w #0,d2               ;OLD
+    ;beq .add_column_offsets   ;OLD
 ************* CONVERT MAPY TO VIDEOY ********************
 
 .add_rows
@@ -688,6 +718,8 @@ ScrollGetVTileOffsets:
 
 .skip_compensate_for_x
 
+	;move.w	d2,d3											;save
+	
     clr.l   d2
     move.w  v_scrolly_dest_offset_table(a0,d4.w),d2
     add.l   d2,d5
@@ -702,9 +734,11 @@ ScrollGetVTileOffsets:
 
     moveq   #0,d7
     asr.w   #1,d4
-
+	
+    ;NEW
     cmp.b   #1,v_scroll_vector_x(a0)                        ;moving right?
     bne     .check_position
+    ;END NEW
 
 ****************************************
 ***      DOWN SCROLL CHECKS          ***
@@ -712,8 +746,13 @@ ScrollGetVTileOffsets:
 
     cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
     bne     .check_up
-
-    tst.w   d4											    ;first vertical blit
+	
+    ;tst.w   d4    ;TRY                                      ;first vertical blit
+    tst.w   d3    ;TRY                                      ;first vertical blit
+    ;cmp.w   #1,d3
+	bne		.check_position
+	mcgeezer_special2
+	bra		.none	
     beq     .none                                           ;If R, skip [A]
 
 ****************************************
@@ -723,8 +762,16 @@ ScrollGetVTileOffsets:
 .check_up
     cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
     bne     .check_position
-
-    cmp.w   #1,d4											;last vertical blit
+	
+    ;tst.w d4  ;OLD
+    ;NEW
+	;tst.w	d4
+    ;cmp.w   #1,d4;TRY                                       ;last vertical blit
+    cmp.w   #1,d3;TRY                                       ;last vertical blit
+    ;END NEW
+	bne		.check_position
+	mcgeezer_special2
+	bra		.none
     beq     .none                                           ;If R, skip [C]
 
 .check_position
@@ -774,7 +821,7 @@ ScrollUpdateSaveWordRight:
 
     move.w v_video_x_position(a0),d1
     ;NEW
-    ;add.w #1,d1
+    ;add.w #1,d1;OLD
     ;END NEW
     and.w #$000F,d1                                         ;mapy = mapposx & (NUMSTEPS - 1);
     add.w d1,d1

@@ -237,10 +237,7 @@ TESTScroll:
     lea MapSourceBitmapE,a5
     bsr ScrollGetHTileOffsets
 
-    ;cmp.w   #$11,v_scroll_vector_x(a0)
-    ;bne     .contr
     mcgeezer_special
-.contr
 
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
@@ -342,10 +339,7 @@ TESTScroll:
     lea MapSourceBitmapE,a5
     bsr ScrollGetVTileOffsets
 
-    cmp.w   #$11,v_scroll_vector_x(a0)
-    bne     .contd
     mcgeezer_special
-.contd
 
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
