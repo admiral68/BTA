@@ -97,10 +97,12 @@ map_bpl_bytes_per_row               = map_width/8
 map_bitplanes                       = 4
 map_bytes_per_row                   = map_bpl_bytes_per_row*map_bitplanes
 map_bytes_per_tile_row              = map_bytes_per_row*tile_height
-map_bytes                           = map_bytes_per_tile_row*map_tile_height
+map_bytes                           = eight_by_four_map_cols*2*map_bitplanes*tile_height*16
+map_dungeon_bytes                   = 64*2*map_bitplanes*tile_height*24
+map_wiseman_bytes                   = 16*2*map_bitplanes*tile_height*7
 
-map_source_tile_width               = 256
-map_source_tile_bpl_bytes_per_row   = map_source_tile_width/8
+map_source_width                    = 256
+map_source_tile_bpl_bytes_per_row   = map_source_width/8
 map_source_tile_bytes_per_row       = map_source_tile_bpl_bytes_per_row*screen_bitplanes
 map_source_tile_bytes_per_tile_row  = map_source_tile_bytes_per_row*tile_height
 

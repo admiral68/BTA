@@ -349,7 +349,14 @@ ScrollGetHTileOffsets:
     swap    d3                                              ;mapy
 
     move.w  d3,d2
+
+    ;NEW
+    move.w  v_map_bytes_per_tile_row(a0),d5
+    move.w  d5,d6
+
     cmp.w   #0,d2
+    ;END NEW
+
     beq     .skip_add
     sub.w   #1,d2
 
@@ -473,6 +480,11 @@ ScrollGetVTileOffsets:
     clr.l   d1
     clr.l   d2
     clr.l   d5
+
+    ;NEW
+    move.w  v_map_bytes_per_tile_row(a0),d5
+    ;END NEW
+
     move.l  d3,d6                                           ;for destination
 
     swap    d4                                              ;actual mapy(source)
@@ -488,7 +500,9 @@ ScrollGetVTileOffsets:
     dbf     d2,.addo
 
 .skip_add
-
+    ;NEW
+    clr.l   d5
+    ;END NEW
     move.w  d3,d2                                           ;mapx
     asl.w   #1,d2                                           ;mapx=col;*2=bp byte offset
 
