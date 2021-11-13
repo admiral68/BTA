@@ -269,8 +269,9 @@ ScrollUpdateBitplanePointers:
 
     bsr     ScrollCalculateVerticalSplit
 
-    move.l  #screen_bytes_per_row*tile_height,d1
-    add.l   d3,d1                                           ;v_scroll_screen+$B00
+    move.l  #screen_bytes_per_row*tile_height,d1; TO REMOVE TASK (1)
+    add.l   d3,d1 ; TO REMOVE TASK (1)                                          ;v_scroll_screen+$B00
+    ;move.l  d3,d1   ;TO ADD TASK (1)                                        ;v_scroll_screen+$B40
     move.l  d3,v_scroll_screen(a0)
     move.l  d6,v_scroll_screen_split(a0)
     move    #screen_bitplanes-1,d0
@@ -298,8 +299,9 @@ ScrollCalculateVerticalSplit:
 ;USES: d0,d2,d7
 ;OUTPUTS: d2,d6
 
-    move.w  #vert_display_start+screen_height,d0
-
+    move.w  #vert_display_start+screen_height,d0; TO REMOVE TASK (1)
+    ;move.w  #vert_display_start+screen_buffer_height,d0 TO ADD TASK (1)     ;Puts split at bottom of screen memory
+                                                            ;Previously the split was at the start of the first hidden row
     clr.l   d2
 
     move.w  v_video_y_position(a0),d2                       ;buffer coordinates
