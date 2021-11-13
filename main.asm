@@ -856,13 +856,11 @@ NullSpr:
     SECTION AllBuffers,BSS_C
 
 Screen:
-    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2)
-    ;ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16);TO REPLACE
+    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16)
 ScreenE:
 
 Screen2:
-    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2)
-    ;ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16);TO REPLACE
+    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16)
 Screen2E:
 
     EVEN

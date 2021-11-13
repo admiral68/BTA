@@ -343,7 +343,7 @@ ScrollGetHTileOffsets:
     clr.l   d1
     clr.l   d2
     clr.l   d5
-    
+
     ;NEW
     clr.l   d6
 
@@ -436,8 +436,8 @@ ScrollGetHTileOffsets:
     sub.w   #2,d2                                           ;last column
 
 .get_step
-
-    and.w   #15,d4
+    
+    and.w   #15,d4                                          ;x-step
     move.w  d4,d6
 
     asl.w   #1,d4
@@ -614,7 +614,7 @@ ScrollGetVTileOffsets:
 
     cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
     bne     .check_up
-	
+
     tst.w   d4
     beq     .none                                           ;If R, skip [A]
 
@@ -625,7 +625,7 @@ ScrollGetVTileOffsets:
 .check_up
     cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
     bne     .check_position
-	
+
     tst.w   d4
     beq     .none                                           ;If R, skip [C]
 
