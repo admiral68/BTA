@@ -313,7 +313,8 @@ TESTExtractTile:
 TESTCopyScreenFromMapSourceBitmap:
     move.l  a3,d3
     move.l  a4,d4
-    add.l   #2+screen_bytes_per_row*tile_height,d4
+    ;add.l   #2+screen_bytes_per_row*tile_height,d4;TASK (1)
+    add.l   #2,d4;TASK (1)
 
     clr.l   d5
     move.b  v_map_tile_width(a0),d5
@@ -336,7 +337,8 @@ TESTCopyScreenFromMapSourceBitmap:
     move.l  a3,d3
     move.l  a4,d4
 
-    add.l   #2+screen_bytes_per_row*(screen_height+tile_height),d4
+    ;add.l   #2+screen_bytes_per_row*(screen_height+tile_height),d4;TASK (1)
+    add.l   #2+screen_bytes_per_row*(screen_height+tile_height+tile_height),d4;TASK (1)
 
     move.w  d5,BLTAMOD(a6)                                      ;skip 107 columns (copy 21)
     move.w  #2,BLTDMOD(a6)                                      ;skip 1 column (copy 21)

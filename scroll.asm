@@ -269,9 +269,9 @@ ScrollUpdateBitplanePointers:
 
     bsr     ScrollCalculateVerticalSplit
 
-    move.l  #screen_bytes_per_row*tile_height,d1; TO REMOVE TASK (1)
-    add.l   d3,d1 ; TO REMOVE TASK (1)                                          ;v_scroll_screen+$B00
-    ;move.l  d3,d1   ;TO ADD TASK (1)                                        ;v_scroll_screen+$B40
+    ;move.l  #screen_bytes_per_row*tile_height,d1; TO REMOVE TASK (1)
+    ;add.l   d3,d1 ; TO REMOVE TASK (1)                                          ;v_scroll_screen+$B00
+    move.l  d3,d1   ;TO ADD TASK (1)                                        ;v_scroll_screen+$B40
     move.l  d3,v_scroll_screen(a0)
     move.l  d6,v_scroll_screen_split(a0)
     move    #screen_bitplanes-1,d0
@@ -299,8 +299,8 @@ ScrollCalculateVerticalSplit:
 ;USES: d0,d2,d7
 ;OUTPUTS: d2,d6
 
-    move.w  #vert_display_start+screen_height,d0; TO REMOVE TASK (1)
-    ;move.w  #vert_display_start+screen_buffer_height,d0 TO ADD TASK (1)     ;Puts split at bottom of screen memory
+    ;move.w  #vert_display_start+screen_height,d0; TO REMOVE TASK (1)
+    move.w  #vert_display_start+screen_buffer_height,d0 TO ADD TASK (1)     ;Puts split at bottom of screen memory
                                                             ;Previously the split was at the start of the first hidden row
     clr.l   d2
 
@@ -438,7 +438,7 @@ ScrollGetHTileOffsets:
     sub.w   #2,d2                                           ;last column
 
 .get_step
-    
+
     and.w   #15,d4                                          ;x-step
     move.w  d4,d6
 
@@ -519,8 +519,6 @@ ScrollGetVTileOffsets:
 
     add.l   d2,d1                                           ;source offset = mapy * mapwidth + mapx
     move.w  d3,d2                                           ;mapx
-
-    move.w  d3,d2                                           ;mapx
     move.l  d1,d3                                           ;for debugging purposes
 
     WAITBLIT                                                ;TODO: PUT BACK IN WHEN NOT DEBUGGING
@@ -550,25 +548,49 @@ ScrollGetVTileOffsets:
     swap    d6                                              ;mapy(offset for dest)
     move.w  d6,d2
 
-    btst.b  #1,v_joystick_value(a0)                         ;not scrolling down?
-    beq     .convert_mapy_to_videoy
-    add.w   #1,d2
 
-.convert_mapy_to_videoy
-    cmp.w   #screen_buffer_rows,d2
-    ble     .add_rows
 
-    sub.w   #screen_buffer_rows,d2
-    bra     .convert_mapy_to_videoy
+    ;btst.b  #1,v_joystick_value(a0) ;TASK (1)                         ;not scrolling down?
+    ;beq     .convert_mapy_to_videoy ;TASK (1)
+    ;add.w   #1,d2   ;TASK (1)
 
-    cmp.w   #0,d2
-    beq     .add_column_offsets
+    cmp.b   #1,v_scroll_vector_y(a0)  ;TASK (1)                      ;scrolling down?
+    bne     .scrolling_up ;TASK (1)
+    sub.w   #1,d2   ;TASK (1)
+    bpl     .add_rows ;TASK (1)
+
+.convert_mapy_to_videoy ; TASK (1)
+    add.w   #screen_buffer_rows,d2 ; TASK (1)
+    bra     .add_rows ; TASK (1)
+
+
+
+.scrolling_up
+    sub.w   #2,d2 ; TASK (1)
+    bpl     .add_rows ; TASK (1)
+    add.w   #screen_buffer_rows,d2 ; TASK (1)
+
+;.convert_mapy_to_videoy ; TASK (1)
+;    cmp.w   #screen_buffer_rows,d2 ; TASK (1)
+;    ble     .add_rows ; TASK (1)
+;
+;    sub.w   #screen_buffer_rows,d2 ; TASK (1)
+;    bra     .convert_mapy_to_videoy ; TASK (1)
+;
+;    cmp.w   #0,d2 ; TASK (1)
+;    beq     .add_column_offsets ; TASK (1)
 
 ************* CONVERT MAPY TO VIDEOY ********************
 
 .add_rows
+    tst.w   d2 ; TASK (1)
+    beq     .add_column_offsets ; TASK (1)
+
     move.w  d2,d6                                           ;debug
     sub.w   #1,d2
+    bpl     .loop_add_tile_row ; TASK (1)
+    mcgeezer_special2
+    move.w  #screen_buffer_rows-2,d2 ; TASK (1); TODO: SEE IF THIS LINE IS ACTUALLY EVER HIT
 
 .loop_add_tile_row                                          ;videoy * screenwidth
 
