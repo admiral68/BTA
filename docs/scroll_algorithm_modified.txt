@@ -1,0 +1,43 @@
+*****************************************************************************************
+* SCROLLING (8-WAY):                                                                    *
+*****************************************************************************************
+
+  Old fill column: 18 BLOCKS (288 screen buffer height); 16 BLOCKS (256 screen height)
+  Old fill row:    22 BLOCKS (352 screen buffer width);  18 BLOCKS (288 screen width)
+
+  New fill column: 16 BLOCKS (256 screen buffer height); 14 BLOCKS (224 screen height)
+  New fill row:    18 BLOCKS (288 screen buffer width);  16 BLOCKS (256 screen width)
+
+  -----------------
+    CORNER BLOCKS
+  -----------------
+
+  These blocks are blocks that have not yet been blitted; they come from
+  the source bitmap relative to what's already on screen
+
+  [A] -- TOP LEFT 		(first block of second bottom row)
+  [B] -- TOP RIGHT		(last block of second bottom row)
+  [C] -- BOTTOM LEFT    (first block of first bottom row)
+  [D] -- BOTTOM RIGHT   (last block of first bottom row)
+
+  -------------
+    ALGORITHM
+  -------------
+
+  BLIT ORDER: R->D->U->L (BLIT IN ASCENDING MODE)
+
+  R:   All blocks fill column (left column)
+  L:   All blocks fill column (right column)
+  U:   All blocks fill row (first bottom row)   (was bottom row)
+  D:   All blocks fill row (second bottom row)  (was top row)
+  R+D: All blocks fill row (second bottom row); all blocks fill column (left column) except [A]   (last blit)
+  R+U: All blocks fill column (left column);    all blocks fill row (first bottom row) except [C] (15th blit)
+  D+L: All blocks fill row (second bottom row); all blocks fill column (right column)   (overlap is [B]--1st blit)
+  U+L: All blocks fill column (right column);   all blocks fill row (first bottom row)  (overlap is [D]--2nd blit)
+
+  D: Skip [A] always
+  U: Skip [C] always
+  L: Check D (for [B] overlap); Check U (for [D] overlap)--If D, skip [B]. If U, skip [D].
+
+  First bottom fill row corresponds to upward scroll
+  Second bottom fill row corresponds to downward scroll
