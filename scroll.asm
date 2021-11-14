@@ -272,9 +272,7 @@ ScrollUpdateBitplanePointers:
 
     bsr     ScrollCalculateVerticalSplit
 
-    ;move.l  #screen_bytes_per_row*tile_height,d1; TO REMOVE TASK (1)
-    ;add.l   d3,d1 ; TO REMOVE TASK (1)                                          ;v_scroll_screen+$B00
-    move.l  d3,d1   ;TO ADD TASK (1)                                        ;v_scroll_screen+$B40
+    move.l  d3,d1                                           ;v_scroll_screen+$B40
     move.l  d3,v_scroll_screen(a0)
     move.l  d6,v_scroll_screen_split(a0)
     move    #screen_bitplanes-1,d0
@@ -302,8 +300,7 @@ ScrollCalculateVerticalSplit:
 ;USES: d0,d2,d7
 ;OUTPUTS: d2,d6
 
-    ;move.w  #vert_display_start+screen_height,d0; TO REMOVE TASK (1)
-    move.w  #vert_display_start+screen_buffer_height,d0 TO ADD TASK (1)     ;Puts split at bottom of screen memory
+    move.w  #vert_display_start+screen_buffer_height,d0     ;Puts split at bottom of screen memory
                                                             ;Previously the split was at the start of the first hidden row
     clr.l   d2
 
@@ -348,11 +345,7 @@ ScrollGetHTileOffsets:
     clr.l   d1
     clr.l   d2
     clr.l   d5
-
-    ;NEW
     clr.l   d6
-
-    ;END NEW
 
     move.w  v_map_x_position(a0),d4
 
@@ -360,10 +353,8 @@ ScrollGetHTileOffsets:
 
     move.w  d3,d2
 
-    ;NEW
     move.w  v_map_bytes_per_tile_row(a0),d5
     move.w  d5,d6
-    ;END NEW
 
     move.w  d4,d7
     and.w   #15,d7                                          ;x-step
@@ -372,10 +363,10 @@ ScrollGetHTileOffsets:
     bne     .check_add
 
     cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
-    beq     .adjust_source_row ; TASK (1)
-    sub.l   #2,d1 ; TASK (1)
+    beq     .adjust_source_row
+    sub.l   #2,d1
 
-.adjust_source_row; TASK (1)
+.adjust_source_row
     sub.l   d5,d1
     bra     .find_source_column
 
@@ -445,31 +436,23 @@ ScrollGetHTileOffsets:
 
     clr.l   d2
 
-    and.w   #15,d4 ;TASK (1)                                         ;x-step
-    move.w  d4,d6 ;TASK (1)
+    and.w   #15,d4                                          ;x-step
+    move.w  d4,d6
 
-    asl.w   #1,d4 ;TASK (1)
-    add.w   v_scrollx_dest_offset_table(a0,d4.w),d2 ;TASK (1)
+    asl.w   #1,d4
+    add.w   v_scrollx_dest_offset_table(a0,d4.w),d2
 
     cmp.b   #1,v_scroll_vector_x(a0)                        ;moving right?
     bne     .left2
 
-    add.w  v_video_x_bitplane_offset(a0),d2 ;TASK (1)               ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
-    ;move.w  v_video_x_bitplane_offset(a0),d2 ;TASK (1)               ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
+    add.w  v_video_x_bitplane_offset(a0),d2                 ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
                                                             ;or zero
     bra     .get_step
 
 .left2
-    sub.l   #2,d2 ;TASK (1)                                          ;last column
-    ;sub.w   #2,d2 ;TASK (1)                                          ;last column
+    sub.l   #2,d2                                           ;last column
 
 .get_step
-
-    ;and.w   #15,d4                                          ;x-step
-    ;move.w  d4,d6  ;TASK (1)
-
-    ;asl.w   #1,d4 ;TASK (1)
-    ;add.w   v_scrollx_dest_offset_table(a0,d4.w),d2 ;TASK (1)
 
     move.l  d2,d4                                           ;(for debugging)
     add.l   d2,d1                                           ;frontbuffer + y + x
@@ -494,9 +477,7 @@ ScrollGetVTileOffsets:
     clr.l   d2
     clr.l   d5
 
-    ;NEW
     move.w  v_map_bytes_per_tile_row(a0),d5
-    ;END NEW
 
     move.l  d3,d6                                           ;for destination
 
@@ -513,9 +494,8 @@ ScrollGetVTileOffsets:
     dbf     d2,.addo
 
 .skip_add
-    ;NEW
     clr.l   d5
-    ;END NEW
+
     move.w  d3,d2                                           ;mapx
     asl.w   #1,d2                                           ;mapx=col;*2=bp byte offset
 
