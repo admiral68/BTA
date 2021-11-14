@@ -83,14 +83,25 @@ ScrollGetMapXYForVertical:
 
     swap    d4
     move.w  d3,d4                                           ;mapy (block) in d4
-    sub.w   #1,d4
-    bpl     .save_mapy
-    move.w  #16-1,d4; ;TASK (1) TEMPORARY!
+	
+	
+	
+	add.w	#15,d4 ; TASK (2)
+	cmp.b   v_map_tile_height(a0),d4 ; TASK (2)
+	blt		.save_mapy ; TASK (2)
+	
+	clr.l	d7 ; TASK (2)
+	move.b	v_map_tile_height(a0),d7 ; TASK (2)
+	sub.w	d7,d4  ; TASK (2)
+	
+	
+    ;sub.w   #1,d4 ; TASK (2)
+    ;bpl     .save_mapy ; TASK (2)
 
-    ;TODO: PUT THESE THREE LINES IN INSTEAD OF THE TEMPORARY LINE
-    ;clr.w  d4 ;TASK (1)
-    ;move.b v_map_tile_height(a0),d4 ;TASK (1)
-    ;sub.w  #1,d4 ;TASK (1)
+    ;clr.w  d4 ; TASK (2)
+    ;move.b v_map_tile_height(a0),d4 ; TASK (2)
+    ;sub.w  #1,d4 ; TASK (2)
+
 
 .save_mapy
 
@@ -409,16 +420,12 @@ ScrollGetHTileOffsets:
     bge     .check_past_end_of_source
 
     add.l   d6,d5
-
-    add.l   #$40000,d5 ;TASK (1) TEMPORARY! REPLACE WITH LINE BELOW
-    ;add.l   v_map_bytes(a0),d5 ;TASK (1)
+    add.l   v_map_bytes(a0),d5
 
 .check_past_end_of_source
     cmp.l   a5,d5
     blt     .destination
-
-    sub.l   #$40000,d5 ;TASK (1) TEMPORARY! REPLACE WITH LINE BELOW
-    ;sub.l   v_map_bytes(a0),d5 ;TASK (1)
+    sub.l   v_map_bytes(a0),d5
 
 ****************************************
 ***         DESTINATION              ***
@@ -529,6 +536,7 @@ ScrollGetVTileOffsets:
 
     swap    d6                                              ;mapy(offset for dest)
     move.w  d6,d2
+	and.w	#15,d2 ; TASK (2)
 
     move.w  #1,d6
     cmp.b   #1,v_scroll_vector_y(a0)                        ;scrolling down?

@@ -4,8 +4,6 @@
 LoadLevelMap:
 ;INPUTS: MapSource(a1), Map (dest)(a2), d0(rows), d1(columns)
 
-    rts                                                     ;TODO: REMOVE
-
     move.l  #0,d2
     move    d1,d4                                           ;save it
 
@@ -25,8 +23,6 @@ AssembleSourceTilesIntoMapSourceBitmap:
 ;W: 2048; H=768
 ;8 pixels/byte
 ;32 bytes per line/16 words per line
-
-    rts                                                     ;TODO: REMOVE
 
 ;clear the map
 
@@ -113,8 +109,6 @@ AssembleSourceTilesIntoMapSourceBitmap:
 ;-----------------------------------------------
 CopyScreenFromMapSourceBitmap:
 ;5 bitplanes
-    rts                                                         ;TODO: REMOVE
-
     move.l  a3,d3
     move.l  a4,d4
 

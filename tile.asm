@@ -64,9 +64,12 @@ TileDrawVerticalJumpTable:
     dc.l TileDrawTenVertical
     dc.l TileDrawElevenVertical
     dc.l TileDrawTwelveVertical
-    dc.l TileDrawThirteenVertical
-    dc.l TileDrawFourteenVertical
-    dc.l TileDrawFifteenVertical
+    dc.l TileNoDraw
+    dc.l TileNoDraw
+    dc.l TileNoDraw
+    ;dc.l TileDrawThirteenVertical
+    ;dc.l TileDrawFourteenVertical
+    ;dc.l TileDrawFifteenVertical
 
 ;-----------------------------------------------
 TileNoDraw:
@@ -150,14 +153,14 @@ TileDrawElevenVertical:
 TileDrawTwelveVertical:
     BLIT_ROWS_AND_COLS 12,1
 ;-----------------------------------------------
-TileDrawThirteenVertical:
-    BLIT_ROWS_AND_COLS 13,1
-;-----------------------------------------------
-TileDrawFourteenVertical:
-    BLIT_ROWS_AND_COLS 14,1
-;-----------------------------------------------
-TileDrawFifteenVertical:
-    BLIT_ROWS_AND_COLS 15,1
+;TileDrawThirteenVertical:
+;    BLIT_ROWS_AND_COLS 13,1
+;;-----------------------------------------------
+;TileDrawFourteenVertical:
+;    BLIT_ROWS_AND_COLS 14,1
+;;-----------------------------------------------
+;TileDrawFifteenVertical:
+;    BLIT_ROWS_AND_COLS 15,1
 ;-----------------------------------------------
 TileExtractFromSourceIntoMapBitmap:
 ;INPUT:  a1 - source bytes ptr
@@ -166,7 +169,6 @@ TileExtractFromSourceIntoMapBitmap:
 ;        d1 - flipped = 1.b, not flipped = 0.b
 ;OUTPUT: a3 - destination
 
-    rts                                                     ;TODO: REMOVE
     move    #$0F,d0                                         ;16 rasterlines at a time; rightmost byte done too
 
 .extract_tile:
