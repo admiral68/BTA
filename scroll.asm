@@ -478,30 +478,9 @@ ScrollGetHTileOffsets:
 
     moveq   #0,d7
 
-****************************************
-***      LEFT SCROLL CHECKS          ***
-****************************************
-
-    cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
-    bne     .single
-
-    cmp.b   #1,v_scroll_vector_y(a0)                        ;also scrolling down?
-    bne     .check_upward_scroll
-
-    tst.w   d6                                              ;first vertical blit
-    beq     .none                                           ;If D, skip [B]
-
-.check_upward_scroll
-    cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
-    bne     .single
-
-    cmp.w   #15,d6                                          ;last vertical blit
-    beq     .none                                           ;If U, skip [D]
-
 .single
     addq    #1,d7
     asl.w   #2,d7
-.none
     rts
 
 ;-----------------------------------------------
