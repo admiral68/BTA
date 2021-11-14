@@ -79,17 +79,12 @@ ScrollGetMapXYForVertical:
     asr.w   #4,d3                                           ;mapx (block)
 
     swap    d3                                              ;mapposy
-
     asr.w   #4,d3                                           ;mapy (block)
 
-    ;cmp.b   v_map_tile_height(a0),d3  ;TASK (1)                      ;This is because the
-    ;ble     .save_mapy;TASK (1)                                      ;source bitmap is only map_tile_height blocks high
-    ;sub.b   v_map_tile_height(a0),d3   ;TASK (1)                     ;special case: grab source blocks from top of test bitmap
-
-    swap    d4 ;TASK (1)
-    move.w  d3,d4 ;TASK (1)                                           ;mapy (block) in d4
-    sub.w   #1,d4  ;TASK (1)
-    bpl     .save_mapy ;TASK (1)
+    swap    d4
+    move.w  d3,d4                                           ;mapy (block) in d4
+    sub.w   #1,d4
+    bpl     .save_mapy
     move.w  #16-1,d4; ;TASK (1) TEMPORARY!
 
     ;TODO: PUT THESE THREE LINES IN INSTEAD OF THE TEMPORARY LINE
@@ -99,8 +94,6 @@ ScrollGetMapXYForVertical:
 
 .save_mapy
 
-    ;swap    d4 ;TASK (1)
-    ;move.w  d3,d4  ;TASK (1)                                         ;mapy (block) in d4
     swap    d4                                              ;scroll step y
 
 ;destination block in d3
@@ -370,11 +363,23 @@ ScrollGetHTileOffsets:
     ;NEW
     move.w  v_map_bytes_per_tile_row(a0),d5
     move.w  d5,d6
-
     ;END NEW
 
+    move.w  d4,d7
+    and.w   #15,d7                                          ;x-step
+
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+    bne     .check_add
+
+    tst.w   d7
+    bne     .check_add
+    sub.l   d5,d1
+    bra     .find_source_column
+
+.check_add
+
     tst.w   d2
-    beq     .skip_add
+    beq     .find_source_column
 
     sub.w   #1,d2
 
@@ -382,12 +387,8 @@ ScrollGetHTileOffsets:
     add.l   d5,d1
     dbf     d2,.addo
 
-.skip_add
-
+.find_source_column
     clr.l   d5
-
-.add_no_rows
-
     swap    d3                                              ;mapx
     move.w  d3,d2
 
@@ -418,13 +419,17 @@ ScrollGetHTileOffsets:
     cmp.l   a3,d5
     bge     .check_past_end_of_source
 
-    add.l   v_map_bytes(a0),d5
+    add.l   d6,d5
+
+    add.l   #$40000,d5 ;TASK (1) TEMPORARY! REPLACE WITH LINE BELOW
+    ;add.l   v_map_bytes(a0),d5 ;TASK (1)
 
 .check_past_end_of_source
     cmp.l   a5,d5
     blt     .destination
 
-    sub.l   v_map_bytes(a0),d5
+    sub.l   #$40000,d5 ;TASK (1) TEMPORARY! REPLACE WITH LINE BELOW
+    ;sub.l   v_map_bytes(a0),d5 ;TASK (1)
 
 ****************************************
 ***         DESTINATION              ***
@@ -437,23 +442,31 @@ ScrollGetHTileOffsets:
 
     clr.l   d2
 
+    and.w   #15,d4 ;TASK (1)                                         ;x-step
+    move.w  d4,d6 ;TASK (1)
+
+    asl.w   #1,d4 ;TASK (1)
+    add.w   v_scrollx_dest_offset_table(a0,d4.w),d2 ;TASK (1)
+
     cmp.b   #1,v_scroll_vector_x(a0)                        ;moving right?
     bne     .left2
 
-    move.w  v_video_x_bitplane_offset(a0),d2                ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
+    add.w  v_video_x_bitplane_offset(a0),d2 ;TASK (1)               ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
+    ;move.w  v_video_x_bitplane_offset(a0),d2 ;TASK (1)               ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
                                                             ;or zero
     bra     .get_step
 
 .left2
-    sub.w   #2,d2                                           ;last column
+    sub.l   #2,d2 ;TASK (1)                                          ;last column
+    ;sub.w   #2,d2 ;TASK (1)                                          ;last column
 
 .get_step
 
-    and.w   #15,d4                                          ;x-step
-    move.w  d4,d6
+    ;and.w   #15,d4                                          ;x-step
+    ;move.w  d4,d6  ;TASK (1)
 
-    asl.w   #1,d4
-    add.w   v_scrollx_dest_offset_table(a0,d4.w),d2
+    ;asl.w   #1,d4 ;TASK (1)
+    ;add.w   v_scrollx_dest_offset_table(a0,d4.w),d2 ;TASK (1)
 
     move.l  d2,d4                                           ;(for debugging)
     add.l   d2,d1                                           ;frontbuffer + y + x
@@ -558,35 +571,21 @@ ScrollGetVTileOffsets:
     swap    d6                                              ;mapy(offset for dest)
     move.w  d6,d2
 
-    ;btst.b  #1,v_joystick_value(a0) ;TASK (1)                         ;not scrolling down?
-    ;beq     .convert_mapy_to_videoy ;TASK (1)
-    ;add.w   #1,d2   ;TASK (1)
+    move.w  #1,d6
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;scrolling down?
+    beq     .subtract
+    add.w   #1,d6
 
-    move.w  #1,d6 ;TASK (1)
-    cmp.b   #1,v_scroll_vector_y(a0)  ;TASK (1)                      ;scrolling down?
-    beq     .subtract ;TASK (1)
-    add.w   #1,d6 ;TASK (1)
-
-.subtract ;TASK (1)
-    sub.w   d6,d2   ;TASK (1)
-    bpl     .add_rows ;TASK (1)
-    add.w   #screen_buffer_rows,d2 ; TASK (1)
-
-;.convert_mapy_to_videoy ; TASK (1)
-;    cmp.w   #screen_buffer_rows,d2 ; TASK (1)
-;    ble     .add_rows ; TASK (1)
-;
-;    sub.w   #screen_buffer_rows,d2 ; TASK (1)
-;    bra     .convert_mapy_to_videoy ; TASK (1)
-;
-;    cmp.w   #0,d2 ; TASK (1)
-;    beq     .add_column_offsets ; TASK (1)
+.subtract
+    sub.w   d6,d2
+    bpl     .add_rows
+    add.w   #screen_buffer_rows,d2
 
 ************* CONVERT MAPY TO VIDEOY ********************
 
 .add_rows
-    tst.w   d2 ; TASK (1)
-    beq     .add_column_offsets ; TASK (1)
+    tst.w   d2
+    beq     .add_column_offsets
 
     move.w  d2,d6                                           ;debug
     sub.w   #1,d2
