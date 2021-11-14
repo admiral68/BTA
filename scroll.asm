@@ -83,24 +83,26 @@ ScrollGetMapXYForVertical:
 
     swap    d4
     move.w  d3,d4                                           ;mapy (block) in d4
-	
-	
-	
-	add.w	#15,d4 ; TASK (2)
-	cmp.b   v_map_tile_height(a0),d4 ; TASK (2)
-	blt		.save_mapy ; TASK (2)
-	
-	clr.l	d7 ; TASK (2)
-	move.b	v_map_tile_height(a0),d7 ; TASK (2)
-	sub.w	d7,d4  ; TASK (2)
-	
-	
-    ;sub.w   #1,d4 ; TASK (2)
-    ;bpl     .save_mapy ; TASK (2)
 
-    ;clr.w  d4 ; TASK (2)
-    ;move.b v_map_tile_height(a0),d4 ; TASK (2)
-    ;sub.w  #1,d4 ; TASK (2)
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;if downward scroll, continue
+    bne     .do_upward
+
+    add.w   #15,d4
+    cmp.b   v_map_tile_height(a0),d4
+    blt     .save_mapy
+
+    clr.l   d7
+    move.b  v_map_tile_height(a0),d7
+    sub.w   d7,d4
+    bra     .save_mapy
+
+.do_upward
+    sub.w   #1,d4
+    bpl     .save_mapy
+
+    clr.w   d4
+    move.b  v_map_tile_height(a0),d4
+    sub.w  #1,d4
 
 
 .save_mapy
@@ -362,7 +364,10 @@ ScrollGetHTileOffsets:
 
     swap    d3                                              ;mapy
 
-    move.w  d3,d2
+    ;move.w  d3,d2 ; TASK (2)
+    move.w  v_map_y_position(a0),d2 ; TASK (2)
+    asr.w   #4,d2 ; TASK (2)
+    add.w   d3,d2 ; TASK (2)
 
     move.w  v_map_bytes_per_tile_row(a0),d5
     move.w  d5,d6
@@ -536,7 +541,7 @@ ScrollGetVTileOffsets:
 
     swap    d6                                              ;mapy(offset for dest)
     move.w  d6,d2
-	and.w	#15,d2 ; TASK (2)
+    and.w   #15,d2 ; TASK (2)
 
     move.w  #1,d6
     cmp.b   #1,v_scroll_vector_y(a0)                        ;scrolling down?
