@@ -82,15 +82,25 @@ ScrollGetMapXYForVertical:
 
     asr.w   #4,d3                                           ;mapy (block)
 
-    cmp.b   v_map_tile_height(a0),d3                        ;This is because the
-    ble     .save_mapy                                      ;source bitmap is only map_tile_height blocks high
+    ;cmp.b   v_map_tile_height(a0),d3  ;TASK (1)                      ;This is because the
+    ;ble     .save_mapy;TASK (1)                                      ;source bitmap is only map_tile_height blocks high
+    ;sub.b   v_map_tile_height(a0),d3   ;TASK (1)                     ;special case: grab source blocks from top of test bitmap
 
-    sub.b   v_map_tile_height(a0),d3                        ;special case: grab source blocks from top of test bitmap
+    swap    d4 ;TASK (1)
+    move.w  d3,d4 ;TASK (1)                                           ;mapy (block) in d4
+    sub.w   #1,d4  ;TASK (1)
+    bpl     .save_mapy ;TASK (1)
+    move.w  #16-1,d4; ;TASK (1) TEMPORARY!
+
+    ;TODO: PUT THESE THREE LINES IN INSTEAD OF THE TEMPORARY LINE
+    ;clr.w  d4 ;TASK (1)
+    ;move.b v_map_tile_height(a0),d4 ;TASK (1)
+    ;sub.w  #1,d4 ;TASK (1)
 
 .save_mapy
 
-    swap    d4
-    move.w  d3,d4                                           ;mapy (block) in d4
+    ;swap    d4 ;TASK (1)
+    ;move.w  d3,d4  ;TASK (1)                                         ;mapy (block) in d4
     swap    d4                                              ;scroll step y
 
 ;destination block in d3
@@ -548,26 +558,18 @@ ScrollGetVTileOffsets:
     swap    d6                                              ;mapy(offset for dest)
     move.w  d6,d2
 
-
-
     ;btst.b  #1,v_joystick_value(a0) ;TASK (1)                         ;not scrolling down?
     ;beq     .convert_mapy_to_videoy ;TASK (1)
     ;add.w   #1,d2   ;TASK (1)
 
+    move.w  #1,d6 ;TASK (1)
     cmp.b   #1,v_scroll_vector_y(a0)  ;TASK (1)                      ;scrolling down?
-    bne     .scrolling_up ;TASK (1)
-    sub.w   #1,d2   ;TASK (1)
+    beq     .subtract ;TASK (1)
+    add.w   #1,d6 ;TASK (1)
+
+.subtract ;TASK (1)
+    sub.w   d6,d2   ;TASK (1)
     bpl     .add_rows ;TASK (1)
-
-.convert_mapy_to_videoy ; TASK (1)
-    add.w   #screen_buffer_rows,d2 ; TASK (1)
-    bra     .add_rows ; TASK (1)
-
-
-
-.scrolling_up
-    sub.w   #2,d2 ; TASK (1)
-    bpl     .add_rows ; TASK (1)
     add.w   #screen_buffer_rows,d2 ; TASK (1)
 
 ;.convert_mapy_to_videoy ; TASK (1)
@@ -588,9 +590,6 @@ ScrollGetVTileOffsets:
 
     move.w  d2,d6                                           ;debug
     sub.w   #1,d2
-    bpl     .loop_add_tile_row ; TASK (1)
-    mcgeezer_special2
-    move.w  #screen_buffer_rows-2,d2 ; TASK (1); TODO: SEE IF THIS LINE IS ACTUALLY EVER HIT
 
 .loop_add_tile_row                                          ;videoy * screenwidth
 
