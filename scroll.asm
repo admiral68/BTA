@@ -368,11 +368,14 @@ ScrollGetHTileOffsets:
     move.w  d4,d7
     and.w   #15,d7                                          ;x-step
 
-    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
-    bne     .check_add
-
     tst.w   d7
     bne     .check_add
+
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+    beq     .adjust_source_row ; TASK (1)
+    sub.l   #2,d1 ; TASK (1)
+
+.adjust_source_row; TASK (1)
     sub.l   d5,d1
     bra     .find_source_column
 
