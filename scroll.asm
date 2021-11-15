@@ -360,26 +360,39 @@ ScrollGetHTileOffsets:
     clr.l   d5
     clr.l   d6
 
+    mcgeezer_special2
     move.w  v_map_x_position(a0),d4
-
-    swap    d3                                              ;mapy
-
-    ;move.w  d3,d2 ; TASK (2)
-    move.w  v_map_y_position(a0),d2 ; TASK (2)
-    asr.w   #4,d2 ; TASK (2)
-    add.w   d3,d2 ; TASK (2)
 
     move.w  v_map_bytes_per_tile_row(a0),d5
     move.w  d5,d6
 
+; TODO: BAD DESTINATION AND SOURCE
+    move.w  v_map_y_position(a0),d2 ; TASK (2)
+    asr.w   #4,d2 ; TASK (2)
+    tst.w   d2 ; TASK (2)
+    beq     .skip_add_base ; TASK (2)
+    sub.w   #1,d2 ; TASK (2)
+
+.add_base ; TASK (2)
+    add.l   d5,d1 ; TASK (2)
+    dbf     d2,.add_base ; TASK (2)
+
+.skip_add_base ; TASK (2)
+
+    swap    d3                                              ;mapy
+    move.w  d3,d2
+
     move.w  d4,d7
     and.w   #15,d7                                          ;x-step
 
-    tst.w   d7
-    bne     .check_add
+;;TASK (2) what was this code for? starting at the bottom?
+;    tst.w   d7
+;    bne     .check_add
+;
+;    sub.l   d5,d1
+;    bra     .find_source_column
 
-    sub.l   d5,d1
-    bra     .find_source_column
+
 
 .check_add
 
@@ -392,6 +405,8 @@ ScrollGetHTileOffsets:
     add.l   d5,d1
     dbf     d2,.addo
 
+
+
 .find_source_column
     clr.l   d5
     swap    d3                                              ;mapx
@@ -403,7 +418,7 @@ ScrollGetHTileOffsets:
     subi    #1,d2                                           ;back a column
 
 .left
-    subi    #1,d2                                           ;ADDED LINE: NEW (BREAKING?) CHANGE back a column
+    subi    #1,d2
     bpl     .asl
     clr.w   d2
 .asl
@@ -441,7 +456,15 @@ ScrollGetHTileOffsets:
     ;DESTINATION => d1
     move.l  v_scroll_screen(a0),d1                          ;D dest (frontbuffer)
 
+
     clr.l   d2
+
+;; TODO: BAD DESTINATION AND SOURCE
+    move.w  v_map_y_position(a0),d2 ; TASK (2)
+    asr.w   #4,d2 ; TASK (2)    ; mapy block
+    add.w   d2,d4 ; TASK (2)    ; step + mapy block
+
+    clr.l   d2 ; TASK (2)
 
     and.w   #15,d4                                          ;x-step
     move.w  d4,d6

@@ -147,7 +147,7 @@ DMA_fetch_stop                      = $c0                                   ;was
 vert_display_start                  = $2c                                   ;CONVERT
 vert_display_stop                   = $0c                                   ;was $2c; CONVERT $12c
 h_display_start                     = $81                                   ;was $71: CONVERT $81 for non-scrolling display; $91 otherwise
-h_display_stop                      = $91                                   ;was $c1: CONVERT $c1 for non-scrolling display
+h_display_stop                      = $a1                                   ;was $c1: CONVERT $c1 for non-scrolling display
 
 bpls                                = 3                                     ;handy values:
 
