@@ -32,7 +32,8 @@ v_scroll_saveword                   = 120
 v_video_x_bitplane_offset           = 122
 v_scroll_positions                  = 124
 v_screen_end                        = 140
-v_unused_04                         = 144
+v_map_bytes_per_tile_block          = 144
+v_unused_04                         = 148
 v_decoded_bitplane_bytes            = 156
 v_current_map_columns               = 166
 v_current_map_rows                  = 167
@@ -52,22 +53,22 @@ v_text_buffer                       = 257
 c_horizontal_scroll_pos_01          = 38
 c_sprites_enable_01                 = 42
 c_palette_01                        = 46
-c_bitplane_pointers_01              = 110
-c_sprites01_cols                    = 140
-c_sprites23_cols                    = 152
-c_sprites45_cols                    = 164
-c_sprites67_cols                    = 176
-c_sprite00                          = 188
-c_sprite01                          = 196
-c_sprite02                          = 204
-c_sprite03                          = 212
-c_sprite04                          = 220
-c_sprite05                          = 228
-c_null_sprites                      = 236
-c_display_enable_01                 = 252
-c_split_stop                        = 256
-c_split                             = 260
-c_bitplane_pointers_02              = 266
+c_bitplane_pointers_01              = 174
+c_sprites01_cols                    = 212
+c_sprites23_cols                    = 224
+c_sprites45_cols                    = 236
+c_sprites67_cols                    = 248
+c_sprite00                          = 260
+c_sprite01                          = 268
+c_sprite02                          = 276
+c_sprite03                          = 284
+c_sprite04                          = 292
+c_sprite05                          = 300
+c_null_sprites                      = 308
+c_display_enable_01                 = 324
+c_split_stop                        = 328
+c_split                             = 332
+c_bitplane_pointers_02              = 338
 
     *-----------------*
     * constants:video *
@@ -79,7 +80,7 @@ screen_buffer_height                = 256                                       
 screen_columns                      = screen_width/tile_width
 screen_rows                         = screen_height/tile_height
 screen_buffer_rows                  = screen_buffer_height/tile_height
-screen_bitplanes                    = 4
+screen_bitplanes                    = 5; was 4
 screen_bpl_bytes_per_row            = screen_width/8
 screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
 screen_tile_bytes_per_row           = screen_bytes_per_row*tile_height
@@ -89,8 +90,8 @@ screen_horz_disp_words              = screen_width/16
 screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
 screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
 
-map_bitplanes                       = screen_bitplanes
-map_bytes                           = eight_by_four_map_cols*2*map_bitplanes*tile_height*16
+map_bitplanes                       = screen_bitplanes; was 4
+map_bytes                           = eight_by_four_map_cols*2*map_bitplanes*tile_height*(eight_by_four_map_rows-16)
 map_dungeon_bytes                   = 64*2*map_bitplanes*tile_height*24
 map_wiseman_bytes                   = 16*2*map_bitplanes*tile_height*7
 
@@ -129,6 +130,7 @@ eight_by_four_map_bmp_width_pixels  = 2048
 eight_by_four_map_bpl_bytes_per_row = eight_by_four_map_bmp_width_pixels/8
 eight_by_four_map_bytes_per_row     = eight_by_four_map_bpl_bytes_per_row*tile_bitplanes
 eight_by_four_map_bytes_per_tile_row= eight_by_four_map_bytes_per_row*tile_height
+eight_by_four_map_bytes_per_tile_blk= eight_by_four_map_bytes_per_tile_row*tile_block_height
 eight_by_four_map_cols              = 128
 eight_by_four_map_rows              = 64
 
@@ -147,7 +149,7 @@ DMA_fetch_stop                      = $c0                                   ;was
 vert_display_start                  = $2c                                   ;CONVERT
 vert_display_stop                   = $0c                                   ;was $2c; CONVERT $12c
 h_display_start                     = $81                                   ;was $71: CONVERT $81 for non-scrolling display; $91 otherwise
-h_display_stop                      = $91                                   ;was $c1: CONVERT $c1 for non-scrolling display
+h_display_stop                      = $a1                                   ;was $c1: CONVERT $c1 for non-scrolling display
 
 bpls                                = 3                                     ;handy values:
 

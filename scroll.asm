@@ -85,12 +85,11 @@ ScrollGetMapXYForVertical:
     move.w  d3,d4                                           ;mapy (block) in d4
     sub.w   #1,d4
     bpl     .save_mapy
-    move.w  #16-1,d4; ;TASK (1) TEMPORARY!
 
-    ;TODO: PUT THESE THREE LINES IN INSTEAD OF THE TEMPORARY LINE
-    ;clr.w  d4 ;TASK (1)
-    ;move.b v_map_tile_height(a0),d4 ;TASK (1)
-    ;sub.w  #1,d4 ;TASK (1)
+    clr.w   d4
+    move.b  v_map_tile_height(a0),d4
+    sub.w  #1,d4
+
 
 .save_mapy
 
@@ -387,7 +386,7 @@ ScrollGetHTileOffsets:
     subi    #1,d2                                           ;back a column
 
 .left
-    subi    #1,d2                                           ;ADDED LINE: NEW (BREAKING?) CHANGE back a column
+    subi    #1,d2
     bpl     .asl
     clr.w   d2
 .asl
@@ -409,16 +408,12 @@ ScrollGetHTileOffsets:
     bge     .check_past_end_of_source
 
     add.l   d6,d5
-
-    add.l   #$40000,d5 ;TASK (1) TEMPORARY! REPLACE WITH LINE BELOW
-    ;add.l   v_map_bytes(a0),d5 ;TASK (1)
+    add.l   v_map_bytes(a0),d5
 
 .check_past_end_of_source
     cmp.l   a5,d5
     blt     .destination
-
-    sub.l   #$40000,d5 ;TASK (1) TEMPORARY! REPLACE WITH LINE BELOW
-    ;sub.l   v_map_bytes(a0),d5 ;TASK (1)
+    sub.l   v_map_bytes(a0),d5
 
 ****************************************
 ***         DESTINATION              ***

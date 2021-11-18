@@ -36,6 +36,7 @@ Init:
     move.w  #level_01_main_map_cols*16,v_map_width(a0)
     move.w  #level_01_main_map_rows*16,v_map_height(a0)
     move.w  #eight_by_four_map_bytes_per_tile_row,v_map_bytes_per_tile_row(a0)
+    move.l  #eight_by_four_map_bytes_per_tile_blk,v_map_bytes_per_tile_block(a0)
     move.w  #eight_by_four_map_bpl_bytes_per_row,v_map_source_bpl_bytes_per_row(a0)
     move.w  #eight_by_four_map_bytes_per_row,v_map_source_bytes_per_row(a0)
     move.b  #level_01_main_map_cols,v_current_map_columns(a0)
@@ -61,28 +62,6 @@ Init:
     lea     MapSourceBitmap,a3
     lea     Screen,a4
     bsr     CopyScreenFromMapSourceBitmap
-
-
-; some test code
-
-    move.b  #test_cols_to_decode,v_current_map_columns(a0)
-    move.b  #test_rows_to_decode,v_current_map_rows(a0)
-
-    lea     TESTEncodedTilesSource,a1
-    move.l  a1,v_tile_source(a0)
-
-    lea     Map,a2
-    lea     TESTMapSource,a1
-    bsr     TESTLoadLevel1Map
-
-    bsr     DecodeAndAssembleSourceTilesIntoMapSourceBitmap
-
-    lea     FastData,a0
-    lea     MapSourceBitmap,a3
-    lea     Screen,a4
-    bsr     TESTCopyScreenFromMapSourceBitmap
-
-;test code ends
 
 ;SetScreenBufferPointersInFastMem
 
@@ -372,79 +351,6 @@ VBCode:
     rts
 
 ;-----------------------------------------------
-DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
-    ;SCREEN LO-RES
-    ;W: 2048; H=256
-    ;8 pixels/byte
-    ;32 bytes per line/16 words per line
-    ;done to show how to extract Black Tiger-encoded image data
-    ;32*32*4
-
-    lea MapSourceBitmap,a0
-    lea FastData,a1
-
-    move.l a0,v_tile_map_row_dest(a1)
-    move.l (MapSourceBitmapE-MapSourceBitmap)/4,d0
-
-.l0:
-    clr.l (a0)+
-    dbf d0,.l0
-
-    clr.l d0
-
-    lea Map,a0                                    ;Starting tile
-    lea FastData,a2
-    lea v_tile_map_row_dest(a2),a1
-
-    move.l (a1),v_tile_map_dest(a2)
-    move.l #0,d5
-
-.loop_rows
-    move.l #0,d4
-
-.loop_columns
-    move.l v_tile_map_dest(a2),a3
-
-    move.b #0,d1
-    move.l v_tile_source(a2),a1
-    move.w (a0)+,d0
-    btst #15,d0
-    beq .no_flip
-    move.b #1,d1
-.no_flip
-    andi.w #tile_index_mask,d0
-    asl.l #$06,d0
-    lea (a1,d0.l),a1
-
-    lea FastData,a2
-    lea v_decoded_bitplane_bytes(a2),a5                     ;stores intermediate decoded bitplane bytes
-    bsr TESTExtractTile
-
-    lea FastData,a2
-    lea v_current_map_columns(a2),a4
-    add.l #2,v_tile_map_dest(a2)
-    addi.b #1,d4
-
-.check_loop
-    cmp.b (a4),d4
-    bne .loop_columns
-
-    lea FastData,a2
-    move.l v_tile_map_row_dest(a2),a1
-
-    adda.l  #test_bmp_vtile_offset,a1
-
-    move.l a1,v_tile_map_dest(a2)
-    move.l a1,v_tile_map_row_dest(a2)
-
-    lea v_current_map_rows(a2),a4
-    addi.b #1,d5
-    cmp.b (a4),d5
-    bne .loop_rows
-
-    rts
-
-;-----------------------------------------------
 ClearScreen:                                                                            ;a1=screen destination address to clear
     WAITBLIT
     clr.w $66(a6)                                                                       ;destination modulo
@@ -493,19 +399,12 @@ MapSourceWiseManLevel1:         INCBIN "gfx/Level01/map/wiseman_16x7"
 MapSourceWiseManLevel1E:
     EVEN
 
-TESTEncodedTilesSource:         INCBIN "gfx/gfx2.bin"
-    EVEN
-
-TESTMapSource:                  INCBIN "data/lev_1_scroll_data.bin"
-    EVEN
-
 DebugFontBitmapSource:          INCBIN "gfx/debug_alpha80x32x2.raw"
 DebugFontBitmapSourceE:
     EVEN
 
 Map:    ;TODO: Dynamic alloc?
-    ds.w (test_cols_to_decode+1)*(test_rows_to_decode+1)*tile_height
-;    ds.w (level_01_main_map_cols+1)*(level_01_main_map_rows+1)*tile_height;TO REPLACE
+    ds.w (level_01_main_map_cols+1)*(level_01_main_map_rows+1)*tile_height
 
 FastData:
 ;v_tile_y_position
@@ -564,14 +463,8 @@ FastData:
     dc.w 0
 
 ;v_scrollx_dest_offset_table
-    dc.w $8700,$0000,$0900,$1200,$1B00,$2400,$2D00,$3600;TASK (2)
-    dc.w $3F00,$4800,$5100,$5A00,$6300,$6C00,$7500,$7E00;TASK (2)
-
-    ;TO REPLACE TASK (2)
-    ;dc.w $A8C0,$0000,$0B40,$1680,$21C0,$2D00,$3840,$4380
-    ;dc.w $4EC0,$5A00,$6540,$7080,$7BC0,$8700,$9240,$9D80
-    ;END TO REPLACE TASK (2)
-
+    dc.w $A8C0,$0000,$0B40,$1680,$21C0,$2D00,$3840,$4380
+    dc.w $4EC0,$5A00,$6540,$7080,$7BC0,$8700,$9240,$9D80
 
 ;v_scrolly_dest_offset_table
     dc.w $0000,$0002,$0004,$0006,$0008,$000C,$000E,$0010
@@ -590,8 +483,10 @@ FastData:
 ;v_screen_end
     dc.l 0
 
+;v_map_bytes_per_tile_block
+    dc.l 0
+
 ;v_unused_04
-    dc.b $B0,$A0,$90,$80
     dc.b $70,$60,$50,$40,$30,$20,$10,$00
 
 ;v_decoded_bitplane_bytes
@@ -686,8 +581,7 @@ Copper:
     dc.w $01fe,$0000                                        ;NOP
 
 ;c_palette_01
-    tile_pal_0f
-    ;level_1_main_pal; TO REPLACE
+    level_1_main_pal
 
 ;c_bitplane_pointers_01
     dc.w $00e0,0                                            ;1
@@ -698,42 +592,32 @@ Copper:
     dc.w $00ea,0
     dc.w $00ec,0                                            ;4
     dc.w $00ee,0
-;   dc.w $00f0,0;TO UNCOMMENT                                            ;5
-;   dc.w $00f2,0;TO UNCOMMENT
+    dc.w $00f0,0                                            ;5
+    dc.w $00f2,0
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
 ;c_sprites01_cols
-    dc.w $1a2,0
-    dc.w $1a4,0
-    dc.w $1a6,0
-    ;dc.w $01fe,0;TO REPLACE
-    ;dc.w $01fe,0;TO REPLACE
-    ;dc.w $01fe,0;TO REPLACE
+    dc.w $01fe,0
+    dc.w $01fe,0
+    dc.w $01fe,0
 
 ;c_sprites23_cols
-    dc.w $1a8,$0000
-    dc.w $1aa,$0111
-    dc.w $1ac,$0ddd
-    ;dc.w $01fe,$0000;TO REPLACE
-    ;dc.w $01fe,$0000;TO REPLACE
-    ;dc.w $01fe,$0000;TO REPLACE
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
 
 ;c_sprites45_cols
-    dc.w $1ae,$0000
-    dc.w $1b0,$0d00
-    dc.w $1b2,$0ddd
-    ;dc.w $01fe,$0000;TO REPLACE
-    ;dc.w $01fe,$0000;TO REPLACE
-    ;dc.w $01fe,$0000;TO REPLACE
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
 
 ;c_sprites67_cols
-    dc.w $1b4,$0d00
-    dc.w $1b6,$00f0
-    dc.w $1b8,$0ddd
-    ;dc.w $01fe,$0000;TO REPLACE
-    ;dc.w $01fe,$0000;TO REPLACE
-    ;dc.w $01fe,$0000;TO REPLACE
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+    dc.w $01fe,$0000
+
+
 
 ;c_sprite00
     dc.w $120,0                                             ;SPR0PTH
@@ -766,8 +650,7 @@ Copper:
     dc.w $13e,0
 
 ;c_display_enable_01
-    dc.w BPLCON0,$4200
-    ;dc.w BPLCON0,$5200;TO REPLACE
+    dc.w BPLCON0,$5200
 
 ;c_split_stop
     dc.w $ffdf,$fffe
@@ -784,12 +667,12 @@ Copper:
     dc.w $00ea,0
     dc.w $00ec,0                                            ;4
     dc.w $00ee,0
-;   dc.w $00f0,0;TO UNCOMMENT                                            ;5
-;   dc.w $00f2,0;TO UNCOMMENT
+    dc.w $00f0,0                                            ;5
+    dc.w $00f2,0
 ;   dc.w $00f4,0                                            ;6
 ;   dc.w $00f6,0
 
-;   dc.w $0180,$0FF9
+   ;dc.w $0180,$0FF9
 
     dc.w $ffff,$fffe
 
