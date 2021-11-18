@@ -36,6 +36,7 @@ Init:
     move.w  #level_01_main_map_cols*16,v_map_width(a0)
     move.w  #level_01_main_map_rows*16,v_map_height(a0)
     move.w  #eight_by_four_map_bytes_per_tile_row,v_map_bytes_per_tile_row(a0)
+    move.l  #eight_by_four_map_bytes_per_tile_blk,v_map_bytes_per_tile_block(a0)
     move.w  #eight_by_four_map_bpl_bytes_per_row,v_map_source_bpl_bytes_per_row(a0)
     move.w  #eight_by_four_map_bytes_per_row,v_map_source_bytes_per_row(a0)
     move.b  #level_01_main_map_cols,v_current_map_columns(a0)
@@ -233,8 +234,6 @@ TESTScroll:
     lea MapSourceBitmap,a3
     lea MapSourceBitmapE,a5
     bsr ScrollGetHTileOffsets
-	
-	mcgeezer_special
 
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
@@ -484,8 +483,10 @@ FastData:
 ;v_screen_end
     dc.l 0
 
+;v_map_bytes_per_tile_block
+    dc.l 0
+
 ;v_unused_04
-    dc.b $B0,$A0,$90,$80
     dc.b $70,$60,$50,$40,$30,$20,$10,$00
 
 ;v_decoded_bitplane_bytes

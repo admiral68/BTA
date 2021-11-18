@@ -360,13 +360,14 @@ ScrollGetHTileOffsets:
     clr.l   d5
     clr.l   d6
 
-    mcgeezer_special2
     move.w  v_map_x_position(a0),d4
 
     move.w  v_map_bytes_per_tile_row(a0),d5
     move.w  d5,d6
 
-; TODO: BAD DESTINATION AND SOURCE
+    move.w  d4,d7
+    and.w   #15,d7                                          ;x-step
+
     move.w  v_map_y_position(a0),d2 ; TASK (2)
     asr.w   #4,d2 ; TASK (2)
     tst.w   d2 ; TASK (2)
@@ -382,18 +383,6 @@ ScrollGetHTileOffsets:
     swap    d3                                              ;mapy
     move.w  d3,d2
 
-    move.w  d4,d7
-    and.w   #15,d7                                          ;x-step
-
-;;TASK (2) what was this code for? starting at the bottom?
-;    tst.w   d7
-;    bne     .check_add
-;
-;    sub.l   d5,d1
-;    bra     .find_source_column
-
-
-
 .check_add
 
     tst.w   d2
@@ -404,8 +393,6 @@ ScrollGetHTileOffsets:
 .addo                                                       ;mapy * mapwidth
     add.l   d5,d1
     dbf     d2,.addo
-
-
 
 .find_source_column
     clr.l   d5
@@ -459,7 +446,6 @@ ScrollGetHTileOffsets:
 
     clr.l   d2
 
-;; TODO: BAD DESTINATION AND SOURCE
     move.w  v_map_y_position(a0),d2 ; TASK (2)
     asr.w   #4,d2 ; TASK (2)    ; mapy block
     add.w   d2,d4 ; TASK (2)    ; step + mapy block
@@ -493,9 +479,81 @@ ScrollGetHTileOffsets:
 
     moveq   #0,d7
 
+****************************************
+***      LEFT SCROLL CHECKS          ***
+****************************************
+;H BLIT STEP SKIP: D+L: (0 && 1); U+L: (E && F)
+
+;    ;move.w  v_map_x_position(a0),d6
+;    ;and.w  #15,d6
+;
+;    cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
+;    bne     .right
+;
+;    cmp.b   #1,v_scroll_vector_y(a0)                        ;also scrolling down?
+;    bne     .check_up
+;
+;    ;tst.w   d6
+;    ;beq     .none                                           ;If D, skip step E
+;
+;.check_up
+;    cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
+;    bne     .single
+;
+;.adjust_scroll
+;    cmp.w   #15,d6
+;    beq     .none                                           ;If D or U, skip step F
+;
+;
+;
+;;    cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
+;;    bne     .right
+;;
+;;    cmp.b   #1,v_scroll_vector_y(a0)                        ;also scrolling down?
+;;    bne     .left_check_upward_scroll
+;;
+;;    cmp.w   #2,d6                                           ;first 2 H blits
+;;    blt     .none                                           ;If D, skip [B]
+;;    bra     .single
+;;
+;;.left_check_upward_scroll
+;;    cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
+;;    bne     .single
+;;
+;;    cmp.w   #14,d6                                          ;last 2 H blits
+;;    bge     .none                                           ;If U, skip [D]
+;;    bra     .single
+;;
+;;****************************************
+;;***     RIGHT SCROLL CHECKS          ***
+;;****************************************
+;;;H BLIT STEP SKIP: R+D (1); R+U: (E)
+;.right
+;    cmp.b   #1,v_scroll_vector_y(a0)                        ;also scrolling down?
+;   bne     .single
+;
+;   addq    #2,d7
+;   bra     .return
+;
+;
+;;    bne     .right_check_upward_scroll
+;;
+;;    cmp.w   #1,d6                                           ;2nd H blit
+;;    beq     .none                                           ;If D, skip [B]
+;;    bra     .single
+;;
+;;.right_check_upward_scroll
+;;    cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
+;;    bne     .single
+;;
+;;    cmp.w   #14,d6                                          ;last 2 H blits
+;;    beq     .none                                           ;If U, skip [D]
+
 .single
     addq    #1,d7
+.return
     asl.w   #2,d7
+.none
     rts
 
 ;-----------------------------------------------
@@ -626,25 +684,47 @@ ScrollGetVTileOffsets:
     asr.w   #1,d4
 
 ****************************************
-***      DOWN SCROLL CHECKS          ***
+***         SCROLL CHECKS            ***
 ****************************************
-
-    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
-    bne     .check_up
-
-    tst.w   d4
-    beq     .none                                           ;If R, skip [A]
-
-****************************************
-***       UP SCROLL CHECKS           ***
-****************************************
-
-.check_up
-    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
-    bne     .check_position
-
-    tst.w   d4
-    beq     .none                                           ;If R, skip [C]
+;    move.w  v_map_x_position(a0),d2
+;   and.w   #15,d2
+;
+;    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+;    bne     .check_position
+;
+;   cmp.w   #12,d4
+;   bne     .check_position
+;   mcgeezer_special2
+;   bra     .double
+;
+;
+;    ;cmp.b   #15,v_scroll_vector_x(a0)                       ;left
+;    ;bne     .check_position
+;
+;    ;cmp.w   #15,d4
+;    ;beq     .none
+;
+;    ;mcgeezer_special2
+;
+;    ;tst.w   d4                                              ;skip step 0 if R
+;    ;beq     .none
+;
+;
+;;    cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
+;;    bne     .check_right
+;;
+;;;L (E)
+;;    cmp.w   #14,d4
+;;    beq     .none
+;;    bra     .check_position
+;;
+;;;R (0 && 1)
+;;.check_right
+;;    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+;;    bne     .check_position
+;;
+;;    cmp.w   #2,d4                                           ;If R+D, skip [A]; R+U skip [C]
+;;    blt     .none
 
 .check_position
     cmp.w   #4,d4                                           ;positions 4 & B have doubles

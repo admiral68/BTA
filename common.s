@@ -32,7 +32,8 @@ v_scroll_saveword                   = 120
 v_video_x_bitplane_offset           = 122
 v_scroll_positions                  = 124
 v_screen_end                        = 140
-v_unused_04                         = 144
+v_map_bytes_per_tile_block          = 144
+v_unused_04                         = 148
 v_decoded_bitplane_bytes            = 156
 v_current_map_columns               = 166
 v_current_map_rows                  = 167
@@ -129,6 +130,7 @@ eight_by_four_map_bmp_width_pixels  = 2048
 eight_by_four_map_bpl_bytes_per_row = eight_by_four_map_bmp_width_pixels/8
 eight_by_four_map_bytes_per_row     = eight_by_four_map_bpl_bytes_per_row*tile_bitplanes
 eight_by_four_map_bytes_per_tile_row= eight_by_four_map_bytes_per_row*tile_height
+eight_by_four_map_bytes_per_tile_blk= eight_by_four_map_bytes_per_tile_row*tile_block_height
 eight_by_four_map_cols              = 128
 eight_by_four_map_rows              = 64
 
