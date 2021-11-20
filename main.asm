@@ -9,6 +9,7 @@
     INCLUDE "tile.asm"
     INCLUDE "map.asm"
     INCLUDE "scroll.asm"
+    INCLUDE "scroll2.asm"
     INCLUDE "input.asm"
     INCLUDE "debug.asm"
 
@@ -226,14 +227,16 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_xy_position_right
-    bsr ScrollGetMapXYForHorizontal
-    add.w #screen_columns+1,d3                              ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
+    bsr ScrollGetMapXYForHorizontal2
+    ;add.w #screen_columns+1,d3                              ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
 
     bsr ScrollUpdateSaveWordRight
 
     lea MapSourceBitmap,a3
     lea MapSourceBitmapE,a5
-    bsr ScrollGetHTileOffsets
+    bsr ScrollGetHTileOffsets2
+
+    mcgeezer_special
 
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
@@ -268,12 +271,14 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers
 
 .get_map_xy_left
-    bsr ScrollGetMapXYForHorizontal
+    bsr ScrollGetMapXYForHorizontal2
     bsr ScrollUpdateSaveWordLeft
 
     lea MapSourceBitmap,a3
     lea MapSourceBitmapE,a5
-    bsr ScrollGetHTileOffsets
+    bsr ScrollGetHTileOffsets2
+
+    mcgeezer_special
 
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
