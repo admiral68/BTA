@@ -236,8 +236,6 @@ TESTScroll:
     lea MapSourceBitmapE,a5
     bsr ScrollGetHTileOffsets2
 
-    mcgeezer_special
-
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
     jsr (a4)
@@ -278,8 +276,6 @@ TESTScroll:
     lea MapSourceBitmapE,a5
     bsr ScrollGetHTileOffsets2
 
-    mcgeezer_special
-
     lea TileDrawVerticalJumpTable,a4
     move.l (a4,d7.w),a4
     jsr (a4)
@@ -307,14 +303,14 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
 .get_xy_position_up
-    bsr ScrollGetMapXYForVertical
-    swap d3
-    add.w #1,d3                                             ;mapy+1--row under visible screen
-    swap d3
+    bsr ScrollGetMapXYForVertical2
+    ;swap d3
+    ;add.w #1,d3                                             ;mapy+1--row under visible screen
+    ;swap d3
 
     lea MapSourceBitmap,a3
     lea MapSourceBitmapE,a5
-    bsr ScrollGetVTileOffsets
+    bsr ScrollGetVTileOffsets2
 
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4
@@ -332,11 +328,11 @@ TESTScroll:
     bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
 .get_xy_position_down
-    bsr ScrollGetMapXYForVertical
+    bsr ScrollGetMapXYForVertical2
 
     lea MapSourceBitmap,a3
     lea MapSourceBitmapE,a5
-    bsr ScrollGetVTileOffsets
+    bsr ScrollGetVTileOffsets2
 
     lea TileDrawHorizontalJumpTable,a4
     move.l (a4,d7.w),a4

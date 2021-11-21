@@ -19,10 +19,32 @@ ScrollGetMapXYForHorizontal2:
 ScrollGetMapXYForVertical2:
     move.w  v_map_y_position(a0),d3                         ;save for mapy
     asr.w   #4,d3                                           ;mapy (block)
+
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;if downward scroll, continue
+    bne     .do_upward
+
+    add.w   #15,d3
+    cmp.b   v_map_tile_height(a0),d3
+    blt     .finish
+
+    clr.l   d4
+    move.b  v_map_tile_height(a0),d4
+    sub.w   d4,d3
+    bra     .finish
+
+.do_upward
+    sub.w   #1,d3
+    bpl     .finish
+
+    clr.w   d3
+    move.b  v_map_tile_height(a0),d3
+    sub.w  #1,d3
+
+.finish
     swap    d3
 
-    move.w  v_map_x_position(a0),d3                         ;mapposx
-    asr.w   #4,d3                                           ;mapx (block)
+    move.w  v_map_y_position(a0),d3                         ;mapposy
+    and.w   #15,d3                                          ;y step
     rts
 
 ;-----------------------------------------------
@@ -132,7 +154,6 @@ ScrollGetHTileOffsets2:
     *****    FIND BUFFER ROW    *****
     *********************************
 
-    mcgeezer_special2
     move.w  d3,d2                                           ;x-step
     swap    d3                                              ;mapy (block)
     add.w   d3,d2                                           ;rolls buffer down d3 rows
@@ -195,9 +216,98 @@ ScrollGetVTileOffsets2:
 ***           SOURCE (d5)            ***
 ****************************************
 
+    *********************************
+    ***** SET TILE STARTING ROW *****
+    *********************************
+
+    clr.l   d1                                              ;SOURCE OFFSET
+    clr.l   d2                                              ;COUNTER
+    clr.l   d4                                              ;TILE ROW BYTES
+    move.w  v_map_bytes_per_tile_row(a0),d4
+
+    swap    d3                                              ;mapy (offset for dest)
+    move.w  d3,d2
+    cmp.w   #0,d2
+    beq     .skip_add
+    sub.w   #1,d2
+
+.addo                                                       ;mapy * mapwidth
+    add.l   d4,d1
+    dbf     d2,.addo
+
+.skip_add
+
+    ***********************************
+    ***** SET TILE STARTING BLOCK *****
+    ***********************************
+
+    clr.l   d2
+    move.w  v_map_x_position(a0),d2
+    asr.w   #4,d2
+    add.w   d2,d2
+
+    sub.l   #2,d1                                           ;takes care of column 0
+    add.l   d2,d1                                           ;source offset = mapy * mapwidth + mapx
+
+    WAITBLIT
+
+    move.l  a3,d5                                           ;A source (blocksbuffer)
+    add.l   d1,d5                                           ;blocksbuffer + mapy + mapx
+
 ****************************************
 ***         DESTINATION (d1)         ***
 ****************************************
+
+    move.l  v_scroll_screen(a0),d1                          ;D dest (frontbuffer)
+
+    move.w  d3,d2
+    and.w   #15,d2
+
+    tst.w   d2
+    beq     .add_column_offsets
+    sub.w   #1,d2
+
+.loop_add_tile_row                                          ;videoy * screenwidth
+
+    add.l   #screen_tile_bytes_per_row,d1
+    dbf     d2,.loop_add_tile_row
+
+.add_column_offsets
+
+    clr.l   d2
+    swap    d3                                              ;y-step
+    move.w  d3,d4
+    asl.w   #1,d4
+    add.w   v_scrolly_dest_offset_table(a0,d4.w),d2
+    add.l   d2,d1                                           ;destination offset = mapy * mapwidth + mapx
+
+    move.w  v_map_x_position(a0),d2                         ;when X is on an uneven tile boundary, compensate
+    and.w   #$000f,d2                                       ;by blitting one block to the left
+    beq     .skip_compensate_for_x
+
+    sub.w   #2,d1
+
+.skip_compensate_for_x
+    clr.l   d2
+    move.w  v_scrolly_dest_offset_table(a0,d4.w),d2
+    add.l   d2,d5
+
+    cmp.l   a5,d5
+    blt     .figure_out_num_blocks_to_blit
+
+    sub.l   v_map_bytes(a0),d5                              ;TODO: Maybe this isn't correct
+
+
+.figure_out_num_blocks_to_blit
+    moveq   #0,d7
+    asr.w   #1,d4
+
+.check_position
+    cmp.w   #4,d4                                           ;positions 4 & B have doubles
+    beq     .double
+
+    cmp.w   #$B,d4                                          ;odd positions > 3 (single block)
+    bne     .single
 
 .double
     addq    #1,d7
