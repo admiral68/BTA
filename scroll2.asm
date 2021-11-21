@@ -87,6 +87,18 @@ ScrollGetHTileOffsets2:
 
     swap    d3                                              ;x-step
     move.w  d3,d2
+
+    cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
+    bne     .add_tile_step_rows
+
+    sub.w   #1,d2
+    bpl     .add_tile_step_rows
+
+    clr.w   d2
+    move.b  v_map_tile_height(a0),d2
+    sub.w  #1,d2
+
+.add_tile_step_rows
     tst.w   d2
     beq     .find_source_column
 
@@ -155,6 +167,14 @@ ScrollGetHTileOffsets2:
     *********************************
 
     move.w  d3,d2                                           ;x-step
+    cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
+    bne     .find_buffer_row
+
+    sub.w   #1,d2
+    bpl     .find_buffer_row
+    move.w  #15,d2
+
+.find_buffer_row
     swap    d3                                              ;mapy (block)
     add.w   d3,d2                                           ;rolls buffer down d3 rows
     swap    d3                                              ;x-step
@@ -182,29 +202,22 @@ ScrollGetHTileOffsets2:
     add.l   d2,d1                                           ;frontbuffer + y + x
 
     *********************************
-    *****      CHECK SKIPS      *****
+    *****    CHECK DIAGONAL     *****
     *********************************
 
     cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
     bne     .check_up
 
-    tst.w   d3                                              ;SKIP FIRST BLIT
-    bne     .single
-
-.none
-    moveq   #0,d7
+.double
+    moveq   #8,d7
     rts
 
 .check_up
     cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
-    bne     .single
-
-    cmp.b   #15,d3                                          ;SKIP LAST BLIT
-    beq     .none
+    beq     .double
 
 .single
-    moveq   #1,d7
-    asl.w   #2,d7
+    moveq   #4,d7
     rts
 
 ;-----------------------------------------------
@@ -317,12 +330,41 @@ ScrollGetVTileOffsets2:
     tst.w   d4
     bne     .single
 
-    ;TODO: IF DOWN, BUG
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
+    bne     .adjust_right
 
-    mcgeezer_special2
+    move.w  v_map_x_position(a0),d2
+    and.w   #15,d2
+    sub.w   #1,d2
+    beq     .adjust_right
+
+    and.w   #15,d2
+    add.w   d2,d2
+
+    cmp.w   #4,d3
+    beq     .account_for_double_blocks_down_right
+
+    cmp.w   #14,d3
+    bge     .subtract
+
+    cmp.w   #11,d3
+    blt     .subtract
+    add.w   #2,d2
+
+.account_for_double_blocks_down_right
+    add.w   #2,d2
+
+.subtract
+    sub.w   d2,d5
+    sub.w   d2,d1
+
+.adjust_right
     add.w   v_video_x_bitplane_offset(a0),d5
     add.w   v_video_x_bitplane_offset(a0),d1
+    ;move.l  a3,d5
+    ;add.l   #$2d000,d5
     bra     .single
+
 
 .check_left
     cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
@@ -331,14 +373,45 @@ ScrollGetVTileOffsets2:
     cmp.w   #$F,d4
     bne     .single
 
-    ;TODO: IF UP, BUG
+    cmp.b   #15,v_scroll_vector_y(a0)                        ;up?
+    bne     .adjust_left
+	
+	bra		.adjust_left
+	
+	
+	
 
-    mcgeezer_special2
-    ;sub.w   #2,d5
-    ;move.l a3,d5
-    ;add.l  #$2d000,d5
+    move.w  v_map_x_position(a0),d2
+    and.w   #15,d2
+    beq     .adjust_left
+
+    add.w   d2,d2
+    cmp.w   #4,d3
+    beq     .account_for_double_blocks_up_left
+
+    cmp.w   #14,d3
+    bge     .add
+
+    cmp.w   #11,d3
+    blt     .add
+    sub.w   #2,d2
+
+.account_for_double_blocks_up_left
+    sub.w   #2,d2
+
+.add
+    add.w   d2,d5
+    add.w   d2,d1
+
+.adjust_left
+	add.w	#2,d1
+	add.w	#2,d5
+
+
     sub.w   v_video_x_bitplane_offset(a0),d5
     sub.w   v_video_x_bitplane_offset(a0),d1
+    ;move.l  a3,d5
+    ;add.l   #$2d000,d5
     bra     .single
 
 .double
