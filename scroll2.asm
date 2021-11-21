@@ -174,6 +174,8 @@ ScrollGetHTileOffsets2:
     bra     .set_destination_ptr
 
 .go_back_one_destination_column
+    tst.w   d3
+    beq     .set_destination_ptr
     sub.l   #2,d2                                           ;last column
 
 .set_destination_ptr
@@ -307,7 +309,37 @@ ScrollGetVTileOffsets2:
     beq     .double
 
     cmp.w   #$B,d4                                          ;odd positions > 3 (single block)
+    beq     .double
+
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+    bne     .check_left
+
+    tst.w   d4
     bne     .single
+
+    ;TODO: IF DOWN, BUG
+
+    mcgeezer_special2
+    add.w   v_video_x_bitplane_offset(a0),d5
+    add.w   v_video_x_bitplane_offset(a0),d1
+    bra     .single
+
+.check_left
+    cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
+    bne     .single
+
+    cmp.w   #$F,d4
+    bne     .single
+
+    ;TODO: IF UP, BUG
+
+    mcgeezer_special2
+    ;sub.w   #2,d5
+    ;move.l a3,d5
+    ;add.l  #$2d000,d5
+    sub.w   v_video_x_bitplane_offset(a0),d5
+    sub.w   v_video_x_bitplane_offset(a0),d1
+    bra     .single
 
 .double
     addq    #1,d7
