@@ -324,6 +324,12 @@ ScrollGetVTileOffsets2:
     cmp.w   #$B,d4                                          ;odd positions > 3 (single block)
     beq     .double
 
+    *********************************
+    *****    CHECK DIAGONAL     *****
+    *********************************
+
+    *****  DOWN RIGHT  *****
+
     cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
     bne     .check_left
 
@@ -365,6 +371,7 @@ ScrollGetVTileOffsets2:
     ;add.l   #$2d000,d5
     bra     .single
 
+    *****   UP LEFT    *****
 
 .check_left
     cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
@@ -374,44 +381,24 @@ ScrollGetVTileOffsets2:
     bne     .single
 
     cmp.b   #15,v_scroll_vector_y(a0)                        ;up?
-    bne     .adjust_left
-	
-	bra		.adjust_left
-	
-	
-	
+    bne     .adjust_left_down
 
     move.w  v_map_x_position(a0),d2
+    add.w   #1,d2
     and.w   #15,d2
-    beq     .adjust_left
 
     add.w   d2,d2
-    cmp.w   #4,d3
-    beq     .account_for_double_blocks_up_left
+    move.w  v_scrolly_dest_offset_table(a0,d2.w),d2
 
-    cmp.w   #14,d3
-    bge     .add
+    sub.w   d2,d5
+    sub.w   d2,d1
+    bra     .single
 
-    cmp.w   #11,d3
-    blt     .add
-    sub.w   #2,d2
-
-.account_for_double_blocks_up_left
-    sub.w   #2,d2
-
-.add
-    add.w   d2,d5
-    add.w   d2,d1
-
-.adjust_left
-	add.w	#2,d1
-	add.w	#2,d5
-
-
+.adjust_left_down
+    add.w   #2,d1
+    add.w   #2,d5
     sub.w   v_video_x_bitplane_offset(a0),d5
     sub.w   v_video_x_bitplane_offset(a0),d1
-    ;move.l  a3,d5
-    ;add.l   #$2d000,d5
     bra     .single
 
 .double
