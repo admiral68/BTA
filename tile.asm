@@ -163,8 +163,8 @@ TileDrawFifteenHorizontal:
     BLIT_ROWS_AND_COLS 1,15
 ;-----------------------------------------------
 TileDrawTwoVertical:
-    BLIT_VERTICAL_DOUBLE_CHECK_SPLIT
-    ;BLIT_ROWS_AND_COLS 2,1
+    ;BLIT_VERTICAL_DOUBLE_CHECK_SPLIT
+    BLIT_ROWS_AND_COLS 2,1
 ;-----------------------------------------------
 TileDrawThreeVertical:
     BLIT_ROWS_AND_COLS 3,1
