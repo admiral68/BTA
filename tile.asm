@@ -24,7 +24,49 @@ BLIT_ROWS_AND_COLS:macro
 
 ;.end
 
-.end
+    rts
+    endm
+
+BLIT_VERTICAL_DOUBLE_CHECK_SPLIT:macro
+
+    move.l  d1,d7
+    add.l   #screen_tile_bytes_per_row,d7
+    cmp.l   v_screen_end(a0),d7
+    blt     .continue
+
+    mcgeezer_special2
+
+    bsr     TileDraw
+
+    WAITBLIT
+
+    move.l  d7,d1
+    sub.l   #screen_buffer_bytes,d1
+
+    clr.l   d7
+    move.w  v_map_bytes_per_tile_row(a0),d7
+    add.l   d7,d5
+    cmp.l   a5,d5
+    blt     .tile_draw
+    sub.l   v_map_bytes(a0),d5
+
+.tile_draw
+    jmp     TileDraw
+
+
+.continue
+    move.w  v_map_source_bpl_bytes_per_row(a0),d6
+    sub.w   #2*1,d6
+    move.w  #$09F0,BLTCON0(a6)                              ;custom->bltcon0 = 0x9F0;   // use A and D. Op: D = A
+    move.w  #$0000,BLTCON1(a6)                              ;custom->bltcon1 = 0;
+    move.w  #$FFFF,BLTAFWM(a6)                              ;custom->bltafwm = 0xFFFF;
+    move.w  #$FFFF,BLTALWM(a6)                              ;custom->bltalwm = 0xFFFF;
+    move.w  d6,BLTAMOD(a6)                                  ;custom->bltamod = BLOCKSBYTESPERROW - (BLOCKWIDTH / 8);
+    move.w  #screen_bpl_bytes_per_row-2*1,BLTDMOD(a6)       ;custom->bltdmod = BITMAPBYTESPERROW - (BLOCKWIDTH / 8);
+    move.l  d5,BLTAPTH(a6)                                  ;custom->bltapt  = blocksbuffer + mapy + mapx;
+    move.l  d1,BLTDPTH(a6)                                  ;custom->bltdpt  = frontbuffer + y + x;
+    move.w  #(tile_plane_lines*2*64+1*1),BLTSIZE(a6)        ;custom->bltsize = BLOCKPLANELINES * 64 + (BLOCKWIDTH / 16);
+
     rts
     endm
 
@@ -121,7 +163,8 @@ TileDrawFifteenHorizontal:
     BLIT_ROWS_AND_COLS 1,15
 ;-----------------------------------------------
 TileDrawTwoVertical:
-    BLIT_ROWS_AND_COLS 2,1
+    BLIT_VERTICAL_DOUBLE_CHECK_SPLIT
+    ;BLIT_ROWS_AND_COLS 2,1
 ;-----------------------------------------------
 TileDrawThreeVertical:
     BLIT_ROWS_AND_COLS 3,1
