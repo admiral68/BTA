@@ -34,8 +34,6 @@ BLIT_VERTICAL_DOUBLE_CHECK_SPLIT:macro
     cmp.l   v_screen_end(a0),d7
     blt     .continue
 
-    mcgeezer_special2
-
     bsr     TileDraw
 
     WAITBLIT
@@ -163,8 +161,7 @@ TileDrawFifteenHorizontal:
     BLIT_ROWS_AND_COLS 1,15
 ;-----------------------------------------------
 TileDrawTwoVertical:
-    ;BLIT_VERTICAL_DOUBLE_CHECK_SPLIT
-    BLIT_ROWS_AND_COLS 2,1
+    BLIT_VERTICAL_DOUBLE_CHECK_SPLIT
 ;-----------------------------------------------
 TileDrawThreeVertical:
     BLIT_ROWS_AND_COLS 3,1

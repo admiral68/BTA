@@ -345,16 +345,17 @@ ScrollGetVTileOffsets2:
     beq     .adjust_right
 
     and.w   #15,d2
+    move.w  d2,d3
     add.w   d2,d2
 
     cmp.w   #4,d3
-    beq     .account_for_double_blocks_down_right
+    blt     .subtract
 
     cmp.w   #14,d3
     bge     .subtract
 
     cmp.w   #11,d3
-    blt     .subtract
+    blt     .account_for_double_blocks_down_right
     add.w   #2,d2
 
 .account_for_double_blocks_down_right
