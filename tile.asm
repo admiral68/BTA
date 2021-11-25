@@ -31,8 +31,8 @@ BLIT_VERTICAL_DOUBLE_CHECK_SPLIT:macro
 
     move.l  d1,d7
     add.l   #screen_tile_bytes_per_row,d7
-    cmp.l   v_screen_end(a0),d7
-    blt     .continue
+    cmp.l   v_screen_end(a0),d7                             ; TODO: THIS SHOULD BE THE END OF THE BUFFER, WHICH IS MORE THAN B400
+    blt     .continue                                       ; PAST THE START. THE REAL END IS: START + B400 + CA8
 
     bsr     TileDraw
 

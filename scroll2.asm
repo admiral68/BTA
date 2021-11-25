@@ -368,8 +368,8 @@ ScrollGetVTileOffsets2:
 .adjust_right
     add.w   v_video_x_bitplane_offset(a0),d5
     add.w   v_video_x_bitplane_offset(a0),d1
-    ;move.l  a3,d5
-    ;add.l   #$2d000,d5
+    move.l  a3,d5
+    add.l   #$2d000,d5
     bra     .single
 
     *****   UP LEFT    *****
@@ -393,6 +393,8 @@ ScrollGetVTileOffsets2:
 
     sub.w   d2,d5
     sub.w   d2,d1
+    move.l  a3,d5
+    add.l   #$2d000,d5
     bra     .single
 
 .adjust_left_down
@@ -400,6 +402,8 @@ ScrollGetVTileOffsets2:
     add.w   #2,d5
     sub.w   v_video_x_bitplane_offset(a0),d5
     sub.w   v_video_x_bitplane_offset(a0),d1
+    move.l  a3,d5
+    add.l   #$2d000,d5
     bra     .single
 
 .double

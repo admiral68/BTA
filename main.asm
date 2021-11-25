@@ -67,16 +67,15 @@ Init:
 ;SetScreenBufferPointersInFastMem
 
     lea     FastData,a1
+    lea     ScreenE,a0
+    move.l  a0,d3
     lea     Screen,a0                                       ;ptr to first bitplane of image
 
+    move.l  d3,v_screen_end(a1)
     move.l  a0,v_screen(a1)
     move.l  a0,v_scroll_screen(a1)
     move.l  a0,v_scroll_screen_split(a1)
     move.l  a0,d2
-
-    move.l  d2,d3
-    add.l   #screen_buffer_bytes,d3
-    move.l  d3,v_screen_end(a1)
 
 ;SetCopperScreenBitplanePointers
 
@@ -145,15 +144,15 @@ Main:
 
 .WaitMouse
 
-    moveq #1,d0
-    lea FastData,a0
-    bsr InputReadController
+    moveq   #1,d0
+    lea     FastData,a0
+    bsr     InputReadController
 
-    btst.b #4,v_joystick_value(a0)                          ;16=kill code (fire button)
-    bne .quit
+    btst.b  #4,v_joystick_value(a0)                         ;16=kill code (fire button)
+    bne     .quit
 
-    btst #6,$bfe001
-    bne.s .WaitMouse
+    btst    #6,$bfe001
+    bne.s   .WaitMouse
 
 .quit
     movem.l (sp)+,d0-a6
@@ -163,9 +162,9 @@ Main:
 * TEST ROUTINES
 *******************************************************************************
 TESTVBCode:
-    lea FastData,a0
-    bsr TESTScroll
-    bsr TESTUpdateMapXMapYDebugStrings
+    lea     FastData,a0
+    bsr     TESTScroll
+    bsr     TESTUpdateMapXMapYDebugStrings
     rts
 
 ;-----------------------------------------------
@@ -179,7 +178,180 @@ TESTScroll:
   ** BLIT ORDER: R->D->U->L (BLIT IN ASCENDING MODE) **
   *****************************************************
 
+    *********************************
+    *****  BLIT DIRTY BLOCKS    *****
+    *********************************
+
+;ALGORITHM: New X movement where Y-BLOCK is not the same as with last X movement
+
+    bsr     ScrollGetDirectionalVectors
+
+;New
+
+    move.w  v_previous_scroll_vector(a0),d1
+    cmp.w   v_scroll_vector_x(a0),d1                        ;movement same as last frame?
+    beq     .continue
+
+;X movement
+
+    tst.b   v_scroll_vector_x(a0)                           ;any x movement in the current frame?
+    beq     .continue
+
+;where current Y-BLOCK
+
+    move.w  v_map_y_position(a0),d6
+    asr.w   #4,d6                                           ;current Y-block
+
+;is not the same as with last X movement
+
+    cmp.w   v_map_previous_map_y_block(a0),d6               ;Y-block of last x movement
+    beq     .continue
+    blt     .makeup_tiles_below_current_row
+
+;makeup tiles blitted will be above current row--we've moved down
+
+    sub.w   v_map_previous_map_y_block(a0),d6               ;number of Y blocks to blit. If > 15, blit the entire column!
+    bra     .makeup_tiles_blit
+
+;makeup tiles blitted will be below current row--we've moved up
+.makeup_tiles_below_current_row
+
+    move.w  v_map_previous_map_y_block(a0),d7               ;Y-block of last x movement
+    sub.w   d6,d7
+    exg     d6,d7
+
+.makeup_tiles_blit
+
+    move.w  v_map_previous_map_y_block(a0),d7               ;Y-block of last x movement
+
+;d6=number of blocks to blit;d7=starting Y block
+    mcgeezer_special2
+
+;d7 AND #15 = Y step (buffer)
+
+
+
+;    cmp.b #8,v_scroll_previous_x_direction(a0)              ;if (previous_direction == DIRECTION_LEFT)
+;    cmp.b #1,v_scroll_previous_x_direction(a0)              ;if (previous_direction == DIRECTION_RIGHT)
+
+
+
+
+
+;    mcgeezer_special
+;
+;    clr.l   d7
+;
+;    bsr     ScrollGetDirectionalVectors
+;
+;    move.w  v_previous_scroll_vector(a0),d1
+;    cmp.w   v_scroll_vector_x(a0),d1                        ;movement same as last frame?
+;    beq     .continue
+;
+;    tst.b   v_previous_scroll_vector(a0)                    ;any x movement in the last frame?
+;    beq     .continue
+;
+;    tst.b   v_previous_scroll_vector+1(a0)                  ;any y movement in the last frame? If not, we don't need to fill anything
+;    beq     .continue
+;
+;    ;fill unblitted blocks based on previous position
+;
+;   mcgeezer_special2
+;
+;   move.w  v_scroll_vector_x(a0),d2
+;   move.w  d1,v_scroll_vector_x(a0)
+;   move.w  d2,v_previous_scroll_vector(a0)
+;
+;    move.w  v_map_x_position(a0),d7
+;    and.w   #15,d7
+;
+;    tst.w   d7                                              ;we were moving horizontally on a zero boundary; all blocks were blitted
+;    beq     .continue                                       ;skip this section
+;
+;    cmp.b   #1,v_scroll_vector_x(a0)                        ;were we moving right?
+;    bne     .unblitted_set_left_position
+;    bsr     ScrollDecrementXPosition
+;    bra     .unblitted_set_sources
+;
+;.unblitted_set_left_position
+;
+;    move.w  v_map_x_position(a0),d7
+;    move.w  d7,v_map_previous_x_position(a0)
+;    and.w   #$FFF0,d7
+;    move.w  d7,v_map_x_position(a0)
+;
+;   ;these lines cause down scroll to blit one row higher and up scroll to blit one row lower
+;   move.b  #16,d6
+;   sub.b   v_scroll_vector_y(a0),d6
+;   move.b  d6,v_scroll_vector_y(a0)
+;
+;.unblitted_set_sources
+;    bsr     ScrollGetStepAndDelay
+;    bsr     ScrollGetMapXYForHorizontal2
+;
+;    lea     MapSourceBitmap,a3
+;    lea     MapSourceBitmapE,a5
+;    bsr     ScrollGetHTileOffsets2
+;
+;    cmp.b   #1,v_scroll_vector_x(a0)                        ;were we moving right?
+;    bne     .unblitted_compute_left
+;
+;    move.w  v_map_x_position(a0),d7
+;    and.w   #15,d7
+;
+;    bsr     ScrollIncrementXPosition
+;
+;    move.l  d7,d6
+;    move.l  #15,d7
+;    sub.l   d6,d7
+;    clr.l   d6
+;    move.w  #screen_bpl_bytes_per_row,d6
+;    sub.l   d6,d1
+;   sub.l   d6,d5
+;
+;    bra     .blit_unblitted
+;
+;.unblitted_compute_left
+;
+;    move.w  #screen_bpl_bytes_per_row,d6
+;    add.l   d6,d1
+;   add.l   d6,d5
+;
+;    cmp.b   #15,v_scroll_vector_y(a0)                      ;were we also going up?
+;   bne     .skip_unblitted_left_adjustment
+;    sub.w  #2,d1
+;.skip_unblitted_left_adjustment
+;    move.w  v_map_previous_x_position(a0),d7
+;    move.w  d7,v_map_x_position(a0)
+;    and.w   #15,d7
+;
+;    ;switch directions back
+;   move.b  #16,d6
+;   sub.b   v_scroll_vector_y(a0),d6
+;   move.b  d6,v_scroll_vector_y(a0)
+;
+;.blit_unblitted
+;    ;mcgeezer_special2
+;    ;move.l  a3,d5
+;    ;add.l   #$2d000,d5
+;    asl.w   #2,d7
+;    lea     TileDrawVerticalJumpTable,a4
+;    move.l  (a4,d7.w),a4
+;    jsr     (a4)
+;
+;   move.w v_previous_scroll_vector(a0),d1
+;   move.w  v_scroll_vector_x(a0),d2
+;   move.w  d1,v_scroll_vector_x(a0)
+;   move.w  d2,v_previous_scroll_vector(a0)
+
+    *********************************
+    *****  BLIT NORMAL BLOCKS   *****
+    *********************************
+
 .continue
+
+    *****  CHECK FOR MOVEMENT  *****
+
     bsr     ScrollGetStepAndDelay
     bsr     ScrollGetDirectionalVectors
 
@@ -207,6 +379,7 @@ TESTScroll:
 
 .update_joystick
     move.b  v_joystick_value(a0),v_previous_joystick_value(a0)
+    move.w  v_scroll_vector_x(a0),v_previous_scroll_vector(a0)      ;saves both x & y vectors
     rts
 
 ***********************************************
@@ -215,36 +388,43 @@ TESTScroll:
 ***********************************************
 
 .right
-    cmp.w #0,d1                                             ;INPUT:d2,a0 (d1)
-    bne .get_xy_position_right
+    cmp.w   #0,d1                                           ;INPUT:d2,a0 (d1)
+    bne     .get_xy_position_right
 
     ;tile is completely scrolled through; time to move the pointers
-    addi.w #1,v_tile_x_position(a0)
+    addi.w  #1,v_tile_x_position(a0)
 
 .increment_x
-    move.l #1,d4
-    lea Copper,a1
-    bsr ScrollUpdateBitplanePointers
+    move.l  #1,d4
+    lea     Copper,a1
+    bsr     ScrollUpdateBitplanePointers
 
 .get_xy_position_right
-    bsr ScrollGetMapXYForHorizontal2
-    ;add.w #screen_columns+1,d3                              ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
+    bsr     ScrollGetMapXYForHorizontal2
+    ;add.w  #screen_columns+1,d3                             ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
 
-    bsr ScrollUpdateSaveWordRight
+    bsr     ScrollUpdateSaveWordRight
 
-    lea MapSourceBitmap,a3
-    lea MapSourceBitmapE,a5
-    bsr ScrollGetHTileOffsets2
+    lea     MapSourceBitmap,a3
+    lea     MapSourceBitmapE,a5
+    bsr     ScrollGetHTileOffsets2
 
-    lea TileDrawVerticalJumpTable,a4
-    move.l (a4,d7.w),a4
-    jsr (a4)
+    lea     TileDrawVerticalJumpTable,a4
+    move.l  (a4,d7.w),a4
+    jsr     (a4)
 
-    bsr ScrollIncrementXPosition                            ;INPUT: mapx/y in d3; x/y in d4
-    bsr ScrollGetStepAndDelay
-    lea Copper,a1                                           ;Copper Horizontal Scroll pos
-    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
-    move.b #1,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_RIGHT
+    bsr     ScrollIncrementXPosition                        ;INPUT: mapx/y in d3; x/y in d4
+    bsr     ScrollGetStepAndDelay
+    lea     Copper,a1                                       ;Copper Horizontal Scroll pos
+    move.w  d0,c_horizontal_scroll_pos_01(a1)               ;update copper
+    move.b  #1,v_scroll_previous_x_direction(a0)            ;previous_direction = DIRECTION_RIGHT
+
+    *****  SAVE CURRENT Y-BLOCK  *****
+
+    move.w  v_map_y_position(a0),d6                         ;save current Y-block for make-up blits
+    asr.w   #4,d6                                           ;get the y block
+    move.w  d6,v_map_previous_map_y_block(a0)
+
     rts
 
 ************************************************
@@ -253,41 +433,48 @@ TESTScroll:
 ************************************************
 
 .left
-    bsr ScrollDecrementXPosition
-    bsr ScrollGetStepAndDelay
+    bsr     ScrollDecrementXPosition
+    bsr     ScrollGetStepAndDelay
 
-    cmp.w #0,d1
-    bne .get_map_xy_left
+    cmp.w   #0,d1
+    bne     .get_map_xy_left
 
     ;tile is completely scrolled through; time to move the pointers
 
-    subi.w #1,v_tile_x_position(a0)
+    subi.w  #1,v_tile_x_position(a0)
 
 .decrement_x
-    move.l #$0000FFFF,d4
-    lea Copper,a1
-    bsr ScrollUpdateBitplanePointers
+    move.l  #$0000FFFF,d4
+    lea     Copper,a1
+    bsr     ScrollUpdateBitplanePointers
 
 .get_map_xy_left
-    bsr ScrollGetMapXYForHorizontal2
-    bsr ScrollUpdateSaveWordLeft
+    bsr     ScrollGetMapXYForHorizontal2
+    bsr     ScrollUpdateSaveWordLeft
 
-    lea MapSourceBitmap,a3
-    lea MapSourceBitmapE,a5
-    bsr ScrollGetHTileOffsets2
+    lea     MapSourceBitmap,a3
+    lea     MapSourceBitmapE,a5
+    bsr     ScrollGetHTileOffsets2
 
-    lea TileDrawVerticalJumpTable,a4
-    move.l (a4,d7.w),a4
-    jsr (a4)
+    lea     TileDrawVerticalJumpTable,a4
+    move.l  (a4,d7.w),a4
+    jsr     (a4)
 
     ;needed for change of direction
-    bsr ScrollGetStepAndDelay
+    bsr     ScrollGetStepAndDelay
 
 .update_left_scroll_pos
 
-    lea Copper,a1                                           ;Copper Horizontal Scroll pos
-    move.w d0,c_horizontal_scroll_pos_01(a1)                ;update copper
-    move.b #8,v_scroll_previous_x_direction(a0)             ;previous_direction = DIRECTION_LEFT
+    lea     Copper,a1                                       ;Copper Horizontal Scroll pos
+    move.w  d0,c_horizontal_scroll_pos_01(a1)               ;update copper
+    move.b  #8,v_scroll_previous_x_direction(a0)            ;previous_direction = DIRECTION_LEFT
+
+    *****  SAVE CURRENT Y-BLOCK  *****
+
+    move.w  v_map_y_position(a0),d6                         ;save current Y-block for make-up blits
+    asr.w   #4,d6                                           ;get the y block
+    move.w  d6,v_map_previous_map_y_block(a0)
+
     rts
 
 *******************************************
@@ -296,25 +483,25 @@ TESTScroll:
 *******************************************
 
 .up
-    bsr ScrollDecrementYPosition
+    bsr     ScrollDecrementYPosition
 
-    move.l #$FFFF0000,d4
-    lea Copper,a1
-    bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
+    move.l  #$FFFF0000,d4
+    lea     Copper,a1
+    bsr     ScrollUpdateBitplanePointers                    ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
 .get_xy_position_up
-    bsr ScrollGetMapXYForVertical2
+    bsr     ScrollGetMapXYForVertical2
     ;swap d3
     ;add.w #1,d3                                             ;mapy+1--row under visible screen
     ;swap d3
 
-    lea MapSourceBitmap,a3
-    lea MapSourceBitmapE,a5
-    bsr ScrollGetVTileOffsets2
+    lea     MapSourceBitmap,a3
+    lea     MapSourceBitmapE,a5
+    bsr     ScrollGetVTileOffsets2
 
-    lea TileDrawHorizontalJumpTable,a4
-    move.l (a4,d7.w),a4
-    jsr (a4)
+    lea     TileDrawHorizontalJumpTable,a4
+    move.l  (a4,d7.w),a4
+    jsr     (a4)
     rts
 
 ****************************************
@@ -323,23 +510,23 @@ TESTScroll:
 ****************************************
 
 .down
-    move.l #$10000,d4
-    lea Copper,a1
-    bsr ScrollUpdateBitplanePointers                        ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
+    move.l  #$10000,d4
+    lea     Copper,a1
+    bsr     ScrollUpdateBitplanePointers                    ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
 .get_xy_position_down
-    bsr ScrollGetMapXYForVertical2
+    bsr     ScrollGetMapXYForVertical2
 
-    lea MapSourceBitmap,a3
-    lea MapSourceBitmapE,a5
-    bsr ScrollGetVTileOffsets2
+    lea     MapSourceBitmap,a3
+    lea     MapSourceBitmapE,a5
+    bsr     ScrollGetVTileOffsets2
 
-    lea TileDrawHorizontalJumpTable,a4
-    move.l (a4,d7.w),a4
-    jsr (a4)
+    lea     TileDrawHorizontalJumpTable,a4
+    move.l  (a4,d7.w),a4
+    jsr     (a4)
 
 .end_down
-    bsr ScrollIncrementYPosition                            ;INPUT: mapx/y in d3; x/y in d4
+    bsr     ScrollIncrementYPosition                        ;INPUT: mapx/y in d3; x/y in d4
 
 .end_scroll
     rts
@@ -354,24 +541,24 @@ VBCode:
 ;-----------------------------------------------
 ClearScreen:                                                                            ;a1=screen destination address to clear
     WAITBLIT
-    clr.w $66(a6)                                                                       ;destination modulo
-    move.l #$01000000,$40(a6)                                                           ;set operation type in BLTCON0/1
-    move.l a1,$54(a6)                                                                   ;destination address
-    move.w #screen_height*bpls*64+screen_bp_bytes_per_raster_line/2,$58(a6)             ;blitter operation size
+    clr.w   $66(a6)                                                                     ;destination modulo
+    move.l  #$01000000,$40(a6)                                                          ;set operation type in BLTCON0/1
+    move.l  a1,$54(a6)                                                                  ;destination address
+    move.w  #screen_height*bpls*64+screen_bp_bytes_per_raster_line/2,$58(a6)            ;blitter operation size
     rts
 ;-----------------------------------------------
 VBint:                                                      ;Blank template VERTB interrupt
     movem.l d0-a6,-(sp)                                     ;Save used registers
-    lea $DFF000,a6
-    btst #5,INTREQR(a6)                                     ;INTREQR check if it's our vertb int.
-    beq.s .notvb
+    lea     $DFF000,a6
+    btst    #5,INTREQR(a6)                                  ;INTREQR check if it's our vertb int.
+    beq.s   .notvb
 
-    moveq #$20,d0                                           ;poll irq bit
-    move.w d0,INTREQ(a6)
-    move.w d0,INTREQ(a6)
+    moveq   #$20,d0                                         ;poll irq bit
+    move.w  d0,INTREQ(a6)
+    move.w  d0,INTREQ(a6)
 
-    bsr TESTVBCode
-    bsr VBCode
+    bsr     TESTVBCode
+    bsr     VBCode
 
 .notvb:
     movem.l (sp)+,d0-a6                                     ;restore
@@ -487,8 +674,13 @@ FastData:
 ;v_map_bytes_per_tile_block
     dc.l 0
 
+;v_previous_scroll_vector
+    dc.w 0
+;v_map_previous_x_position
+;v_map_previous_map_y_block
+    dc.w 0
 ;v_unused_04
-    dc.b $70,$60,$50,$40,$30,$20,$10,$00
+    dc.b $30,$20,$10,$00
 
 ;v_decoded_bitplane_bytes
     dc.b 0,0,0,0,0,0,0,0,0,0
@@ -737,11 +929,11 @@ NullSpr:
     SECTION AllBuffers,BSS_C
 
 Screen:
-    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16)
+    ds.b screen_actual_buffer_bytes
 ScreenE:
 
 Screen2:
-    ds.b screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16)
+    ds.b screen_actual_buffer_bytes
 Screen2E:
 
     EVEN
