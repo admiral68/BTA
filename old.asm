@@ -1112,4 +1112,157 @@ DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
     rts
 
 ;-----------------------------------------------
+;where current Y-BLOCK
+
+
+;TODO: FIX THIS SO IT IS THE SAME AS WHAT WE GET WHEN BLITTING
+
+
+
+;    move.w  v_map_previous_step(a0),d3
+;    move.w  v_map_y_position(a0),d6
+;    asr.w   #4,d6                                           ;current Y-block
+
+
+;is not the same as with last X movement
+
+;    cmp.w   v_map_previous_map_y_block(a0),d6               ;Y-block of last x movement
+;    beq     .continue
+;    blt     .makeup_tiles_below_current_row
+;
+;;makeup tiles blitted will be above current row--we've moved down
+;
+;    ;mcgeezer_special2
+;    sub.w   v_map_previous_map_y_block(a0),d6               ;number of Y blocks to blit. If > 15, blit the entire column!
+;
+;;MOVING LOWER, WE SUBTRACT STEPS
+;    sub.w   d6,d3
+;    and.w   #15,d3
+;    bra     .makeup_tiles_blit
+;
+;;makeup tiles blitted will be below current row--we've moved up
+;.makeup_tiles_below_current_row
+;
+;    ;mcgeezer_special2
+;    move.w  v_map_previous_map_y_block(a0),d7               ;Y-block of last x movement
+;    sub.w   d6,d7
+;    exg     d6,d7
+;
+;;MOVING HIGHER, WE ADD STEPS
+;    add.w   d6,d3
+;    and.w   #15,d3
+;
+;.makeup_tiles_blit
+
+
+
+;THE FOLLOWING IS EVEN LESS LIKELY TO WORK
+
+
+
+;    mcgeezer_special
+;
+;    clr.l   d7
+;
+;    bsr     ScrollGetDirectionalVectors
+;
+;    move.w  v_previous_scroll_vector(a0),d1
+;    cmp.w   v_scroll_vector_x(a0),d1                        ;movement same as last frame?
+;    beq     .continue
+;
+;    tst.b   v_previous_scroll_vector(a0)                    ;any x movement in the last frame?
+;    beq     .continue
+;
+;    tst.b   v_previous_scroll_vector+1(a0)                  ;any y movement in the last frame? If not, we don't need to fill anything
+;    beq     .continue
+;
+;    ;fill unblitted blocks based on previous position
+;
+;   mcgeezer_special2
+;
+;   move.w  v_scroll_vector_x(a0),d2
+;   move.w  d1,v_scroll_vector_x(a0)
+;   move.w  d2,v_previous_scroll_vector(a0)
+;
+;    move.w  v_map_x_position(a0),d7
+;    and.w   #15,d7
+;
+;    tst.w   d7                                              ;we were moving horizontally on a zero boundary; all blocks were blitted
+;    beq     .continue                                       ;skip this section
+;
+;    cmp.b   #1,v_scroll_vector_x(a0)                        ;were we moving right?
+;    bne     .unblitted_set_left_position
+;    bsr     ScrollDecrementXPosition
+;    bra     .unblitted_set_sources
+;
+;.unblitted_set_left_position
+;
+;    move.w  v_map_x_position(a0),d7
+;    move.w  d7,v_map_previous_x_position(a0)
+;    and.w   #$FFF0,d7
+;    move.w  d7,v_map_x_position(a0)
+;
+;   ;these lines cause down scroll to blit one row higher and up scroll to blit one row lower
+;   move.b  #16,d6
+;   sub.b   v_scroll_vector_y(a0),d6
+;   move.b  d6,v_scroll_vector_y(a0)
+;
+;.unblitted_set_sources
+;    bsr     ScrollGetStepAndDelay
+;    bsr     ScrollGetMapXYForHorizontal2
+;
+;    lea     MapSourceBitmap,a3
+;    lea     MapSourceBitmapE,a5
+;    bsr     ScrollGetHTileOffsets2
+;
+;    cmp.b   #1,v_scroll_vector_x(a0)                        ;were we moving right?
+;    bne     .unblitted_compute_left
+;
+;    move.w  v_map_x_position(a0),d7
+;    and.w   #15,d7
+;
+;    bsr     ScrollIncrementXPosition
+;
+;    move.l  d7,d6
+;    move.l  #15,d7
+;    sub.l   d6,d7
+;    clr.l   d6
+;    move.w  #screen_bpl_bytes_per_row,d6
+;    sub.l   d6,d1
+;   sub.l   d6,d5
+;
+;    bra     .blit_unblitted
+;
+;.unblitted_compute_left
+;
+;    move.w  #screen_bpl_bytes_per_row,d6
+;    add.l   d6,d1
+;   add.l   d6,d5
+;
+;    cmp.b   #15,v_scroll_vector_y(a0)                      ;were we also going up?
+;   bne     .skip_unblitted_left_adjustment
+;    sub.w  #2,d1
+;.skip_unblitted_left_adjustment
+;    move.w  v_map_previous_x_position(a0),d7
+;    move.w  d7,v_map_x_position(a0)
+;    and.w   #15,d7
+;
+;    ;switch directions back
+;   move.b  #16,d6
+;   sub.b   v_scroll_vector_y(a0),d6
+;   move.b  d6,v_scroll_vector_y(a0)
+;
+;.blit_unblitted
+;    ;mcgeezer_special2
+;    ;move.l  a3,d5
+;    ;add.l   #$2d000,d5
+;    asl.w   #2,d7
+;    lea     TileDrawVerticalJumpTable,a4
+;    move.l  (a4,d7.w),a4
+;    jsr     (a4)
+;
+;   move.w v_previous_scroll_vector(a0),d1
+;   move.w  v_scroll_vector_x(a0),d2
+;   move.w  d1,v_scroll_vector_x(a0)
+;   move.w  d2,v_previous_scroll_vector(a0)
 
