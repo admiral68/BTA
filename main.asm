@@ -197,7 +197,7 @@ TESTScroll:
     tst.b   v_scroll_vector_x(a0)                           ;any x movement in the current frame?
     beq     .continue
 
-;Y-BLOCK 
+;Y-BLOCK
     move.w  v_map_y_position(a0),d6
     asr.w   #4,d6                                           ;current Y-block
 
@@ -206,8 +206,6 @@ TESTScroll:
     cmp.w   v_map_previous_map_y_block(a0),d6               ;Y-block of last x movement
     beq     .continue
 
-    mcgeezer_special2
-	
     bsr     ScrollGetMapXYForHorizontal2
     move.w  #0,d3                                           ;start at first step and reblit blocks up to x-step
     move.w  v_map_x_position(a0),d6                         ;Number of blocks to blit = x-step
@@ -224,14 +222,26 @@ TESTScroll:
     lea     MapSourceBitmapE,a5
     bsr     ScrollGetHTileOffsets2
 
-    ;move.l  a3,d5           ;DEBUG: SETS CLIMBING BONES AS TILE BLIT SOURCE
+    cmp.b   #15,v_scroll_vector_x(a0)                        ;left?
+    bne     .makeup_tiles_blit
+
+    ;mcgeezer_special2
+    move.l  a3,d5           ;DEBUG: SETS CLIMBING BONES AS TILE BLIT SOURCE
     ;add.l   #$5007e,d5      ;DEBUG: SETS CLIMBING BONES AS TILE BLIT SOURCE
+    add.l   #$2d000,d5      ;DEBUG: SETS STONE WALL AS TILE BLIT SOURCE
 
-    asl.w   #2,d6
-    lea     TileDrawVerticalJumpTable,a4                    ;TODO: FIX JUMP TABLE TO SEPARATE TALL BLITS ON VERTICAL SPLIT
-    move.l  (a4,d6.w),a4
-    jsr     (a4)
+.makeup_tiles_blit
+    move.w  d6,d7
+    tst.w   d7
+    beq     .makeup_tiles_skip_blit
 
+    bsr     TileDrawVerticalHandleVSplit
+    ;asl.w   #2,d6
+    ;lea     TileDrawVerticalJumpTable,a4                    ;TODO: FIX JUMP TABLE TO SEPARATE TALL BLITS ON VERTICAL SPLIT
+    ;move.l  (a4,d6.w),a4
+    ;jsr     (a4)
+
+.makeup_tiles_skip_blit
     cmp.b   #1,v_scroll_vector_x(a0)                        ;are we moving right?
     bne     .continue
 
