@@ -112,6 +112,7 @@ ScrollGetHTileOffsets2:
 
 
 
+
     tst.w   d2
     beq     .find_source_column
 
@@ -248,7 +249,6 @@ ScrollGetHTileOffsets2:
     and.w   #15,d7
     beq     .left_test
 
-    mcgeezer_special2
     add.l   v_map_bytes_per_tile_block(a0),d5
 
     ;END: SPECIAL CASE #2
@@ -297,6 +297,9 @@ ScrollGetVTileOffsets2:
 
     moveq   #0,d7
 
+
+
+
     tst.w   v_map_tiles_to_reblit(a0)
     beq     .start_v_tiles
 
@@ -306,6 +309,10 @@ ScrollGetVTileOffsets2:
     cmp.b   #1,v_scroll_previous_x_direction(a0)            ;if (previous_direction == DIRECTION_RIGHT)
     bne     .start_v_tiles
     sub.w   #1,d7
+
+
+
+
 
 .start_v_tiles
     clr.l   d1                                              ;SOURCE OFFSET
@@ -365,6 +372,37 @@ ScrollGetVTileOffsets2:
     clr.l   d2
     swap    d3                                              ;y-step
     move.w  d3,d4
+
+    tst.w   d3
+    bne     .try_d7_test
+
+    move.w  v_video_x_position(a0),d3
+    and.w   #15,d3
+    beq     .try_d7_test
+
+    ;SPECIAL CASE #3: FINISHED BLITTING A ROW
+    ;                 WHEN WE HIT THIS CASE, GRAB THE SOURCE FROM LEFT (NORMAL)
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
+    bne     .check_special_case_04
+
+    mcgeezer_special2
+
+    sub.l   v_map_bytes_per_tile_block(a0),d5
+    add.w   v_map_bytes_per_tile_row(a0),d2
+    add.l   d2,d5
+    clr.l   d2
+
+    bra     .try_d7_test
+
+    ;END: SPECIAL CASE #3
+
+.check_special_case_04
+
+
+
+
+
+.try_d7_test
     tst.w   d7
     beq     .continue_with_column_offset
     move.w  #0,d4

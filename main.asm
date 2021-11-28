@@ -253,6 +253,8 @@ TESTScroll:
     move.w  d0,c_horizontal_scroll_pos_01(a1)               ;update copper
     move.b  #1,v_scroll_previous_x_direction(a0)            ;previous_direction = DIRECTION_RIGHT
 
+    ;TODO: CHECK ROW (FILL) BLITS
+
     rts
 
 ************************************************
@@ -297,6 +299,8 @@ TESTScroll:
     move.w  d0,c_horizontal_scroll_pos_01(a1)               ;update copper
     move.b  #8,v_scroll_previous_x_direction(a0)            ;previous_direction = DIRECTION_LEFT
 
+    ;TODO: CHECK ROW (FILL) BLITS
+
     rts
 
 *******************************************
@@ -324,6 +328,9 @@ TESTScroll:
     lea     TileDrawHorizontalJumpTable,a4
     move.l  (a4,d7.w),a4
     jsr     (a4)
+
+    ;TODO: CHECK COLUMN (FILL) BLITS
+
     rts
 
 ****************************************
@@ -345,6 +352,9 @@ TESTScroll:
 
     lea     TileDrawHorizontalJumpTable,a4
     move.l  (a4,d7.w),a4
+
+    ;TODO: CHECK COLUMN (FILL) BLITS
+
     jsr     (a4)
 
 .end_down
