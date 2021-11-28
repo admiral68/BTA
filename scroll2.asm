@@ -263,14 +263,15 @@ ScrollGetVTileOffsets2:
 
     moveq   #0,d7
 
-    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
-    bne     .start_v_tiles
     tst.w   v_map_tiles_to_reblit(a0)
     beq     .start_v_tiles
 
     ;TODO: HARDCODING 15
-    move.w  #15,d7
     move.w  #0,v_map_tiles_to_reblit(a0)
+    move.w  #15,d7
+    cmp.b   #1,v_scroll_previous_x_direction(a0)            ;if (previous_direction == DIRECTION_RIGHT)
+    bne     .start_v_tiles
+    sub.w   #1,d7
 
 .start_v_tiles
     clr.l   d1                                              ;SOURCE OFFSET
