@@ -216,10 +216,44 @@ ScrollGetHTileOffsets2:
     cmp.b   #1,v_scroll_vector_x(a0)                        ;moving right?
     bne     .go_back_one_destination_column
 
+    ;SPECIAL CASE #1: FINISHED BLITTING A COLUMN; ON [U] ROW
+    ;                 WHEN WE HIT THIS CASE, JUST BLIT THE BLOCK WITHOUT
+    ;                 THE OFFSET
+
+    cmp.w   d6,d3
+    bne     .add_bitplane_offset
+
+    move.w  v_video_y_position(a0),d7
+    and.w   #15,d7
+    beq     .add_bitplane_offset
+
+    sub.w   #2,d1
+    sub.w   #2,d5
+
+    ;END: SPECIAL CASE #1
+
+.add_bitplane_offset
     add.w   v_video_x_bitplane_offset(a0),d2                ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
     bra     .set_destination_ptr
 
 .go_back_one_destination_column
+
+    ;SPECIAL CASE #2: FINISHED BLITTING A COLUMN; ON [U] ROW
+    ;                 WHEN WE HIT THIS CASE, GRAB THE SOURCE FROM 16 TILES BELOW
+
+    cmp.w   d6,d3
+    bne     .left_test
+
+    move.w  v_video_y_position(a0),d7
+    and.w   #15,d7
+    beq     .left_test
+
+    mcgeezer_special2
+    add.l   v_map_bytes_per_tile_block(a0),d5
+
+    ;END: SPECIAL CASE #2
+
+.left_test
     tst.w   d3
     beq     .set_destination_ptr
     sub.l   #2,d2                                           ;last column
