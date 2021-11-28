@@ -182,16 +182,16 @@ ScrollGetHTileOffsets2:
 ;WHEN d6=d3, we're on the [U] fill row
 ;MAYBE THIS INFORMATION CAN BE SAVED SOMEHOW
 
-;    cmp.w   d6,d3
-;    bne     .continue_dumb_code
-;
-;    move.l  #0,d7
-;    rts
-;
-;
-;.continue_dumb_code
+    move.w  v_map_y_position(a0),d7
+    and.w   #15,d7
+    beq     .check_also_scrolling_up
 
+    cmp.w   d6,d3
+    bne     .check_also_scrolling_up
 
+    add.w   #1,v_map_tiles_to_reblit(a0)
+
+.check_also_scrolling_up
     move.w  d3,d2                                           ;x-step
     cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
     bne     .find_buffer_row
@@ -261,6 +261,18 @@ ScrollGetVTileOffsets2:
     ***** SET TILE STARTING ROW *****
     *********************************
 
+    moveq   #0,d7
+
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
+    bne     .start_v_tiles
+    tst.w   v_map_tiles_to_reblit(a0)
+    beq     .start_v_tiles
+
+    ;TODO: HARDCODING 15
+    move.w  #15,d7
+    move.w  #0,v_map_tiles_to_reblit(a0)
+
+.start_v_tiles
     clr.l   d1                                              ;SOURCE OFFSET
     clr.l   d2                                              ;COUNTER
     clr.l   d4                                              ;TILE ROW BYTES
@@ -318,6 +330,10 @@ ScrollGetVTileOffsets2:
     clr.l   d2
     swap    d3                                              ;y-step
     move.w  d3,d4
+    tst.w   d7
+    beq     .continue_with_column_offset
+    move.w  #0,d4
+.continue_with_column_offset
     asl.w   #1,d4
     add.w   v_scrolly_dest_offset_table(a0,d4.w),d2
     add.l   d2,d1                                           ;destination offset = mapy * mapwidth + mapx
@@ -340,10 +356,10 @@ ScrollGetVTileOffsets2:
 
 
 .figure_out_num_blocks_to_blit
-    moveq   #0,d7
-    asr.w   #1,d4
+    tst.w   d7
+    bne     .finish
 
-.check_position
+    asr.w   #1,d4
     cmp.w   #4,d4                                           ;positions 4 & B have doubles
     beq     .double
 
@@ -455,6 +471,7 @@ ScrollGetVTileOffsets2:
 
 .single
     addq    #1,d7
+.finish
     asl.w   #2,d7
 .none
     rts

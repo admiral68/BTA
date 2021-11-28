@@ -124,40 +124,40 @@ TileDrawThreeHorizontal:
     BLIT_ROWS_AND_COLS 1,3
 ;-----------------------------------------------
 TileDrawFourHorizontal:
-    BLIT_ROWS_AND_COLS 1,4
-;-----------------------------------------------
-TileDrawFiveHorizontal:
     BLIT_ROWS_AND_COLS 1,5
 ;-----------------------------------------------
-TileDrawSixHorizontal:
+TileDrawFiveHorizontal:
     BLIT_ROWS_AND_COLS 1,6
 ;-----------------------------------------------
-TileDrawSevenHorizontal:
+TileDrawSixHorizontal:
     BLIT_ROWS_AND_COLS 1,7
 ;-----------------------------------------------
-TileDrawEightHorizontal:
+TileDrawSevenHorizontal:
     BLIT_ROWS_AND_COLS 1,8
 ;-----------------------------------------------
-TileDrawNineHorizontal:
+TileDrawEightHorizontal:
     BLIT_ROWS_AND_COLS 1,9
 ;-----------------------------------------------
-TileDrawTenHorizontal:
+TileDrawNineHorizontal:
     BLIT_ROWS_AND_COLS 1,10
 ;-----------------------------------------------
-TileDrawElevenHorizontal:
+TileDrawTenHorizontal:
     BLIT_ROWS_AND_COLS 1,11
 ;-----------------------------------------------
-TileDrawTwelveHorizontal:
-    BLIT_ROWS_AND_COLS 1,12
-;-----------------------------------------------
-TileDrawThirteenHorizontal:
+TileDrawElevenHorizontal:
     BLIT_ROWS_AND_COLS 1,13
 ;-----------------------------------------------
-TileDrawFourteenHorizontal:
+TileDrawTwelveHorizontal:
     BLIT_ROWS_AND_COLS 1,14
 ;-----------------------------------------------
-TileDrawFifteenHorizontal:
+TileDrawThirteenHorizontal:
     BLIT_ROWS_AND_COLS 1,15
+;-----------------------------------------------
+TileDrawFourteenHorizontal:
+    BLIT_ROWS_AND_COLS 1,16
+;-----------------------------------------------
+TileDrawFifteenHorizontal:
+    BLIT_ROWS_AND_COLS 1,17
 ;-----------------------------------------------
 TileDrawTwoVertical:
     BLIT_VERTICAL_DOUBLE_CHECK_SPLIT

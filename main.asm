@@ -498,8 +498,7 @@ FastData:
 
 ;v_previous_scroll_vector
     dc.w 0
-;v_map_previous_x_position
-;v_map_previous_map_y_block
+;v_map_tiles_to_reblit
     dc.w 0
 ;v_unused_04
     dc.b $30,$20,$10,$00
