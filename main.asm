@@ -179,81 +179,10 @@ TESTScroll:
   *****************************************************
 
     *********************************
-    *****  BLIT DIRTY BLOCKS    *****
-    *********************************
-
-;ALGORITHM: New X movement where Y-BLOCK is not the same as with last X movement
-
-    bsr     ScrollGetDirectionalVectors
-
-;New
-
-    move.w  v_previous_scroll_vector(a0),d1
-    cmp.w   v_scroll_vector_x(a0),d1                        ;movement same as last frame?
-    beq     .continue
-
-;X movement where
-
-    tst.b   v_scroll_vector_x(a0)                           ;any x movement in the current frame?
-    beq     .continue
-
-;Y-BLOCK
-    move.w  v_map_y_position(a0),d6
-    asr.w   #4,d6                                           ;current Y-block
-
-;is not the same as with last X movement
-
-    cmp.w   v_map_previous_map_y_block(a0),d6               ;Y-block of last x movement
-    beq     .continue
-
-    bsr     ScrollGetMapXYForHorizontal2
-    move.w  #0,d3                                           ;start at first step and reblit blocks up to x-step
-    move.w  v_map_x_position(a0),d6                         ;Number of blocks to blit = x-step
-    and.w   #15,d6
-
-;d6=number of blocks to blit;d3(H):starting Y block;d3(L):step
-
-    cmp.b   #1,v_scroll_vector_x(a0)                        ;are we moving right?
-    bne     .makeup_tiles_set_sources
-    bsr     ScrollDecrementXPosition
-
-.makeup_tiles_set_sources
-    lea     MapSourceBitmap,a3
-    lea     MapSourceBitmapE,a5
-    bsr     ScrollGetHTileOffsets2
-
-    cmp.b   #15,v_scroll_vector_x(a0)                        ;left?
-    bne     .makeup_tiles_blit
-
-    ;mcgeezer_special2
-    move.l  a3,d5           ;DEBUG: SETS CLIMBING BONES AS TILE BLIT SOURCE
-    ;add.l   #$5007e,d5      ;DEBUG: SETS CLIMBING BONES AS TILE BLIT SOURCE
-    add.l   #$2d000,d5      ;DEBUG: SETS STONE WALL AS TILE BLIT SOURCE
-
-.makeup_tiles_blit
-    move.w  d6,d7
-    tst.w   d7
-    beq     .makeup_tiles_skip_blit
-
-    bsr     TileDrawVerticalHandleVSplit
-    ;asl.w   #2,d6
-    ;lea     TileDrawVerticalJumpTable,a4                    ;TODO: FIX JUMP TABLE TO SEPARATE TALL BLITS ON VERTICAL SPLIT
-    ;move.l  (a4,d6.w),a4
-    ;jsr     (a4)
-
-.makeup_tiles_skip_blit
-    cmp.b   #1,v_scroll_vector_x(a0)                        ;are we moving right?
-    bne     .continue
-
-    bsr     ScrollIncrementXPosition
-
-    *********************************
     *****  BLIT NORMAL BLOCKS   *****
     *********************************
 
 .continue
-
-    mcgeezer_special
 
     *****  CHECK FOR MOVEMENT  *****
 
@@ -324,12 +253,6 @@ TESTScroll:
     move.w  d0,c_horizontal_scroll_pos_01(a1)               ;update copper
     move.b  #1,v_scroll_previous_x_direction(a0)            ;previous_direction = DIRECTION_RIGHT
 
-    *****  SAVE CURRENT Y-BLOCK  *****
-
-    move.w  v_map_y_position(a0),d6                         ;save current Y-block for make-up blits
-    asr.w   #4,d6                                           ;get the y block
-    move.w  d6,v_map_previous_map_y_block(a0)
-
     rts
 
 ************************************************
@@ -360,12 +283,6 @@ TESTScroll:
     lea     MapSourceBitmap,a3
     lea     MapSourceBitmapE,a5
     bsr     ScrollGetHTileOffsets2
-
-    *****  SAVE CURRENT Y-BLOCK  *****
-
-    move.w  d7,d6                                           ;save current Y-block for make-up blits
-    asr.w   #2,d6                                           ;get the y block
-    move.w  d6,v_map_previous_map_y_block(a0)
 
     lea     TileDrawVerticalJumpTable,a4
     move.l  (a4,d7.w),a4

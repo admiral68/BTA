@@ -99,6 +99,19 @@ ScrollGetHTileOffsets2:
     sub.w  #1,d2
 
 .add_tile_step_rows
+
+
+
+
+    swap    d3                                              ;mapy (block)
+    move.w  d3,d6
+    swap    d3                                              ;x-step
+    and.w   #15,d6
+    sub.w   d6,d2
+    and.w   #15,d2
+
+
+
     tst.w   d2
     beq     .find_source_column
 
@@ -166,6 +179,19 @@ ScrollGetHTileOffsets2:
     *****    FIND BUFFER ROW    *****
     *********************************
 
+;WHEN d6=d3, we're on the [U] fill row
+;MAYBE THIS INFORMATION CAN BE SAVED SOMEHOW
+
+;    cmp.w   d6,d3
+;    bne     .continue_dumb_code
+;
+;    move.l  #0,d7
+;    rts
+;
+;
+;.continue_dumb_code
+
+
     move.w  d3,d2                                           ;x-step
     cmp.b   #15,v_scroll_vector_y(a0)                       ;also scrolling up?
     bne     .find_buffer_row
@@ -175,9 +201,9 @@ ScrollGetHTileOffsets2:
     move.w  #15,d2
 
 .find_buffer_row
-    swap    d3                                              ;mapy (block)
-    add.w   d3,d2                                           ;rolls buffer down d3 rows
-    swap    d3                                              ;x-step
+;    swap    d3                                              ;mapy (block)
+;    add.w   d3,d2                                           ;rolls buffer down d3 rows
+;    swap    d3                                              ;x-step
     and.w   #15,d2
 
     asl.w   #1,d2
@@ -324,11 +350,29 @@ ScrollGetVTileOffsets2:
     cmp.w   #$B,d4                                          ;odd positions > 3 (single block)
     beq     .double
 
+;THIS fixes up the right column
+    tst.b   v_scroll_vector_x(a0)
+    bne     .check_diagonal
+
+    cmp.w   #$F,d4
+    bne     .check_diagonal
+
+    move.w  v_map_x_position(a0),d2                         ;when X is on an uneven tile boundary, compensate
+    and.w   #$000f,d2                                       ;by blitting one block to the left
+    beq     .single
+
+    ;mcgeezer_special2
+
+    bra     .double
+
     *********************************
     *****    CHECK DIAGONAL     *****
     *********************************
 
     *****  DOWN RIGHT  *****
+
+.check_diagonal
+    bra     .single
 
     cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
     bne     .check_left

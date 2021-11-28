@@ -1266,3 +1266,277 @@ DecodeAndAssembleSourceTilesIntoMapSourceBitmap:
 ;   move.w  d1,v_scroll_vector_x(a0)
 ;   move.w  d2,v_previous_scroll_vector(a0)
 
+TileDrawVerticalHandleVSplit:
+;INPUT:d7 (number of blocks to blit);d1 DEST;d5 SRC
+.start
+    mcgeezer_special2
+    move.w  d7,d2                                           ;counter
+    move.l  d1,d7
+
+    cmp.w   #13,d2
+    bge     .handle_13_plus
+
+    move.l  #-1,d6
+
+.loop_count
+    add.l   #1,d6
+    add.l   #screen_tile_bytes_per_row,d7
+    cmp.l   v_screen_end(a0),d7
+    bge     .first_blit_counted
+    dbf     d2,.loop_count
+
+.first_blit_counted
+    cmp.w   #-1,d2
+    bne     .skip_set_to_zero
+    move.l  #0,d2
+
+.skip_set_to_zero
+    swap    d6
+    move.w  d2,d6
+    move.l  d6,d2
+
+    asl.w   #2,d6
+    lea     TileDrawVerticalJumpTable,a4
+    move.l  (a4,d6.w),a4
+    jsr     (a4)
+
+    move.l  d2,d6
+    swap    d2
+    tst.w   d2
+    beq     .end
+
+    ;second part of blit, starting from top of buffer
+
+    mcgeezer_special2
+
+    WAITBLIT
+
+    sub.w	#1,d6
+    clr.l   d7
+
+.loop_find_top_of_split
+    sub.l   #screen_tile_bytes_per_row,d1
+    cmp.l   v_screen(a0),d1
+    bge     .loop_find_top_of_split
+
+    add.l   #screen_tile_bytes_per_row,d1
+	
+    move.w  v_map_bytes_per_tile_row(a0),d7
+	
+.loop_find_source_row	
+    add.l   d7,d5
+	dbf		d6,.loop_find_source_row
+
+    cmp.l   a5,d5
+    blt     .do_second_blit
+    sub.l   v_map_bytes(a0),d5
+
+.do_second_blit
+    swap    d6
+    asl.w   #2,d6
+    lea     TileDrawVerticalJumpTable,a4
+    move.l  (a4,d6.w),a4
+    jmp     (a4)
+
+.handle_13_plus
+
+    cmp.w   #13,d2
+    bgt     .try_14
+
+    bsr     TileDraw
+    bra     .blit_12
+
+.try_14
+    cmp.w   #14,d2
+    bgt     .try_15
+
+    bsr     TileDraw
+    bsr     .move_down_a_row
+    bsr     TileDraw
+    bra     .blit_12
+
+.try_15
+    bsr     TileDraw
+    bsr     .move_down_a_row
+    bsr     TileDraw
+    bsr     .move_down_a_row
+    bsr     TileDraw
+
+.blit_12
+
+    bsr     .move_down_a_row
+    move.w  #12,d7
+    bra     .start
+
+.move_down_a_row
+
+    WAITBLIT
+
+    clr.l   d7
+    move.w  v_map_bytes_per_tile_row(a0),d7
+
+    add.l   #screen_tile_bytes_per_row,d1
+    add.l   d7,d5
+
+    cmp.l   v_screen_end(a0),d1
+    blt     .skip_screen_adjustment
+
+    sub.l   #screen_buffer_bytes,d1
+
+.skip_screen_adjustment
+
+    cmp.l   a5,d5
+    blt     .end
+    sub.l   v_map_bytes(a0),d5
+
+.end
+    rts
+
+;------------------------------------------------------
+    *********************************
+    *****  BLIT DIRTY BLOCKS    *****
+    *********************************
+
+;ALGORITHM: New X movement where Y-BLOCK is not the same as with last X movement
+
+    bsr     ScrollGetDirectionalVectors
+
+;New
+
+    move.w  v_previous_scroll_vector(a0),d1
+    cmp.w   v_scroll_vector_x(a0),d1                        ;movement same as last frame?
+    beq     .continue
+
+;X movement where
+
+    tst.b   v_scroll_vector_x(a0)                           ;any x movement in the current frame?
+    beq     .continue
+
+;Y-BLOCK
+    move.w  v_map_y_position(a0),d6
+    asr.w   #4,d6                                           ;current Y-block
+
+;is not the same as with last X movement
+
+    cmp.w   v_map_previous_map_y_block(a0),d6               ;Y-block of last x movement
+    beq     .continue
+
+    bsr     ScrollGetMapXYForHorizontal2
+    move.w  #0,d3                                           ;start at first step and reblit blocks up to x-step
+    move.w  v_map_x_position(a0),d6                         ;Number of blocks to blit = x-step
+    and.w   #15,d6
+
+;d6=number of blocks to blit;d3(H):starting Y block;d3(L):step
+
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;are we moving right?
+    bne     .makeup_tiles_set_sources
+    bsr     ScrollDecrementXPosition
+
+.makeup_tiles_set_sources
+    lea     MapSourceBitmap,a3
+    lea     MapSourceBitmapE,a5
+    bsr     ScrollGetHTileOffsets2
+
+    cmp.b   #15,v_scroll_vector_x(a0)                        ;left?
+    bne     .makeup_tiles_blit
+
+    ;mcgeezer_special2
+    move.l  a3,d5           ;DEBUG: SETS CLIMBING BONES AS TILE BLIT SOURCE
+    ;add.l   #$5007e,d5      ;DEBUG: SETS CLIMBING BONES AS TILE BLIT SOURCE
+    add.l   #$2d000,d5      ;DEBUG: SETS STONE WALL AS TILE BLIT SOURCE
+
+.makeup_tiles_blit
+    move.w  d6,d7
+    tst.w   d7
+    beq     .makeup_tiles_skip_blit
+
+    bsr     TileDrawVerticalHandleVSplit
+    ;asl.w   #2,d6
+    ;lea     TileDrawVerticalJumpTable,a4                    ;TODO: FIX JUMP TABLE TO SEPARATE TALL BLITS ON VERTICAL SPLIT
+    ;move.l  (a4,d6.w),a4
+    ;jsr     (a4)
+
+.makeup_tiles_skip_blit
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;are we moving right?
+    bne     .continue
+
+    bsr     ScrollIncrementXPosition
+
+;-------------------------------------------------
+    *****  DOWN RIGHT  *****
+
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+    bne     .check_left
+
+    tst.w   d4
+    bne     .single
+
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
+    bne     .adjust_right
+
+    move.w  v_map_x_position(a0),d2
+    and.w   #15,d2
+    sub.w   #1,d2
+    beq     .adjust_right
+
+    and.w   #15,d2
+    move.w  d2,d3
+    add.w   d2,d2
+
+    cmp.w   #4,d3
+    blt     .subtract
+
+    cmp.w   #14,d3
+    bge     .subtract
+
+    cmp.w   #11,d3
+    blt     .account_for_double_blocks_down_right
+    add.w   #2,d2
+
+.account_for_double_blocks_down_right
+    add.w   #2,d2
+
+.subtract
+    sub.w   d2,d5
+    sub.w   d2,d1
+
+.adjust_right
+    add.w   v_video_x_bitplane_offset(a0),d5
+    add.w   v_video_x_bitplane_offset(a0),d1
+    move.l  a3,d5
+    add.l   #$2d000,d5
+    bra     .single
+
+    *****   UP LEFT    *****
+
+.check_left
+    cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
+    bne     .single
+
+    cmp.w   #$F,d4
+    bne     .single
+
+    cmp.b   #15,v_scroll_vector_y(a0)                        ;up?
+    bne     .adjust_left_down
+
+    move.w  v_map_x_position(a0),d2
+    add.w   #1,d2
+    and.w   #15,d2
+
+    add.w   d2,d2
+    move.w  v_scrolly_dest_offset_table(a0,d2.w),d2
+
+    sub.w   d2,d5
+    sub.w   d2,d1
+    move.l  a3,d5
+    add.l   #$2d000,d5
+    bra     .single
+
+.adjust_left_down
+    add.w   #2,d1
+    add.w   #2,d5
+    sub.w   v_video_x_bitplane_offset(a0),d5
+    sub.w   v_video_x_bitplane_offset(a0),d1
+    move.l  a3,d5
+    add.l   #$2d000,d5
+    bra     .single

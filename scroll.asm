@@ -330,7 +330,7 @@ ScrollCalculateVerticalSplit:
 
 .update_split
     sub.w   d2,d0                                           ;d0 = d0 - (ypos % screen_buffer_height)
-    cmp.w   #$00ff,d0
+    cmp.w   #$010c,d0										;was 00ff
     bhi     .check_down
     sub.w   #1,d0                                           ;compensates for vertical split glitch
 .check_down
