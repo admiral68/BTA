@@ -300,15 +300,15 @@ ScrollGetVTileOffsets2:
 
 
 
-    tst.w   v_map_tiles_to_reblit(a0)
-    beq     .start_v_tiles
-
-    ;TODO: HARDCODING 15
-    move.w  #0,v_map_tiles_to_reblit(a0)
-    move.w  #15,d7
-    cmp.b   #1,v_scroll_previous_x_direction(a0)            ;if (previous_direction == DIRECTION_RIGHT)
-    bne     .start_v_tiles
-    sub.w   #1,d7
+;    tst.w   v_map_tiles_to_reblit(a0)
+;    beq     .start_v_tiles
+;
+;    ;TODO: HARDCODING 15
+;    move.w  #0,v_map_tiles_to_reblit(a0)
+;    move.w  #15,d7
+;    cmp.b   #1,v_scroll_previous_x_direction(a0)            ;if (previous_direction == DIRECTION_RIGHT)
+;    bne     .start_v_tiles
+;    sub.w   #1,d7
 
 
 
@@ -371,42 +371,74 @@ ScrollGetVTileOffsets2:
 
     clr.l   d2
     swap    d3                                              ;y-step
-    move.w  d3,d4
 
-    tst.w   d3
-    bne     .try_d7_test
-
-    move.w  v_video_x_position(a0),d3
-    and.w   #15,d3
-    beq     .try_d7_test
+    move.w  v_video_x_position(a0),d4
+    and.w   #15,d4
+    beq     .continue_with_column_offset
 
     ;SPECIAL CASE #3: FINISHED BLITTING A ROW
     ;                 WHEN WE HIT THIS CASE, GRAB THE SOURCE FROM LEFT (NORMAL)
+
     cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
     bne     .check_special_case_04
 
-    mcgeezer_special2
+    tst.w   d3
+    beq     .continue_special_case_3
+    cmp.b   #15,d3
+    bne     .continue_with_column_offset
+    bra     .down_blit_on_step_15
 
+.continue_special_case_3
     sub.l   v_map_bytes_per_tile_block(a0),d5
     add.w   v_map_bytes_per_tile_row(a0),d2
     add.l   d2,d5
+    add.l   #2,d5
     clr.l   d2
 
-    bra     .try_d7_test
+    add.w   #screen_bpl_bytes_per_row,d2
+    add.l   d2,d1
+    clr.l   d2
+
+    bra     .continue_with_column_offset
+
+.down_blit_on_step_15
+
+    add.l   #2,d1
+    add.l   #2,d5
+    bra     .continue_with_column_offset
 
     ;END: SPECIAL CASE #3
 
+    ;SPECIAL CASE #4: FINISHED BLITTING A ROW
+    ;                 WHEN WE HIT THIS CASE, BLIT TO THE FIRST BLOCK OF THE FILL COLUMN BELOW
+    ;                 THE SOURCE (THE END OF THE FILL ROW) BLOCK IS CORRECT
+
 .check_special_case_04
 
+    tst.w   d3
+    bne     .continue_with_column_offset
+
+    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
+    bne     .continue_with_column_offset
+
+    clr.l   d2
+    add.w   v_video_x_bitplane_offset(a0),d1
+    add.w   #screen_columns*2,d2
+    add.l   d2,d5
+
+    move.w  #1,d7
+    bra     .finish
+
+    ;END: SPECIAL CASE #4
+
+;.try_d7_test
+;    tst.w   d7
+;    beq     .continue_with_column_offset
+;    move.w  #0,d4
 
 
-
-
-.try_d7_test
-    tst.w   d7
-    beq     .continue_with_column_offset
-    move.w  #0,d4
 .continue_with_column_offset
+    move.w  d3,d4
     asl.w   #1,d4
     add.w   v_scrolly_dest_offset_table(a0,d4.w),d2
     add.l   d2,d1                                           ;destination offset = mapy * mapwidth + mapx
@@ -439,6 +471,9 @@ ScrollGetVTileOffsets2:
     cmp.w   #$B,d4                                          ;odd positions > 3 (single block)
     beq     .double
 
+    cmp.w   #$E,d4                                          ;odd positions > 3 (single block)
+    beq     .double
+
 ;THIS fixes up the right column
     tst.b   v_scroll_vector_x(a0)
     bne     .check_diagonal
@@ -446,11 +481,16 @@ ScrollGetVTileOffsets2:
     cmp.w   #$F,d4
     bne     .check_diagonal
 
+    bra     .single
+
+
+
     move.w  v_map_x_position(a0),d2                         ;when X is on an uneven tile boundary, compensate
     and.w   #$000f,d2                                       ;by blitting one block to the left
     beq     .single
 
     ;mcgeezer_special2
+
 
     bra     .double
 
