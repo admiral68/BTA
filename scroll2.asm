@@ -48,6 +48,74 @@ ScrollGetMapXYForVertical2:
     rts
 
 ;-----------------------------------------------
+ScrollRightFixRow:
+;(RIGHT) (0,3) => (16,3) ROW BLIT (FILL):                   Y-STEP BLOCK (FROM DOWN SOURCE AS A FILL (DOWN) BLOCK)
+    move.w  v_map_x_position(a0),d3
+    and.w   #15,d3
+    bne     .end
+
+    mcgeezer_special2
+    move.w  #1,d3
+
+    swap    d3
+    move.w  v_map_y_position(a0),d3
+    asr.w   #4,d3
+    swap    d3
+
+.end
+    rts
+;-----------------------------------------------
+ScrollLeftFixRow:
+;(LEFT) (16,3) => (0,3) ROW BLIT (FILL):        Y-STEP BLOCK (FROM UP SOURCE AS A NORMAL (UP) BLOCK)
+    move.w  v_map_x_position(a0),d3
+    and.w   #15,d3
+    bne     .end
+
+    mcgeezer_special2
+    move.w  #2,d3
+
+    swap    d3
+    move.w  v_map_y_position(a0),d3
+    asr.w   #4,d3
+    swap    d3
+
+.end
+    rts
+;-----------------------------------------------
+ScrollDownFixColumn:
+;(DOWN) (3,0) => (3,16) X-STEP BLOCK FROM RIGHT SOURCE (IF LAST X-DIRECTION WAS RIGHT) OR LEFT SOURCE (IF LAST X-DIRECTION WAS LEFT)
+    move.w  v_map_y_position(a0),d3
+    and.w   #15,d3
+    bne     .end
+
+    mcgeezer_special2
+    move.w  #3,d3
+
+    swap    d3
+    move.w  v_map_x_position(a0),d3
+    asr.w   #4,d3
+    swap    d3
+
+.end
+    rts
+;-----------------------------------------------
+ScrollUpFixColumn:
+;(UP) (3,16) => (3,0)   X-STEP BLOCK OF FILL ROW WITH NORMAL (UP) BLOCK (NO PLANE SHIFT)
+    move.w  v_map_y_position(a0),d3
+    and.w   #15,d3
+    bne     .end
+
+    mcgeezer_special2
+    move.w  #4,d3
+
+    swap    d3
+    move.w  v_map_x_position(a0),d3
+    asr.w   #4,d3
+    swap    d3
+
+.end
+    rts
+;-----------------------------------------------
 ScrollGetHTileOffsets2:
 ;INPUT: mapx/y in d3
 ;       x = in pixels
