@@ -247,13 +247,15 @@ TESTScroll:
     move.l  (a4,d7.w),a4
     jsr     (a4)
 
+    ;TODO: CHECK ROW (FILL) BLITS
+    ;(RIGHT) (0,3) => (16,3) ROW BLIT (FILL):        Y-STEP BLOCK (FROM DOWN SOURCE AS A FILL (DOWN) BLOCK)
+
     bsr     ScrollIncrementXPosition                        ;INPUT: mapx/y in d3; x/y in d4
     bsr     ScrollGetStepAndDelay
     lea     Copper,a1                                       ;Copper Horizontal Scroll pos
     move.w  d0,c_horizontal_scroll_pos_01(a1)               ;update copper
     move.b  #1,v_scroll_previous_x_direction(a0)            ;previous_direction = DIRECTION_RIGHT
 
-    ;TODO: CHECK ROW (FILL) BLITS
 
     rts
 
@@ -290,6 +292,9 @@ TESTScroll:
     move.l  (a4,d7.w),a4
     jsr     (a4)
 
+    ;TODO: CHECK ROW (FILL) BLITS
+    ;(LEFT) (16,3) => (0,3) ROW BLIT (FILL):        Y-STEP BLOCK (FROM UP SOURCE AS A NORMAL (UP) BLOCK)
+
     ;needed for change of direction
     bsr     ScrollGetStepAndDelay
 
@@ -298,8 +303,6 @@ TESTScroll:
     lea     Copper,a1                                       ;Copper Horizontal Scroll pos
     move.w  d0,c_horizontal_scroll_pos_01(a1)               ;update copper
     move.b  #8,v_scroll_previous_x_direction(a0)            ;previous_direction = DIRECTION_LEFT
-
-    ;TODO: CHECK ROW (FILL) BLITS
 
     rts
 
@@ -330,6 +333,7 @@ TESTScroll:
     jsr     (a4)
 
     ;TODO: CHECK COLUMN (FILL) BLITS
+    ;(UP) (3,16) => (3,0)   X-STEP BLOCK OF FILL ROW WITH NORMAL (UP) BLOCK (NO PLANE SHIFT)
 
     rts
 
@@ -352,10 +356,10 @@ TESTScroll:
 
     lea     TileDrawHorizontalJumpTable,a4
     move.l  (a4,d7.w),a4
+    jsr     (a4)
 
     ;TODO: CHECK COLUMN (FILL) BLITS
-
-    jsr     (a4)
+    ;(DOWN) (3,0) => (3,16) X-STEP BLOCK FROM RIGHT SOURCE (IF LAST X-DIRECTION WAS RIGHT) OR LEFT SOURCE (IF LAST X-DIRECTION WAS LEFT)
 
 .end_down
     bsr     ScrollIncrementYPosition                        ;INPUT: mapx/y in d3; x/y in d4
