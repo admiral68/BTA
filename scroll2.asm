@@ -82,39 +82,90 @@ ScrollLeftFixRow:
 .end
     rts
 ;-----------------------------------------------
-ScrollDownFixColumn:
+ScrollVerticalFixColumn:
 ;(DOWN) (3,0) => (3,16) X-STEP BLOCK FROM RIGHT SOURCE (IF LAST X-DIRECTION WAS RIGHT) OR LEFT SOURCE (IF LAST X-DIRECTION WAS LEFT)
     move.w  v_map_y_position(a0),d3
     and.w   #15,d3
     bne     .end
 
-    mcgeezer_special2
-    move.w  #3,d3
+    move.l  v_scroll_screen(a0),d1
+    move.l  a3,d5
+
+    move.w  v_map_x_position(a0),d3
+    asr.w   #4,d3
+    add.w   d3,d3
 
     swap    d3
     move.w  v_map_x_position(a0),d3
-    asr.w   #4,d3
+    and.w   #15,d3
+
+    tst.w   d3
+    beq     .end
+
+    add.w   #screen_columns*2,d5
+    sub.w   #2,d5
+
+    move.w  v_map_y_position(a0),d2
+    asr.w   #4,d2
+    add.w   #1,d2                                               ;PUTS OUR BUFFER ON FILL ROW
+
+    clr.l   d4
+    move.w  v_map_bytes_per_tile_row(a0),d4
+
+.addo
+    add.l   d4,d5
+    add.l   #screen_tile_bytes_per_row,d1
+    dbf     d2,.addo
+
+.skip_add_rows
+    clr.l   d2
+
+    add.w   v_video_x_bitplane_offset(a0),d2
+    add.l   d2,d1
+
+    move.w  #0,d3
     swap    d3
+    add.l   d3,d5
+
+    cmp.l   a5,d5
+    blt     .check_screen
+    sub.l   v_map_bytes(a0),d5
+
+.check_screen
+    move.l  v_screen(a0),d2
+    add.l   #screen_buffer_bytes,d2
+
+    cmp.l   d2,d1
+    blt     .blit
+    sub.l   #screen_buffer_bytes,d1
+
+.blit
+    WAITBLIT
+
+    bsr     TileDraw
 
 .end
     rts
 ;-----------------------------------------------
-ScrollUpFixColumn:
-;(UP) (3,16) => (3,0)   X-STEP BLOCK OF FILL ROW WITH NORMAL (UP) BLOCK (NO PLANE SHIFT)
-    move.w  v_map_y_position(a0),d3
-    and.w   #15,d3
-    bne     .end
-
-    mcgeezer_special2
-    move.w  #4,d3
-
-    swap    d3
-    move.w  v_map_x_position(a0),d3
-    asr.w   #4,d3
-    swap    d3
-
-.end
-    rts
+;ScrollUpFixColumn:
+;;(UP) (3,16) => (3,0)   X-STEP BLOCK OF FILL ROW WITH NORMAL (UP) BLOCK (NO PLANE SHIFT)
+;    move.w  v_map_y_position(a0),d3
+;    and.w   #15,d3
+;    bne     .end
+;
+;    mcgeezer_special2
+;    jmp        ScrollDownFixColumn
+;
+;
+;
+;
+;    swap    d3
+;    move.w  v_map_x_position(a0),d3
+;    asr.w   #4,d3
+;    swap    d3
+;
+;.end
+;    rts
 ;-----------------------------------------------
 ScrollGetHTileOffsets2:
 ;INPUT: mapx/y in d3
@@ -466,6 +517,8 @@ ScrollGetVTileOffsets2:
     add.w   #screen_bpl_bytes_per_row,d2
     add.l   d2,d1
     clr.l   d2
+
+    ;mcgeezer_special2
 
     bra     .continue_with_column_offset
 
