@@ -225,6 +225,8 @@ ScrollVerticalFixColumn:
     tst.w   d3
     beq     .end
 
+;THIS WILL LOCATE THE BLOCKS TO THE RIGHT/LEFT OF THE SCREEN
+
     cmp.b   #15,v_scroll_vector_y(a0)                           ;up?
     beq     .skip_going_to_right_source
     add.w   #screen_columns*2,d5
@@ -245,7 +247,7 @@ ScrollVerticalFixColumn:
 
 .skip_add_rows
 
-    ;THIS LOCATES THE FILL COLUMN
+;THIS LOCATES THE FILL COLUMN
 
     cmp.b   #15,v_scroll_vector_y(a0)                           ;up?
     beq     .skip_offset
