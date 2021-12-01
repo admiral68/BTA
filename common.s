@@ -86,6 +86,7 @@ screen_bitplanes                    = 5; was 4
 screen_bpl_bytes_per_row            = screen_width/8
 screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
 screen_tile_bytes_per_row           = screen_bytes_per_row*tile_height
+screen_tile_bytes_per_block         = screen_tile_bytes_per_row*16
 screen_buffer_bytes                 = screen_tile_bytes_per_row*screen_buffer_rows
 screen_actual_buffer_bytes          = screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16)
 screen_modulo                       = (screen_width/8)*(screen_bitplanes-1)             ;offset by 3 bitplanes

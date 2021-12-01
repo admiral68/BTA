@@ -9,7 +9,6 @@
     INCLUDE "tile.asm"
     INCLUDE "map.asm"
     INCLUDE "scroll.asm"
-    INCLUDE "scroll2.asm"
     INCLUDE "input.asm"
     INCLUDE "debug.asm"
 
@@ -234,14 +233,14 @@ TESTScroll:
     bsr     ScrollUpdateBitplanePointers
 
 .get_xy_position_right
-    bsr     ScrollGetMapXYForHorizontal2
+    bsr     ScrollGetMapXYForHorizontal
     ;add.w  #screen_columns+1,d3                             ;mapx = mapposx / BLOCKWIDTH + BITMAPBLOCKSPERROW;
 
     bsr     ScrollUpdateSaveWordRight
 
     lea     MapSourceBitmap,a3
     lea     MapSourceBitmapE,a5
-    bsr     ScrollGetHTileOffsets2
+    bsr     ScrollGetHTileOffsets
 
     lea     TileDrawVerticalJumpTable,a4
     move.l  (a4,d7.w),a4
@@ -282,12 +281,12 @@ TESTScroll:
     bsr     ScrollUpdateBitplanePointers
 
 .get_map_xy_left
-    bsr     ScrollGetMapXYForHorizontal2
+    bsr     ScrollGetMapXYForHorizontal
     bsr     ScrollUpdateSaveWordLeft
 
     lea     MapSourceBitmap,a3
     lea     MapSourceBitmapE,a5
-    bsr     ScrollGetHTileOffsets2
+    bsr     ScrollGetHTileOffsets
 
     lea     TileDrawVerticalJumpTable,a4
     move.l  (a4,d7.w),a4
@@ -321,14 +320,14 @@ TESTScroll:
     bsr     ScrollUpdateBitplanePointers                    ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
 .get_xy_position_up
-    bsr     ScrollGetMapXYForVertical2
+    bsr     ScrollGetMapXYForVertical
     ;swap d3
     ;add.w #1,d3                                             ;mapy+1--row under visible screen
     ;swap d3
 
     lea     MapSourceBitmap,a3
     lea     MapSourceBitmapE,a5
-    bsr     ScrollGetVTileOffsets2
+    bsr     ScrollGetVTileOffsets
 
     lea     TileDrawHorizontalJumpTable,a4
     move.l  (a4,d7.w),a4
@@ -351,11 +350,11 @@ TESTScroll:
     bsr     ScrollUpdateBitplanePointers                    ;INPUT:d4=(dx=lw;dy=hw);a0=FastData;a1=Copper
 
 .get_xy_position_down
-    bsr     ScrollGetMapXYForVertical2
+    bsr     ScrollGetMapXYForVertical
 
     lea     MapSourceBitmap,a3
     lea     MapSourceBitmapE,a5
-    bsr     ScrollGetVTileOffsets2
+    bsr     ScrollGetVTileOffsets
 
     lea     TileDrawHorizontalJumpTable,a4
     move.l  (a4,d7.w),a4

@@ -1540,3 +1540,558 @@ TileDrawVerticalHandleVSplit:
     move.l  a3,d5
     add.l   #$2d000,d5
     bra     .single
+;-------------------------------------
+ScrollGetMapXYForHorizontal:
+;INPUT: fast data (a0)
+;returns mapx/y in d3
+
+    move.w  v_map_x_position(a0),d3                         ;save for mapy
+    and.w   #15,d3                                          ;mapy = mapposx & (NUMSTEPS - 1);
+    swap    d3
+
+    move.w  v_map_x_position(a0),d3                         ;mapposx
+    asr.w   #4,d3                                           ;mapx = mapposx / BLOCKWIDTH
+
+    rts
+;-------------------------------------
+ScrollGetMapXYForVertical:
+;returns mapx/mapy (source blocks) in d3
+;        scroll step/mapy (dest block) in d4
+
+;at this point, the scroll bitplane pointer has already moved down
+;and the vertical split has been calculated
+
+    clr.l   d4
+    move.w  v_map_y_position(a0),d3                         ;save for mapy
+    move.w  d3,d4                                           ;mapposy (if scrolling down, we're one behind)
+    and.w   #15,d4                                          ;scroll step y
+    swap    d3
+
+    move.w  v_map_x_position(a0),d3                         ;mapposx
+    asr.w   #4,d3                                           ;mapx (block)
+
+    swap    d3                                              ;mapposy
+    asr.w   #4,d3                                           ;mapy (block)
+
+    swap    d4
+    move.w  d3,d4                                           ;mapy (block) in d4
+
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;if downward scroll, continue
+    bne     .do_upward
+
+    add.w   #15,d4
+    cmp.b   v_map_tile_height(a0),d4
+    blt     .save_mapy
+
+    clr.l   d7
+    move.b  v_map_tile_height(a0),d7
+    sub.w   d7,d4
+    bra     .save_mapy
+
+.do_upward
+    sub.w   #1,d4
+    bpl     .save_mapy
+
+    clr.w   d4
+    move.b  v_map_tile_height(a0),d4
+    sub.w  #1,d4
+
+
+.save_mapy
+
+    swap    d4                                              ;scroll step y
+
+;destination block in d3
+
+.end
+    swap    d3                                              ;mapx (block)
+    rts
+
+;-----------------------------------------------
+ScrollGetHTileOffsets:
+;INPUT: mapx/y in d3
+;       x = in pixels
+;       y = in "planelines" (1 realline = BLOCKSDEPTH planelines)
+;       MapSourceBitmap=a3;MapSourceBitmapE=a5
+;SOURCE => d5 (d3=offset)
+
+****************************************
+***           SOURCE                 ***
+****************************************
+
+    clr.l   d1
+    clr.l   d2
+    clr.l   d5
+    clr.l   d6
+
+    move.w  v_map_x_position(a0),d4
+
+    move.w  v_map_bytes_per_tile_row(a0),d5
+    move.w  d5,d6
+
+    move.w  d4,d7
+    and.w   #15,d7                                          ;x-step
+
+    move.w  v_map_y_position(a0),d2                         ; TASK (2)
+    asr.w   #4,d2                                           ; TASK (2)
+    tst.w   d2                                              ; TASK (2)
+    beq     .skip_add_base                                  ; TASK (2)
+
+;    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?  TASK (2)
+;    bne     .start_add_base                                 ; TASK (2)
+    move.w  v_map_y_position(a0),d2                         ; TASK (2)
+    sub.w   #1,d2                                           ; TASK (2)
+    asr.w   #4,d2                                           ; TASK (2)
+    add.w   #1,d2                                           ; TASK (2)
+
+.start_add_base
+    sub.w   #1,d2                                           ; TASK (2)
+
+.add_base                                                   ; TASK (2)
+    add.l   d5,d1                                           ; TASK (2)
+    dbf     d2,.add_base                                    ; TASK (2)
+
+.skip_add_base                                              ; TASK (2)
+
+    swap    d3                                              ;mapy
+
+    move.w  v_map_x_position(a0),d3                         ;save for mapy ; TASK (2)
+    and.w   #15,d3                                          ;mapy = mapposx & (NUMSTEPS - 1); ; TASK (2)
+
+    move.w  d3,d2
+
+.check_add
+
+    tst.w   d2
+    beq     .find_source_column
+
+    sub.w   #1,d2
+
+.addo                                                       ;mapy * mapwidth
+    add.l   d5,d1
+    dbf     d2,.addo
+
+.find_source_column
+    clr.l   d5
+    swap    d3                                              ;mapx
+    move.w  d3,d2
+
+    cmp.b   #1,v_scroll_vector_x(a0)
+    bne     .left
+
+    subi    #1,d2                                           ;back a column
+
+.left
+    subi    #1,d2
+    bpl     .asl
+    clr.w   d2
+.asl
+    asl.w   #1,d2                                           ;mapx=col;*2=bp byte offset
+
+    ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
+    add.l   d2,d1                                           ;source offset = mapy * mapwidth + mapx
+    move.l  d1,d3                                           ;for debugging purposes
+
+    WAITBLIT                                                ;HardWaitBlit();
+
+    move.l  a3,d5                                           ;A source (blocksbuffer)
+    add.l   d1,d5                                           ;blocksbuffer + mapy + mapx
+
+    sub.l   d6,d5                                           ;We're starting one source row higher
+
+    ;IF the source pointer is out of range, skip the blit
+    cmp.l   a3,d5
+    bge     .check_past_end_of_source
+
+    add.l   d6,d5
+    add.l   v_map_bytes(a0),d5
+
+.check_past_end_of_source
+    cmp.l   a5,d5
+    blt     .destination
+    sub.l   v_map_bytes(a0),d5
+
+****************************************
+***         DESTINATION              ***
+****************************************
+
+.destination
+
+    ;DESTINATION => d1
+    move.l  v_scroll_screen(a0),d1                          ;D dest (frontbuffer)
+
+    moveq   #0,d2
+
+    move.w  v_map_x_position(a0),d3                         ; TASK (2)
+    and.w   #15,d3
+
+    move.w  v_map_y_position(a0),d2                         ; TASK (2)
+    asr.w   #4,d2                                           ; TASK (2)    ; mapy block
+
+    tst.w   d2                                              ; TASK (2)
+    beq     .continue_add_dest_offset                       ; TASK (2)
+
+;    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?  TASK (2)
+;    bne     .continue_add_dest_offset                       ; TASK (2)
+    ;mcgeezer_special2
+    move.w  v_map_y_position(a0),d2                         ; TASK (2)
+    sub.w   #1,d2                                           ; TASK (2)
+    asr.w   #4,d2                                           ; TASK (2)    ; mapy block
+    add.w   #1,d2                                           ; TASK (2)
+
+.continue_add_dest_offset
+    add.w   d2,d4                                           ; TASK (2)    ; step + mapy block
+    moveq   #0,d2                                           ; TASK (2)
+    and.w   #15,d4                                          ;x-step
+
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?   TASK (2)
+    bne     .check_up                                       ; TASK (2)
+
+    tst.w     d3                                            ; TASK (2) SKIP FIRST BLIT
+    bne     .continue_to_blit                               ; TASK (2)
+
+.none                                                       ; TASK (2)
+    moveq   #0,d7                                           ; TASK (2)
+    rts                                                     ; TASK (2)
+
+.check_up
+    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?  TASK (2)
+    bne     .continue_to_blit                               ; TASK (2)
+
+    cmp.b   #15,d3                                          ; TASK (2) SKIP LAST BLIT
+    beq     .none                                           ; TASK (2)
+
+.continue_to_blit
+    move.w  d4,d6
+
+    asl.w   #1,d4
+    add.w   v_scrollx_dest_offset_table(a0,d4.w),d2
+
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;moving right?
+    bne     .left2
+
+    add.w   v_video_x_bitplane_offset(a0),d2                ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
+                                                            ;or zero
+    bra     .get_step
+
+.left2
+    tst.w   d7
+    beq     .get_step
+    sub.l   #2,d2                                           ;last column
+
+.get_step
+
+    move.l  d2,d4                                           ;(for debugging)
+    add.l   d2,d1                                           ;frontbuffer + y + x
+
+.single
+    moveq   #1,d7
+    asl.w   #2,d7
+    rts
+
+;-----------------------------------------------
+ScrollGetVTileOffsets:
+;INPUT: mapx/mapy(offset for dest) in d3
+;       y step/actual mapy(source) in d4
+
+    ;SOURCE => d5 (d3=offset)
+
+    clr.l   d1
+    clr.l   d2
+    clr.l   d5
+
+    move.w  v_map_bytes_per_tile_row(a0),d5
+
+    move.l  d3,d6                                           ;for destination
+
+    swap    d4                                              ;actual mapy(source)
+    move.w  d4,d2
+    swap    d4                                              ;y step
+
+    cmp.w   #0,d2
+    beq     .skip_add
+    sub.w   #1,d2
+
+.addo                                                       ;mapy * mapwidth
+    add.l   d5,d1
+    dbf     d2,.addo
+
+.skip_add
+    clr.l   d5
+
+    move.w  d3,d2                                           ;mapx
+    asl.w   #1,d2                                           ;mapx=col;*2=bp byte offset
+
+    ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
+    sub.l   #2,d1                                           ;NEW CODE--takes care of column 0
+
+    add.l   d2,d1                                           ;source offset = mapy * mapwidth + mapx
+    move.w  d3,d2                                           ;mapx
+    move.l  d1,d3                                           ;for debugging purposes
+
+    WAITBLIT                                                ;TODO: PUT BACK IN WHEN NOT DEBUGGING
+
+    move.l  a3,d5                                           ;A source (blocksbuffer)
+    ;FOR DEBUGGING: COMMENT THE NEXT LINE OUT; it will always choose the same source tile
+    add.l   d1,d5                                           ;blocksbuffer + mapy + mapx
+
+;IF the source pointer is out of range, skip the blit
+
+    moveq   #0,d7
+
+; TASK (2)
+    ;tst.w   d2                                              ;blitting into first column?
+    ;bne     .destination
+
+    ;tst.w   d4                                              ;If on the first step and blitting into column 0,
+    ;beq     .none                                           ;skip the blit
+; TASK (2)
+
+****************** DESTINATION **************************
+
+.destination
+    ;DESTINATION => d1 (d4)
+    clr.l   d3
+    move.w  d4,d3                                           ;y step;keep this for blit
+    move.l  v_scroll_screen(a0),d1                          ;D dest (frontbuffer)
+
+    swap    d6                                              ;mapy(offset for dest)
+    move.w  d6,d2
+    and.w   #15,d2                                          ; TASK (2)
+
+    move.w  #1,d6
+    cmp.b   #1,v_scroll_vector_y(a0)                        ;scrolling down?
+    beq     .subtract
+    add.w   #1,d6
+
+.subtract
+    sub.w   d6,d2
+    bpl     .add_rows
+    add.w   #screen_buffer_rows,d2
+
+************* CONVERT MAPY TO VIDEOY ********************
+
+.add_rows
+    tst.w   d2
+    beq     .add_column_offsets
+
+    move.w  d2,d6                                           ;debug
+    sub.w   #1,d2
+
+.loop_add_tile_row                                          ;videoy * screenwidth
+
+    add.l   #screen_tile_bytes_per_row,d1
+    dbf     d2,.loop_add_tile_row
+
+************** ADD COLUMN OFFSETS ***********************
+.add_column_offsets
+    clr.l   d2
+
+    move.w  v_map_y_position(a0),d4
+    swap    d4
+    move.w  v_map_y_position(a0),d4
+    and.l   #$000F000F,d4
+
+    asl.w   #1,d4
+    add.w   v_scrolly_dest_offset_table(a0,d4.w),d2
+    add.l   d2,d1                                           ;destination offset = mapy * mapwidth + mapx
+
+    move.w  v_map_x_position(a0),d2                         ;when X is on an uneven tile boundary, compensate
+    and.w   #$000f,d2                                       ;by blitting one block to the left
+    beq     .skip_compensate_for_x
+
+    sub.w   #2,d1
+
+.skip_compensate_for_x
+
+    clr.l   d2
+    move.w  v_scrolly_dest_offset_table(a0,d4.w),d2
+    add.l   d2,d5
+
+.check_past_end_of_source
+    cmp.l   a5,d5
+    blt     .check_left_blit_zero
+
+    sub.l   v_map_bytes(a0),d5                              ;TODO: Maybe this isn't correct
+
+.check_left_blit_zero
+    cmp.b   #15,v_scroll_vector_x(a0)                       ;left? ; TASK (2)
+    bne     .figure_out_num_blocks_to_blit                  ; TASK (2)
+    tst     d4                                              ; TASK (2)
+    bne     .figure_out_num_blocks_to_blit                  ; TASK (2)
+
+    sub.w   #2,d5                                           ; TASK (2)
+    cmp.l   a3,d5                                           ; TASK (2)
+    bge     .figure_out_num_blocks_to_blit                  ; TASK (2)
+    add.l   v_map_bytes(a0),d5                              ;TODO: Maybe this isn't correct ; TASK (2)
+
+.figure_out_num_blocks_to_blit
+    moveq   #0,d7
+    asr.w   #1,d4
+
+****************************************
+***      DOWN SCROLL CHECKS          ***
+****************************************
+
+
+;    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
+;    bne     .check_up
+;
+;    tst.w   d4
+;    beq     .none                                           ;If R, skip [A]
+;
+;****************************************
+;***       UP SCROLL CHECKS           ***
+;****************************************
+;
+;.check_up
+;    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
+;    bne     .check_position
+;
+;    tst.w   d4
+;    beq     .none                                           ;If R, skip [C]
+
+.check_position
+    cmp.w   #4,d4                                           ;positions 4 & B have doubles
+    beq     .double
+
+    cmp.w   #$B,d4                                          ;odd positions > 3 (single block)
+    beq     .double
+
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;right? ; TASK (2)
+    bne     .check_left                                     ; TASK (2)
+
+    tst.w   d4                                              ; TASK (2)
+    bne     .single                                         ; TASK (2)
+
+    cmp.b   #15,v_scroll_vector_y(a0)                       ;up? ; TASK (2)
+    bne     .single                                         ; TASK (2)
+
+    add.w   #screen_bpl_bytes_per_row-2,d5                  ; TASK (2)
+	sub.w	#2,d1                                           ; TASK (2)
+    bra     .single                                         ; TASK (2)
+
+    ;cmp.w   #$F,d4                                          ;R + step F = double blit ; TASK (2)
+    ;beq     .single                                         ; TASK (2)
+
+.check_left                                                 ; TASK (2)
+    cmp.b   #15,v_scroll_vector_x(a0)                       ;left? ; TASK (2)
+    bne     .single                                         ; TASK (2)
+
+    cmp.w   #$F,d4                                          ; TASK (2)
+    bne     .single                                         ; TASK (2)
+    sub.w   #2,d5                                           ; TASK (2)
+    add.w   #screen_bpl_bytes_per_row-2,d1                  ; TASK (2)
+    bra     .single                                         ; TASK (2)
+
+;    tst     d4                                              ; TASK (2)
+;    bne     .single                                         ; TASK (2)
+
+.double
+    addq    #1,d7
+
+.single
+    addq    #1,d7
+    asl.w   #2,d7
+.none
+    rts
+
+;-----------------------------------------------
+;-------------------------------------
+;-------------------------------------
+;-------------------------------------
+;-------------------------------------
+;-------------------------------------
+;-------------------------------------
+;-------------------------------------
+;-------------------------------------
+    ;mcgeezer_special2
+
+
+    bra     .double
+
+    *********************************
+    *****    CHECK DIAGONAL     *****
+    *********************************
+
+    *****  DOWN RIGHT  *****
+
+;.check_diagonal
+;    bra     .single
+;
+;    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+;    bne     .check_left
+;
+;    tst.w   d4
+;    bne     .single
+;
+;    cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
+;    bne     .adjust_right
+;
+;    move.w  v_map_x_position(a0),d2
+;    and.w   #15,d2
+;    sub.w   #1,d2
+;    beq     .adjust_right
+;
+;    and.w   #15,d2
+;    move.w  d2,d3
+;    add.w   d2,d2
+;
+;    cmp.w   #4,d3
+;    blt     .subtract
+;
+;    cmp.w   #14,d3
+;    bge     .subtract
+;
+;    cmp.w   #11,d3
+;    blt     .account_for_double_blocks_down_right
+;    add.w   #2,d2
+;
+;.account_for_double_blocks_down_right
+;    add.w   #2,d2
+;
+;.subtract
+;    sub.w   d2,d5
+;    sub.w   d2,d1
+;
+;.adjust_right
+;    add.w   v_video_x_bitplane_offset(a0),d5
+;    add.w   v_video_x_bitplane_offset(a0),d1
+;    move.l  a3,d5
+;    add.l   #$2d000,d5
+;    bra     .single
+;
+;    *****   UP LEFT    *****
+;
+;.check_left
+;    cmp.b   #15,v_scroll_vector_x(a0)                       ;left?
+;    bne     .single
+;
+;    cmp.w   #$F,d4
+;    bne     .single
+;
+;    cmp.b   #15,v_scroll_vector_y(a0)                        ;up?
+;    bne     .adjust_left_down
+;
+;    move.w  v_map_x_position(a0),d2
+;    add.w   #1,d2
+;    and.w   #15,d2
+;
+;    add.w   d2,d2
+;    move.w  v_scrolly_dest_offset_table(a0,d2.w),d2
+;
+;    sub.w   d2,d5
+;    sub.w   d2,d1
+;    move.l  a3,d5
+;    add.l   #$2d000,d5
+;    bra     .single
+;
+;.adjust_left_down
+;    add.w   #2,d1
+;    add.w   #2,d5
+;    sub.w   v_video_x_bitplane_offset(a0),d5
+;    sub.w   v_video_x_bitplane_offset(a0),d1
+;    move.l  a3,d5
+;    add.l   #$2d000,d5
+;    bra     .single
+;
