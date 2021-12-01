@@ -54,19 +54,105 @@ ScrollRightFixRow:
     and.w   #15,d3
     bne     .end
 
+    move.w  v_map_y_position(a0),d3
+    and.w   #15,d3
+    beq     .end
+
     mcgeezer_special2
-    move.w  #1,d3
+
+    move.w  #0,d7
+    move.l  a3,d5
+
+    clr.l   d1
+    clr.l   d4
+    clr.l   d2
+    move.w  v_map_y_position(a0),d2
+    asr.w   #4,d2
+    move.w  d2,d3
+    sub.w   #1,d2
+    bpl     .one_more
+    clr.l   d2
+    move.b  v_map_tile_height(a0),d2
+
+.one_more
+    tst.w   d2
+    beq     .find_dest
+
+    sub.w   #1,d2
+    move.w  v_map_bytes_per_tile_row(a0),d4
+
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+    bne     .addo
+
+    add.l   v_map_bytes_per_tile_block(a0),d1
+
+.addo
+    add.l   d4,d1
+    dbf     d2,.addo
+
+
+.find_dest
+    add.l   d1,d5
+
+    move.l  v_scroll_screen(a0),d1
+
+    clr.l   d4
 
     swap    d3
     move.w  v_map_y_position(a0),d3
-    asr.w   #4,d3
+    and.w   #15,d3
+
+    cmp.w   #4,d3
+    bne     .check_11
+    add.w   #1,d7
+
+.check_11
+    cmp.w   #11,d3
+    bne     .get_offset
+    add.w   #1,d7
+
+.get_offset
+    ;TODO: NEED TO DO SOMETHING FOR LEFT SCROLL; IT'S NOT QUITE RIGHT
+
+
+    add.w   d3,d3
+    move.w  v_scrolly_dest_offset_table(a0,d3.w),d2
+
+    add.l   d2,d5
+    add.l   d2,d1
+
+    clr.l   d2
     swap    d3
+    add.w   d3,d3
+    move.w  v_scrollx_dest_offset_table(a0,d3.w),d2
+    add.l   d2,d1
+
+    move.w  v_map_x_position(a0),d2
+    asr.w   #4,d2
+    add.w   d2,d2
+
+    add.w   d2,d5
+
+    sub.w   #2,d1
+    sub.w   #2,d5
+
+    WAITBLIT
+
+    tst.w   d7
+    bne     .double
+    bsr     TileDraw
+    bra     .end
+
+.double
+    bsr     TileDrawTwoHorizontal
 
 .end
     rts
 ;-----------------------------------------------
 ScrollLeftFixRow:
 ;(LEFT) (16,3) => (0,3) ROW BLIT (FILL):        Y-STEP BLOCK (FROM UP SOURCE AS A NORMAL (UP) BLOCK)
+    jmp     ScrollRightFixRow
+
     move.w  v_map_x_position(a0),d3
     and.w   #15,d3
     bne     .end
@@ -87,6 +173,10 @@ ScrollVerticalFixColumn:
     move.w  v_map_y_position(a0),d3
     and.w   #15,d3
     bne     .end
+
+    move.w  v_map_x_position(a0),d3
+    and.w   #15,d3
+    beq     .end
 
     move.l  v_scroll_screen(a0),d1
     move.l  a3,d5
