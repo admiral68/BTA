@@ -117,6 +117,7 @@ ScrollHorizontalFixRow:
 
     clr.l   d2
     swap    d3
+    and.w   #15,d3
     add.w   d3,d3
     move.w  v_scrollx_dest_offset_table(a0,d3.w),d2
     add.l   d2,d1
