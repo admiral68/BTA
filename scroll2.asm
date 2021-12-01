@@ -14,7 +14,6 @@ ScrollGetMapXYForHorizontal2:
     and.w   #15,d3                                          ;mapy = mapposx & (NUMSTEPS - 1);
 
     rts
-
 ;-----------------------------------------------
 ScrollGetMapXYForVertical2:
     move.w  v_map_y_position(a0),d3                         ;save for mapy
@@ -48,7 +47,7 @@ ScrollGetMapXYForVertical2:
     rts
 
 ;-----------------------------------------------
-ScrollRightFixRow:
+ScrollHorizontalFixRow:
 ;(RIGHT) (0,3) => (16,3) ROW BLIT (FILL):                   Y-STEP BLOCK (FROM DOWN SOURCE AS A FILL (DOWN) BLOCK)
     move.w  v_map_x_position(a0),d3
     and.w   #15,d3
@@ -57,8 +56,6 @@ ScrollRightFixRow:
     move.w  v_map_y_position(a0),d3
     and.w   #15,d3
     beq     .end
-
-    mcgeezer_special2
 
     move.w  #0,d7
     move.l  a3,d5
@@ -112,9 +109,6 @@ ScrollRightFixRow:
     add.w   #1,d7
 
 .get_offset
-    ;TODO: NEED TO DO SOMETHING FOR LEFT SCROLL; IT'S NOT QUITE RIGHT
-
-
     add.w   d3,d3
     move.w  v_scrolly_dest_offset_table(a0,d3.w),d2
 
@@ -133,7 +127,12 @@ ScrollRightFixRow:
 
     add.w   d2,d5
 
+    cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
+    bne     .skip_adjust_destination_column
+
     sub.w   #2,d1
+
+.skip_adjust_destination_column
     sub.w   #2,d5
 
     WAITBLIT
@@ -145,25 +144,6 @@ ScrollRightFixRow:
 
 .double
     bsr     TileDrawTwoHorizontal
-
-.end
-    rts
-;-----------------------------------------------
-ScrollLeftFixRow:
-;(LEFT) (16,3) => (0,3) ROW BLIT (FILL):        Y-STEP BLOCK (FROM UP SOURCE AS A NORMAL (UP) BLOCK)
-    jmp     ScrollRightFixRow
-
-    move.w  v_map_x_position(a0),d3
-    and.w   #15,d3
-    bne     .end
-
-    mcgeezer_special2
-    move.w  #2,d3
-
-    swap    d3
-    move.w  v_map_y_position(a0),d3
-    asr.w   #4,d3
-    swap    d3
 
 .end
     rts
@@ -236,26 +216,6 @@ ScrollVerticalFixColumn:
 
 .end
     rts
-;-----------------------------------------------
-;ScrollUpFixColumn:
-;;(UP) (3,16) => (3,0)   X-STEP BLOCK OF FILL ROW WITH NORMAL (UP) BLOCK (NO PLANE SHIFT)
-;    move.w  v_map_y_position(a0),d3
-;    and.w   #15,d3
-;    bne     .end
-;
-;    mcgeezer_special2
-;    jmp        ScrollDownFixColumn
-;
-;
-;
-;
-;    swap    d3
-;    move.w  v_map_x_position(a0),d3
-;    asr.w   #4,d3
-;    swap    d3
-;
-;.end
-;    rts
 ;-----------------------------------------------
 ScrollGetHTileOffsets2:
 ;INPUT: mapx/y in d3

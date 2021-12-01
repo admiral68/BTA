@@ -249,7 +249,7 @@ TESTScroll:
 
     ;TODO: CHECK ROW (FILL) BLITS
     ;(RIGHT) (0,3) => (16,3) ROW BLIT (FILL):        Y-STEP BLOCK (FROM DOWN SOURCE AS A FILL (DOWN) BLOCK)
-    bsr     ScrollRightFixRow
+    bsr     ScrollHorizontalFixRow
 
     bsr     ScrollIncrementXPosition                        ;INPUT: mapx/y in d3; x/y in d4
     bsr     ScrollGetStepAndDelay
@@ -295,7 +295,7 @@ TESTScroll:
 
     ;TODO: CHECK ROW (FILL) BLITS
     ;(LEFT) (16,3) => (0,3) ROW BLIT (FILL):        Y-STEP BLOCK (FROM UP SOURCE AS A NORMAL (UP) BLOCK)
-    bsr     ScrollLeftFixRow
+    bsr     ScrollHorizontalFixRow
 
     ;needed for change of direction
     bsr     ScrollGetStepAndDelay
