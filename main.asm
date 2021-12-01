@@ -246,7 +246,6 @@ TESTScroll:
     move.l  (a4,d7.w),a4
     jsr     (a4)
 
-    ;TODO: CHECK ROW (FILL) BLITS
     ;(RIGHT) (0,3) => (16,3) ROW BLIT (FILL):        Y-STEP BLOCK (FROM DOWN SOURCE AS A FILL (DOWN) BLOCK)
     bsr     ScrollHorizontalFixRow
 
@@ -292,7 +291,6 @@ TESTScroll:
     move.l  (a4,d7.w),a4
     jsr     (a4)
 
-    ;TODO: CHECK ROW (FILL) BLITS
     ;(LEFT) (16,3) => (0,3) ROW BLIT (FILL):        Y-STEP BLOCK (FROM UP SOURCE AS A NORMAL (UP) BLOCK)
     bsr     ScrollHorizontalFixRow
 

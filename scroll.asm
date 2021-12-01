@@ -209,6 +209,8 @@ ScrollVerticalFixColumn:
     and.w   #15,d3
     beq     .end
 
+    mcgeezer_special2
+
     move.l  v_scroll_screen(a0),d1
     move.l  a3,d5
 
@@ -223,7 +225,10 @@ ScrollVerticalFixColumn:
     tst.w   d3
     beq     .end
 
+    cmp.b   #15,v_scroll_vector_y(a0)                           ;up?
+    beq     .skip_going_to_right_source
     add.w   #screen_columns*2,d5
+.skip_going_to_right_source
     sub.w   #2,d5
 
     move.w  v_map_y_position(a0),d2
@@ -239,10 +244,14 @@ ScrollVerticalFixColumn:
     dbf     d2,.addo
 
 .skip_add_rows
-    clr.l   d2
 
-    add.w   v_video_x_bitplane_offset(a0),d2
-    add.l   d2,d1
+    ;THIS LOCATES THE FILL COLUMN
+
+    cmp.b   #15,v_scroll_vector_y(a0)                           ;up?
+    beq     .skip_offset
+    add.w   #screen_columns*2,d1
+.skip_offset
+    sub.w   #2,d1
 
     move.w  #0,d3
     swap    d3
@@ -650,9 +659,6 @@ ScrollGetHTileOffsets:
     move.w  #15,d2
 
 .find_buffer_row
-;    swap    d3                                              ;mapy (block)
-;    add.w   d3,d2                                           ;rolls buffer down d3 rows
-;    swap    d3                                              ;x-step
     and.w   #15,d2
 
     asl.w   #1,d2
@@ -916,20 +922,7 @@ ScrollGetVTileOffsets:
     beq     .double
 
     cmp.w   #$E,d4                                          ;odd positions > 3 (single block)
-    beq     .double
-
-;THIS fixes up the right column
-    tst.b   v_scroll_vector_x(a0)
     bne     .single
-
-    cmp.w   #$F,d4
-    bne     .single
-
-    bra     .single
-
-    move.w  v_map_x_position(a0),d2                         ;when X is on an uneven tile boundary, compensate
-    and.w   #$000f,d2                                       ;by blitting one block to the left
-    beq     .single
 
 .double
     addq    #1,d7
