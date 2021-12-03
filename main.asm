@@ -181,6 +181,11 @@ TESTScroll:
     *****  BLIT NORMAL BLOCKS   *****
     *********************************
 
+    ;cmp.w   #$5c2,v_map_x_position(a0)
+    ;bne     .continue
+
+    ;mcgeezer_special2
+
 .continue
 
     *****  CHECK FOR MOVEMENT  *****
@@ -242,6 +247,8 @@ TESTScroll:
     lea     MapSourceBitmapE,a5
     bsr     ScrollGetHTileOffsets
 
+    mcgeezer_special
+
     lea     TileDrawVerticalJumpTable,a4
     move.l  (a4,d7.w),a4
     jsr     (a4)
@@ -287,6 +294,16 @@ TESTScroll:
     lea     MapSourceBitmapE,a5
     bsr     ScrollGetHTileOffsets
 
+    mcgeezer_special
+
+    ;cmp.l   #$bafbe,d5
+    ;bne     .tes_left
+
+    ;mcgeezer_special2
+    ;move.l  #$bafbe,d5
+
+;.tes_left
+
     lea     TileDrawVerticalJumpTable,a4
     move.l  (a4,d7.w),a4
     jsr     (a4)
@@ -327,6 +344,8 @@ TESTScroll:
     lea     MapSourceBitmapE,a5
     bsr     ScrollGetVTileOffsets
 
+    mcgeezer_special
+
     lea     TileDrawHorizontalJumpTable,a4
     move.l  (a4,d7.w),a4
     jsr     (a4)
@@ -353,6 +372,8 @@ TESTScroll:
     lea     MapSourceBitmap,a3
     lea     MapSourceBitmapE,a5
     bsr     ScrollGetVTileOffsets
+
+    mcgeezer_special
 
     lea     TileDrawHorizontalJumpTable,a4
     move.l  (a4,d7.w),a4
@@ -728,7 +749,7 @@ Sprite01Line02:
     ds.w 18
 
 Sprite02:
-    dc.w $2C40,$0000    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
+    dc.w $2C30,$0000    ;Vstart.b,Hstart/2.b,Vstop.b,%A0000SEH
     REPT 256
     dc.w $FFFF,$0000
     ENDR

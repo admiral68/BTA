@@ -209,8 +209,6 @@ ScrollVerticalFixColumn:
     and.w   #15,d3
     beq     .end
 
-    mcgeezer_special2
-
     move.l  v_scroll_screen(a0),d1
     move.l  a3,d5
 
@@ -697,6 +695,7 @@ ScrollGetHTileOffsets:
 
     ;SPECIAL CASE #2: FINISHED BLITTING A COLUMN; ON [U] ROW
     ;                 WHEN WE HIT THIS CASE, GRAB THE SOURCE FROM 16 TILES BELOW
+    ; I THINK THIS BLOCK IS INCORRECT. THIS SHOULD GET DEBUGGED
 
     cmp.w   d6,d3
     bne     .left_test
@@ -722,15 +721,15 @@ ScrollGetHTileOffsets:
     *********************************
 
     cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
-    bne     .check_up
+    bne     .single
 
 .double
-    moveq   #8,d7
+    moveq   #8,d7; TODO: THIS COULD BE AN ISSUE (MAYBE)
     rts
 
-.check_up
-    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
-    beq     .double
+;.check_up
+;    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
+;    beq     .double
 
 .single
     moveq   #4,d7
@@ -840,6 +839,8 @@ ScrollGetVTileOffsets:
     bra     .down_blit_on_step_15
 
 .continue_special_case_3
+    move.w  #1,d7
+
     sub.l   v_map_bytes_per_tile_block(a0),d5
     add.w   v_map_bytes_per_tile_row(a0),d2
     add.l   d2,d5
@@ -865,30 +866,31 @@ ScrollGetVTileOffsets:
     ;SPECIAL CASE #4: FINISHED BLITTING A ROW
     ;                 WHEN WE HIT THIS CASE, BLIT TO THE FIRST BLOCK OF THE FILL COLUMN BELOW
     ;                 THE SOURCE (THE END OF THE FILL ROW) BLOCK IS CORRECT
+    ;RIGHT FILL BLOCK
+    ;THIS HAS BEEN TESTED: AND IT WORKS 100%
 
 .check_special_case_04
 
     tst.w   d3
     bne     .continue_with_column_offset
 
-    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
+    cmp.b   #15,v_scroll_vector_y(a0)
     bne     .continue_with_column_offset
 
-    clr.l   d2
-    add.w   v_video_x_bitplane_offset(a0),d1
-    add.w   #screen_columns*2,d2
-    add.l   d2,d5
+    cmp.w   #1,d4                           ;SEEMS TO HAPPEN ON THE BLITS STARTING FROM X POSITIONS ENDING IN F
+    bne     .skip_adjust_source_left
+    sub.l   #2,d1
 
+    bra     .move_1
+
+.skip_adjust_source_left
+    add.l   #2,d5
+
+.move_1
     move.w  #1,d7
     bra     .finish
 
     ;END: SPECIAL CASE #4
-
-;.try_d7_test
-;    tst.w   d7
-;    beq     .continue_with_column_offset
-;    move.w  #0,d4
-
 
 .continue_with_column_offset
     move.w  d3,d4
@@ -914,8 +916,12 @@ ScrollGetVTileOffsets:
 
 .figure_out_num_blocks_to_blit
     tst.w   d7
-    bne     .finish
+    beq     .check_positions
+    ;move.l #$5bf08,d5;special case 3
 
+    bra     .finish
+
+.check_positions
     asr.w   #1,d4
     cmp.w   #4,d4                                           ;positions 4 & B have doubles
     beq     .double

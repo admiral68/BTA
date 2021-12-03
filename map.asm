@@ -123,13 +123,23 @@ CopyScreenFromMapSourceBitmap:
     ;      = 1088 lines / 4 = 272 total raster lines
 
     tst.w   v_map_y_position(a0)
-    beq     .continue
+    beq     .check_x
 
     clr.l   d6
     move.l  d6,d7
     move.w  v_map_y_position(a0),d6
     move.w  v_map_source_bytes_per_row(a0),d7
     mulu    d7,d6
+    add.l   d6,d3
+
+.check_x
+    tst.w   v_map_x_position(a0)
+    beq     .continue
+    clr.l   d6
+    move.w  v_map_x_position(a0),d6
+    asr.w   #4,d6
+    add.w   d6,d6
+    sub.w   #2,d6
     add.l   d6,d3
 
 .continue
