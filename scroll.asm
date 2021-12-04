@@ -752,18 +752,6 @@ ScrollGetVTileOffsets:
 
     moveq   #0,d7
 
-
-;    tst.w   v_map_tiles_to_reblit(a0)
-;    beq     .start_v_tiles
-;
-;    ;TODO: HARDCODING 15
-;    move.w  #0,v_map_tiles_to_reblit(a0)
-;    move.w  #15,d7
-;    cmp.b   #1,v_scroll_previous_x_direction(a0)            ;if (previous_direction == DIRECTION_RIGHT)
-;    bne     .start_v_tiles
-;    sub.w   #1,d7
-
-
 .start_v_tiles
     clr.l   d1                                              ;SOURCE OFFSET
     clr.l   d2                                              ;COUNTER
@@ -826,39 +814,17 @@ ScrollGetVTileOffsets:
     and.w   #15,d4
     beq     .continue_with_column_offset
 
-    ;SPECIAL CASE #3: FINISHED BLITTING A ROW
+    ;SPECIAL CASE #3: FINISHED BLITTING A ROW (AFFECTS DIAGONAL D+L)
     ;                 WHEN WE HIT THIS CASE, GRAB THE SOURCE FROM LEFT (NORMAL)
+    ;THIS HAS BEEN TESTED: AND IT WORKS 100%
 
     cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
     bne     .check_special_case_04
 
     tst.w   d3
-    beq     .continue_special_case_3
-    cmp.b   #15,d3
     bne     .continue_with_column_offset
-    bra     .down_blit_on_step_15
 
-.continue_special_case_3
     move.w  #1,d7
-
-    sub.l   v_map_bytes_per_tile_block(a0),d5
-    add.w   v_map_bytes_per_tile_row(a0),d2
-    add.l   d2,d5
-    add.l   #2,d5
-    clr.l   d2
-
-    add.w   #screen_bpl_bytes_per_row,d2
-    add.l   d2,d1
-    clr.l   d2
-
-    ;mcgeezer_special2
-
-    bra     .continue_with_column_offset
-
-.down_blit_on_step_15
-
-    add.l   #2,d1
-    add.l   #2,d5
     bra     .continue_with_column_offset
 
     ;END: SPECIAL CASE #3
@@ -905,10 +871,14 @@ ScrollGetVTileOffsets:
     sub.w   #2,d1
 
 .skip_compensate_for_x
+    tst.w   d7;NEW
+    bne     .check_d5;NEW
+
     clr.l   d2
     move.w  v_scrolly_dest_offset_table(a0,d4.w),d2
     add.l   d2,d5
 
+.check_d5;NEW
     cmp.l   a5,d5
     blt     .figure_out_num_blocks_to_blit
 
@@ -916,10 +886,7 @@ ScrollGetVTileOffsets:
 
 .figure_out_num_blocks_to_blit
     tst.w   d7
-    beq     .check_positions
-    ;move.l #$5bf08,d5;special case 3
-
-    bra     .finish
+    bne     .finish
 
 .check_positions
     asr.w   #1,d4
