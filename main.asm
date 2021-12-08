@@ -534,10 +534,12 @@ FastData:
 
 ;v_previous_scroll_vector
     dc.w 0
-;v_map_tiles_to_reblit
+;v_previous_scroll_vector_vertical
+    dc.w 0
+;v_scroll_vertical_special_case_blocks
     dc.w 0
 ;v_unused_04
-    dc.b $30,$20,$10,$00
+    dc.b $10,$00
 
 ;v_decoded_bitplane_bytes
     dc.b 0,0,0,0,0,0,0,0,0,0

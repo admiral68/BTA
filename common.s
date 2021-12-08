@@ -5,157 +5,161 @@
     * pointer offsets *
     *-----------------*
 
-v_tile_y_position                   = 0                 ;unused
-v_tile_x_position                   = 2
-v_tile_map_dest                     = 4
-v_tile_map_row_dest                 = 8
-v_screen                            = 12
-v_tile_source                       = 16
-v_map_y_position                    = 20
-v_map_x_position                    = 22
-v_video_y_position                  = 24
-v_video_x_position                  = 26
-v_map_source_bytes_per_row          = 28
-v_scroll_vector_x                   = 30
-v_scroll_vector_y                   = 31
-v_scroll_screen                     = 32
-v_scroll_screen_split               = 36
-v_scroll_ptr_saveword               = 40
-v_map_width                         = 44                ;unused
-v_map_bytes_per_tile_row            = 46
-v_map_bytes                         = 48
-v_map_height                        = 52
-v_map_source_bpl_bytes_per_row      = 54
-v_scrollx_dest_offset_table         = 56
-v_scrolly_dest_offset_table         = 88
-v_scroll_saveword                   = 120
-v_video_x_bitplane_offset           = 122
-v_scroll_positions                  = 124
-v_screen_end                        = 140
-v_map_bytes_per_tile_block          = 144
-v_previous_scroll_vector            = 148
-v_map_tiles_to_reblit               = 150
-v_unused_04                         = 152
-v_decoded_bitplane_bytes            = 156
-v_current_map_columns               = 166
-v_current_map_rows                  = 167
-v_joystick_value                    = 168
-v_scroll_previous_x_direction       = 169
-v_y_scroll_velocity                 = 170
-v_x_scroll_velocity                 = 171
-v_previous_joystick_value           = 172
-v_previous_x_step_value             = 173
-v_previous_y_step_value             = 174
-v_map_tile_width                    = 175
-v_map_tile_height                   = 176
-v_debug_char_lut                    = 177
-v_debug_hexchar_lut                 = 241
-v_text_buffer                       = 257
+v_tile_y_position                       = 0                 ;unused
+v_tile_x_position                       = 2
+v_tile_map_dest                         = 4
+v_tile_map_row_dest                     = 8
+v_screen                                = 12
+v_tile_source                           = 16
+v_map_y_position                        = 20
+v_map_x_position                        = 22
+v_video_y_position                      = 24
+v_video_x_position                      = 26
+v_map_source_bytes_per_row              = 28
+v_scroll_vector_x                       = 30
+v_scroll_vector_y                       = 31
+v_scroll_screen                         = 32
+v_scroll_screen_split                   = 36
+v_scroll_ptr_saveword                   = 40
+v_map_width                             = 44                ;unused
+v_map_bytes_per_tile_row                = 46
+v_map_bytes                             = 48
+v_map_height                            = 52
+v_map_source_bpl_bytes_per_row          = 54
+v_scrollx_dest_offset_table             = 56
+v_scrolly_dest_offset_table             = 88
+v_scroll_saveword                       = 120
+v_video_x_bitplane_offset               = 122
+v_scroll_positions                      = 124
+v_screen_end                            = 140
+v_map_bytes_per_tile_block              = 144
+v_previous_scroll_vector                = 148
+v_previous_scroll_vector_vertical       = 150
+v_scroll_y_block_step                   = 152
+v_unused_04                             = 154
+v_decoded_bitplane_bytes                = 156
+v_current_map_columns                   = 166
+v_current_map_rows                      = 167
+v_joystick_value                        = 168
+v_scroll_previous_x_direction           = 169
+v_y_scroll_velocity                     = 170
+v_x_scroll_velocity                     = 171
+v_previous_joystick_value               = 172
+v_previous_x_step_value                 = 173
+v_previous_y_step_value                 = 174
+v_map_tile_width                        = 175
+v_map_tile_height                       = 176
+v_debug_char_lut                        = 177
+v_debug_hexchar_lut                     = 241
+v_text_buffer                           = 257
 
-c_horizontal_scroll_pos_01          = 38
-c_sprites_enable_01                 = 42
-c_palette_01                        = 46
-c_bitplane_pointers_01              = 174
-c_sprites01_cols                    = 212
-c_sprites23_cols                    = 224
-c_sprites45_cols                    = 236
-c_sprites67_cols                    = 248
-c_sprite00                          = 260
-c_sprite01                          = 268
-c_sprite02                          = 276
-c_sprite03                          = 284
-c_sprite04                          = 292
-c_sprite05                          = 300
-c_null_sprites                      = 308
-c_display_enable_01                 = 324
-c_split_stop                        = 328
-c_split                             = 332
-c_bitplane_pointers_02              = 338
+c_horizontal_scroll_pos_01              = 38
+c_sprites_enable_01                     = 42
+c_palette_01                            = 46
+c_bitplane_pointers_01                  = 174
+c_sprites01_cols                        = 212
+c_sprites23_cols                        = 224
+c_sprites45_cols                        = 236
+c_sprites67_cols                        = 248
+c_sprite00                              = 260
+c_sprite01                              = 268
+c_sprite02                              = 276
+c_sprite03                              = 284
+c_sprite04                              = 292
+c_sprite05                              = 300
+c_null_sprites                          = 308
+c_display_enable_01                     = 324
+c_split_stop                            = 328
+c_split                                 = 332
+c_bitplane_pointers_02                  = 338
 
     *-----------------*
     * constants:video *
     *-----------------*
 
-screen_width                        = 288                                               ;was 352
-screen_height                       = 224                                               ;was 256
-screen_buffer_height                = 256                                               ;was 288
-screen_columns                      = screen_width/tile_width
-screen_rows                         = screen_height/tile_height
-screen_buffer_rows                  = screen_buffer_height/tile_height
-screen_bitplanes                    = 5; was 4
-screen_bpl_bytes_per_row            = screen_width/8
-screen_bytes_per_row                = screen_bpl_bytes_per_row*screen_bitplanes
-screen_tile_bytes_per_row           = screen_bytes_per_row*tile_height
-screen_tile_bytes_per_block         = screen_tile_bytes_per_row*16
-screen_buffer_bytes                 = screen_tile_bytes_per_row*screen_buffer_rows
-screen_actual_buffer_bytes          = screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16)
-screen_modulo                       = (screen_width/8)*(screen_bitplanes-1)             ;offset by 3 bitplanes
-screen_horz_disp_words              = screen_width/16
-screen_bp_bytes_per_raster_line     = screen_horz_disp_words*2
-screen_bp_tile_offset               = screen_bpl_bytes_per_row*screen_bitplanes
+screen_width                            = 288                                               ;was 352
+screen_height                           = 224                                               ;was 256
+screen_buffer_height                    = 256                                               ;was 288
+screen_columns                          = screen_width/tile_width
+screen_rows                             = screen_height/tile_height
+screen_buffer_rows                      = screen_buffer_height/tile_height
+screen_bitplanes                        = 5; was 4
+screen_bpl_bytes_per_row                = screen_width/8
+screen_bytes_per_row                    = screen_bpl_bytes_per_row*screen_bitplanes
+screen_tile_bytes_per_row               = screen_bytes_per_row*tile_height
+screen_tile_bytes_per_block             = screen_tile_bytes_per_row*16
+screen_buffer_bytes                     = screen_tile_bytes_per_row*screen_buffer_rows
+screen_actual_buffer_bytes              = screen_bpl_bytes_per_row*screen_bitplanes*(screen_buffer_height+2+16)
+screen_modulo                           = (screen_width/8)*(screen_bitplanes-1)             ;offset by 3 bitplanes
+screen_horz_disp_words                  = screen_width/16
+screen_bp_bytes_per_raster_line         = screen_horz_disp_words*2
+screen_bp_tile_offset                   = screen_bpl_bytes_per_row*screen_bitplanes
 
-map_bitplanes                       = screen_bitplanes; was 4
-map_bytes                           = eight_by_four_map_cols*2*map_bitplanes*tile_height*(eight_by_four_map_rows-16)
-map_dungeon_bytes                   = 64*2*map_bitplanes*tile_height*24
-map_wiseman_bytes                   = 16*2*map_bitplanes*tile_height*7
+map_bitplanes                           = screen_bitplanes; was 4
+map_bytes                               = eight_by_four_map_cols*2*map_bitplanes*tile_height*(eight_by_four_map_rows-16)
+map_dungeon_bytes                       = 64*2*map_bitplanes*tile_height*24
+map_wiseman_bytes                       = 16*2*map_bitplanes*tile_height*7
 
-map_source_width                    = 256
-map_source_tile_bpl_bytes_per_row   = map_source_width/8
-map_source_tile_bytes_per_row       = map_source_tile_bpl_bytes_per_row*screen_bitplanes
-map_source_tile_bytes_per_tile_row  = map_source_tile_bytes_per_row*tile_height
+map_source_width                        = 256
+map_source_tile_bpl_bytes_per_row       = map_source_width/8
+map_source_tile_bytes_per_row           = map_source_tile_bpl_bytes_per_row*screen_bitplanes
+map_source_tile_bytes_per_tile_row      = map_source_tile_bytes_per_row*tile_height
 
-debug_font_bitmap_width             = 80
-debug_font_bitmap_height            = 32
-debug_font_char_width               = 8
-debug_font_char_height              = 8
-debug_font_bitplanes                = 2
-debug_font_bitmap_bpl_bytes_per_row = debug_font_bitmap_width/8
-debug_font_bitmap_bytes_per_row     = debug_font_bitmap_bpl_bytes_per_row*debug_font_bitplanes
-debug_font_row_height               = debug_font_bitmap_bytes_per_row*debug_font_char_height
-debug_font_col_width                = debug_font_char_width
+debug_font_bitmap_width                 = 80
+debug_font_bitmap_height                = 32
+debug_font_char_width                   = 8
+debug_font_char_height                  = 8
+debug_font_bitplanes                    = 2
+debug_font_bitmap_bpl_bytes_per_row     = debug_font_bitmap_width/8
+debug_font_bitmap_bytes_per_row         = debug_font_bitmap_bpl_bytes_per_row*debug_font_bitplanes
+debug_font_row_height                   = debug_font_bitmap_bytes_per_row*debug_font_char_height
+debug_font_col_width                    = debug_font_char_width
 
-debug_string_char_pixel_width       = debug_font_char_width
-debug_string_char_pixel_height      = debug_font_char_height
-debug_string_width                  = 6*debug_font_char_width
-debug_string_bpl_bytes_per_row      = debug_string_width/8
-debug_string_mapx_bytes_per_row     = debug_string_bpl_bytes_per_row*debug_font_bitplanes
-debug_string_mapy_bytes_per_row     = debug_string_bpl_bytes_per_row*debug_font_bitplanes
-debug_string_mapx_size              = debug_string_mapx_bytes_per_row*debug_font_char_height
-debug_string_mapy_size              = debug_string_mapy_bytes_per_row*debug_font_char_height
+debug_string_char_pixel_width           = debug_font_char_width
+debug_string_char_pixel_height          = debug_font_char_height
+debug_string_width                      = 6*debug_font_char_width
+debug_string_bpl_bytes_per_row          = debug_string_width/8
+debug_string_mapx_bytes_per_row         = debug_string_bpl_bytes_per_row*debug_font_bitplanes
+debug_string_mapy_bytes_per_row         = debug_string_bpl_bytes_per_row*debug_font_bitplanes
+debug_string_mapx_size                  = debug_string_mapx_bytes_per_row*debug_font_char_height
+debug_string_mapy_size                  = debug_string_mapy_bytes_per_row*debug_font_char_height
 
     *-----------------*
     * level data      *
     *-----------------*
 
-all_levels_wiseman_shop_cols        = 16
-all_levels_wiseman_shop_rows        = 7
+all_levels_wiseman_shop_cols            = 16
+all_levels_wiseman_shop_rows            = 7
 
-eight_by_four_map_bmp_width_pixels  = 2048
-eight_by_four_map_bpl_bytes_per_row = eight_by_four_map_bmp_width_pixels/8
-eight_by_four_map_bytes_per_row     = eight_by_four_map_bpl_bytes_per_row*tile_bitplanes
-eight_by_four_map_bytes_per_tile_row= eight_by_four_map_bytes_per_row*tile_height
-eight_by_four_map_bytes_per_tile_blk= eight_by_four_map_bytes_per_tile_row*tile_block_height
-eight_by_four_map_cols              = 128
-eight_by_four_map_rows              = 64
+eight_by_four_map_bmp_width_pixels      = 2048
+eight_by_four_map_bpl_bytes_per_row     = eight_by_four_map_bmp_width_pixels/8
+eight_by_four_map_bytes_per_row         = eight_by_four_map_bpl_bytes_per_row*tile_bitplanes
+eight_by_four_map_bytes_per_tile_row    = eight_by_four_map_bytes_per_row*tile_height
+eight_by_four_map_bytes_per_tile_blk    = eight_by_four_map_bytes_per_tile_row*tile_block_height
+eight_by_four_map_cols                  = 128
+eight_by_four_map_rows                  = 64
 
-level_01_main_map_cols              = eight_by_four_map_cols
-level_01_main_map_rows              = eight_by_four_map_rows-16
-level_01_dungeon_map_cols           = 64
-level_01_dungeon_map_rows           = 24
+level_01_main_map_cols                  = eight_by_four_map_cols
+level_01_main_map_rows                  = eight_by_four_map_rows-16
+level_01_dungeon_map_cols               = 64
+level_01_dungeon_map_rows               = 24
 
     *-----------------*
     * DMA             *
     *-----------------*
 
 
-DMA_fetch_start                     = $38                                   ;was $28: CONVERT $28 for 22 columns;$38 for 20 columns;$48 for 18 columns
-DMA_fetch_stop                      = $c0                                   ;was $d0: CONVERT $d0 for 22 columns;$c0 for 20 columns;$b0 for 18 columns
-vert_display_start                  = $2c                                   ;CONVERT
-vert_display_stop                   = $0c                                   ;was $2c; CONVERT $12c
-h_display_start                     = $81                                   ;was $71: CONVERT $81 for non-scrolling display; $91 otherwise
-h_display_stop                      = $a1                                   ;was $c1: CONVERT $c1 for non-scrolling display
+DMA_fetch_start                         = $38                                   ;was $28: CONVERT $28 for 22 columns;$38 for 20 columns;$48 for 18 columns
+DMA_fetch_stop                          = $c0                                   ;was $d0: CONVERT $d0 for 22 columns;$c0 for 20 columns;$b0 for 18 columns
+vert_display_start                      = $2c                                   ;CONVERT
+vert_display_stop                       = $2c                                   ;was $0c; CONVERT $12c
+h_display_start                         = $81                                   ;was $71: CONVERT $81 for non-scrolling display; $91 otherwise
+h_display_stop                          = $a1                                   ;was $c1: CONVERT $c1 for non-scrolling display
 
-bpls                                = 3                                     ;handy values:
+;TO DEBUG FILL COLUMN/ROW:
+;vert_display_stop/h_display_stop: 0c/91 to hide rows/cols; 2c/a1 to show
+
+bpls                                    = 3                                     ;handy values:
 
     *-----------------*
     * palettes        *
