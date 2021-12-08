@@ -200,8 +200,7 @@ ScrollHorizontalFixRow:
     rts
 ;-----------------------------------------------
 ScrollVerticalFixColumn:
-;(DOWN) (3,0) => (3,16) X-STEP BLOCK FROM RIGHT SOURCE (IF LAST X-DIRECTION WAS RIGHT) OR LEFT SOURCE (IF LAST X-DIRECTION WAS LEFT)
-;LIKELY BUGS IN THIS
+;WORKS VIRTUALLY 100%; SOME "SAVEWORD" issues possible(?)
 ;DOWN SCROLL WORKING NICELY--EXCEPT FOR FINAL STEP ON HITTING BOTTOM OF MAP
 
     move.w  v_map_y_position(a0),d3
@@ -249,13 +248,17 @@ ScrollVerticalFixColumn:
     and.w   #15,d3                                              ;x step - y block step
 
     cmp.b   #15,v_scroll_vector_y(a0)                           ;up?
-    beq     .skip_going_to_right_source
+    bne     .figure_out_left_or_right
 
-    swap    d2                                                  ;DOWN SCROLL...
+    sub.w   #1,d3                                               ;take one off the step if going up
+    and.w   #15,d3
+
+.figure_out_left_or_right
+    swap    d2
     cmp.w   d2,d3
     bge     .skip_going_to_right_source                         ;REVERSE BLOCK FROM LEFT
 
-    move.w  #1,d7                                               ;FLAG: NORMAL BLOCK FROM RIGHT/DOWN SCROLL
+    move.w  #1,d7                                               ;FLAG: NORMAL BLOCK FROM RIGHT
     add.w   #screen_columns*2,d5                                ;NORMAL BLOCK FROM RIGHT
 
 .skip_going_to_right_source
@@ -303,9 +306,7 @@ ScrollVerticalFixColumn:
     clr.l   d6
     move.w  #screen_bpl_bytes_per_row,d6
 
-    cmp.b   #15,v_scroll_vector_y(a0)                           ;up?
-    beq     .finish_offset
-    tst.w   d7                                                  ;FLAG: NORMAL BLOCK FROM RIGHT/DOWN SCROLL?
+    tst.w   d7                                                  ;FLAG: NORMAL BLOCK FROM RIGHT?
     beq     .finish_offset                                      ;REVERSE BLOCK FROM LEFT
     add.l   d6,d1
 .finish_offset
@@ -328,8 +329,8 @@ ScrollVerticalFixColumn:
     sub.l   #screen_buffer_bytes,d1
 
 .blit
-    WAITBLIT
 
+    WAITBLIT
     bsr     TileDraw
 
 .end
@@ -863,7 +864,7 @@ ScrollGetVTileOffsets:
     ;THOUGHT THIS WORKED 100%
 
     cmp.b   #1,v_scroll_vector_y(a0)                        ;down?
-    bne     .check_special_case_04
+    bne     .continue_with_column_offset
 
     tst.w   d3
     bne     .continue_with_column_offset
@@ -875,85 +876,10 @@ ScrollGetVTileOffsets:
 
     clr.l   d2
 
-    move.w  #1,d7                           ; at this point, the fill column has left (normal) blocks in it.
+    move.w  #1,d7                                           ; at this point, the fill column has left (normal) blocks in it.
     bra     .continue_with_column_offset
 
     ;END: SPECIAL CASE #3
-
-    ;SPECIAL CASE #4: FINISHED BLITTING A ROW
-    ;                 WHEN WE HIT THIS CASE, BLIT TO THE FIRST BLOCK OF THE FILL COLUMN BELOW
-    ;                 THE SOURCE (THE END OF THE FILL ROW) BLOCK IS CORRECT
-    ;RIGHT FILL BLOCK sometimes; LEFT FILL BLOCK SOMETIMES
-
-.check_special_case_04
-
-;TODO: THE SOURCE BLOCK SHOULD BE ONE ON THE RIGHT, OR LEFT in some cases.
-;THIS WHOLE SECTION IS A MESS. CERTAIN BLOCKS GO TO THE LEFT; OTHERS GO TO THE RIGHT.
-;FINDING THE BLOCK TO REPLACE (WHICH IS A RIGHT/NORMAL BLOCK) IS A PAIN!
-;SITUATION: WE HAVE A SITUATION THAT ONCE IT HAS BLITTED (STEP-x) NUMBER OF REGULAR (R) BLOCKS,
-;           WE NEED TO GO TO THE BOTTOM OF THE ROW AND START BLITTING LEFT (FILL) BLOCKS
-;  SEEMS WE NEED TO COUNT THE NUMBER OF TIMES WE BLIT ON SPECIAL CASE #3 and then ONLY REPLACE (R) BLOCKS
-;  THAT MANY TIMES. OTHERWISE, BLIT AS NORMAL (FILL). WE DON'T KEEP DOING IT IF WE KEEP SCROLLING UP.
-
-    tst.w   d3
-    bne     .continue_with_column_offset
-
-    cmp.b   #15,v_scroll_vector_y(a0)                       ;up?
-    bne     .continue_with_column_offset
-
-    sub.l   #2,d1
-
-    clr.l   d2
-    move.l  v_scroll_screen(a0),d1                          ;D dest (frontbuffer)
-    add.l   #screen_tile_bytes_per_row-2,d1
-    move.w  v_scroll_y_block_step(a0),d2
-    add.w   d4,d2
-    and.w   #15,d2
-    add.w   d2,d2
-    move.w  v_scrollx_dest_offset_table(a0,d2.w),d2
-    add.l   d2,d1
-
-    clr.l   d6                                              ;TILE ROW BYTES
-    move.w  v_map_bytes_per_tile_row(a0),d6
-    sub.w   #1,d2
-    move.w  #14,d2
-
-.subbo
-    sub.l   d6,d5
-    dbf     d2,.subbo
-
-    cmp.l   v_screen(a0),d1
-    bge     .continue
-    add.l   #screen_buffer_bytes,d1
-
-.continue
-    add.l   #screen_columns*2,d1
-    cmp.w   #1,d4                           ;SEEMS TO HAPPEN ON THE BLITS STARTING FROM X POSITIONS ENDING IN F
-    beq     .move_1
-
-.skip_adjust_source_left
-    add.l   #2,d5
-
-.move_1
-
-    add.l   #screen_columns*2-2,d5          ;TRYING TO GET TO THE RIGHT COLUMN SOURCE
-    move.l  #$7ef08,d5
-
-    move.w  #1,d7
-    bra     .finish
-
-    ;END: SPECIAL CASE #4
-
-
-
-
-
-
-
-
-
-
-
 
 .continue_with_column_offset
     move.w  d3,d4
