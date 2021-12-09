@@ -100,6 +100,14 @@ ScrollGetMapXYForVertical:
 ScrollHorizontalFixRow:
 ;(RIGHT) (0,3) => (16,3) ROW BLIT (FILL):                   Y-STEP BLOCK (FROM DOWN SOURCE AS A FILL (DOWN) BLOCK)
 ;THIS SEEMS TO SKIP AT LEAST ONE BLOCK
+;ALSO IT PROBABLY DOES NOT EVER NEED TO BE A DOUBLE BLOCK.
+;ALSO THINK LEFT BLOCK IS ONE POSITION TOO FAR LEFT (DESTINATION AND SRC)
+
+;BLITS THE "LEFT MOST" CORRECTION BLOCK WHEN SCROLLING HORIZONTALLY
+
+;RIGHT SCROLL SEEMS FIXED NOW
+
+
 
     move.w  v_map_x_position(a0),d3
     and.w   #15,d3
@@ -133,6 +141,12 @@ ScrollHorizontalFixRow:
     cmp.b   #1,v_scroll_vector_x(a0)                        ;right?
     bne     .adjust_left
 
+
+
+    mcgeezer_special2
+
+
+
     add.l   v_map_bytes_per_tile_block(a0),d1
     bra     .addo
 
@@ -153,6 +167,7 @@ ScrollHorizontalFixRow:
 
     swap    d3
     move.w  v_map_y_position(a0),d3
+    sub.w   #1,d3
     and.w   #15,d3
 
     cmp.w   #4,d3
@@ -186,6 +201,11 @@ ScrollHorizontalFixRow:
     sub.w   #2,d1
     sub.w   #2,d5
 
+;   cmp.b   #15,v_scroll_vector_x(a0);DEBUG                        ;left?
+;   beq     .blit;DEBUG
+;    ;move.l    #$7ef08,d5;DEBUG
+;
+;.blit;DEBUG
     WAITBLIT
 
     tst.w   d7
@@ -720,31 +740,14 @@ ScrollGetHTileOffsets:
     cmp.b   #1,v_scroll_vector_x(a0)                        ;moving right?
     bne     .go_back_one_destination_column
 
-    ;SPECIAL CASE #1: FINISHED BLITTING A COLUMN; ON [U] ROW
-    ;                 WHEN WE HIT THIS CASE, JUST BLIT THE BLOCK WITHOUT
-    ;                 THE OFFSET
-
-    cmp.w   d6,d3
-    bne     .add_bitplane_offset
-
-    move.w  v_video_y_position(a0),d7
-    and.w   #15,d7
-    beq     .add_bitplane_offset
-
-    sub.w   #2,d1
-    sub.w   #2,d5
-
-    ;END: SPECIAL CASE #1
-
-.add_bitplane_offset
     add.w   v_video_x_bitplane_offset(a0),d2                ;VideoXBitplaneOffset: always either one bitplane pointer down (because of shift)
     bra     .set_destination_ptr
 
 .go_back_one_destination_column
 
-    ;SPECIAL CASE #2: FINISHED BLITTING A COLUMN; ON [U] ROW
+    ;SPECIAL CASE #1: MOVING LEFT: FINISHED BLITTING A COLUMN; ON [U] ROW
     ;                 WHEN WE HIT THIS CASE, GRAB THE SOURCE FROM 16 TILES BELOW
-    ; I THINK THIS BLOCK IS INCORRECT. THIS SHOULD GET DEBUGGED
+    ;THIS PROBABLY WORKS
 
     cmp.w   d6,d3
     bne     .left_test
@@ -755,7 +758,7 @@ ScrollGetHTileOffsets:
 
     add.l   v_map_bytes_per_tile_block(a0),d5
 
-    ;END: SPECIAL CASE #2
+    ;END: SPECIAL CASE #1
 
 .left_test
     tst.w   d3

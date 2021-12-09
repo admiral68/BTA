@@ -2165,3 +2165,28 @@ ScrollGetVTileOffsets:
 
     ;END: SPECIAL CASE #4
 ;--------------------------------------------------------
+    ;SPECIAL CASE #1: FINISHED BLITTING A COLUMN; ON [U] ROW
+    ;                 WHEN WE HIT THIS CASE, JUST BLIT THE BLOCK WITHOUT
+    ;                 THE OFFSET
+	;
+
+    cmp.w   d6,d3
+    bne     .add_bitplane_offset
+
+;    move.w  v_video_y_position(a0),d7
+;    and.w   #15,d7
+;    beq     .add_bitplane_offset
+
+;THIS MAY BE THE CULPRIT!
+
+;DEBUG (COMMENTED OUT)
+;    sub.w   #2,d1;DEBUG
+;    sub.w   #2,d5;DEBUG
+	
+	;move.l	#$7EF08,d5
+	
+	;this should be an UP block
+
+
+    ;END: SPECIAL CASE #1
+;---------------------------------------------
